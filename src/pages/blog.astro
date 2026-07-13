@@ -1,0 +1,808 @@
+---
+// src/pages/blog.astro
+import '../styles/global.css';
+import Chatbot from '../components/Chatbot.astro';
+import SEO from '../components/SEO.astro';
+import { seoPages } from '../data/seo';
+
+const seo = seoPages.blog;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <SEO {...seo} />
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        rasika: {
+                            accent: '#5EA6B0',    
+                            dark: '#141619',      
+                            surface: '#1E2226',   
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script is:inline src="https://unpkg.com/lucide@latest"></script>
+    
+    <style is:global>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        @keyframes float-bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .animate-float-bounce { animation: float-bounce 2s infinite ease-in-out; }
+        
+        .cta-glow-active .tooltip-bubble { box-shadow: 0 0 40px rgba(94,166,176,0.6) !important; background-color: #88d6e0 !important; }
+        .cta-glow-active .tooltip-tail { background-color: #88d6e0 !important; }
+        
+        /* --- BULLETPROOF TYPOGRAPHY (Absolute Specificity to block Tailwind) --- */
+        #reader-body, #reader-body p, #reader-body li, #reader-body span, #reader-body div { 
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important; 
+            font-weight: 400; /* Increased from 300 so the sans-serif is easy to read */
+            color: #D1D5DB; 
+            line-height: 1.8; 
+            font-size: 1.125rem;
+        }
+        #reader-body h1, #reader-body h2, #reader-body h3, #reader-body h4, #reader-body strong { 
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important; 
+            font-weight: 700 !important; 
+            color: #FFFFFF !important; 
+        }
+        #reader-body h1, #reader-body h2, #reader-body h3, #reader-body h4 {
+            margin-top: 1.5em; 
+            margin-bottom: 0.75em; 
+            letter-spacing: -0.025em; 
+            line-height: 1.3;
+        }
+        #reader-body p { margin-bottom: 1.5em; }
+        #reader-body h2 { font-size: 1.75rem !important; margin-top: 2em; margin-bottom: 1em; }
+        #reader-body h3 { font-size: 1.25rem !important; }
+        #reader-body ul { list-style-type: disc !important; margin-left: 1.5rem !important; margin-bottom: 1.5em; }
+        #reader-body ol { list-style-type: decimal !important; margin-left: 1.5rem !important; margin-bottom: 1.5em; }
+        #reader-body li { margin-bottom: 0.5em; padding-left: 0.5rem; }
+        #reader-body blockquote { border-left: 4px solid #5EA6B0 !important; padding-left: 1.25rem; font-style: italic; color: #9CA3AF; margin: 2.5em 0; }
+        
+        /* THE CYAN LINKS */
+        #reader-body a { color: #5EA6B0 !important; text-decoration: underline !important; text-underline-offset: 4px; }
+        #reader-body a:hover { color: #88d6e0 !important; transition: color 0.2s; }
+
+        /* --- RESPONSIVE IFRAME / VIDEO STYLING (Separated) --- */
+        #reader-body iframe { 
+            width: 100%; 
+            height: auto; 
+            aspect-ratio: 16/9; /* Ensures videos are never squished */
+            border-radius: 1rem; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #0a0c0e;
+            margin: 2rem 0; 
+            display: block; 
+        }
+        #reader-body img {
+            width: 100%; 
+            height: auto; 
+            /* NO aspect-ratio here! Images keep natural shape */
+            border-radius: 1rem; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            margin: 2rem 0; 
+            display: block; 
+        }
+
+        /* Sizing via Quill Alignment Classes */
+        #reader-body .ql-align-left iframe, #reader-body .ql-align-left img { width: 50%; margin: 2rem auto 2rem 0; }
+        #reader-body .ql-align-center iframe, #reader-body .ql-align-center img { width: 75%; margin: 2rem auto; }
+        #reader-body .ql-align-right iframe, #reader-body .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
+        
+        /* Text alignment */
+        #reader-body .ql-align-left { text-align: left; }
+        #reader-body .ql-align-center { text-align: center; }
+        #reader-body .ql-align-right { text-align: right; }
+        #reader-body .ql-align-justify { text-align: justify; }
+
+        .ai-border { position: relative; border-radius: 1rem; background: #1E2226; z-index: 1; }
+        .ai-border::before { content: ""; position: absolute; inset: -1.5px; border-radius: 1.1rem; background: linear-gradient(45deg, rgba(94,166,176,0.1), rgba(94,166,176,0.5), rgba(94,166,176,0.1)); z-index: -1; opacity: 0.5; transition: opacity 0.3s; }
+        .ai-border:hover::before { opacity: 1; }
+    </style>
+</head>
+<body class="tech-bg text-gray-200 font-sans min-h-screen relative overflow-x-hidden selection:bg-rasika-accent selection:text-[#0a0b0d]">
+
+    <div class="fixed inset-0 z-[-1] w-full h-full bg-rasika-dark">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-40 mix-blend-screen filter saturate-50 contrast-125">
+            <source src="/videos/backgrounds/animated_bg.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-rasika-dark/95 via-rasika-dark/60 to-transparent pointer-events-none"></div>
+    </div>
+
+    <!-- FIXED TOP NAVIGATION -->
+   <header class="fixed top-0 left-0 w-full border-b border-white/5 bg-[#141619]/80 backdrop-blur-xl z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center relative">
+        
+        <a href="/" class="block w-32 sm:w-40 transition-transform hover:scale-105">
+            <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones Logo" class="w-full h-auto" />
+        </a>
+        
+        <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-300">
+            <a href="/demos" class="hover:text-rasika-accent transition-colors" data-i18n="nav-demos">Demos</a>
+            <a href="/lms" class="hover:text-rasika-accent transition-colors" data-i18n="nav-lms">LMS & Bots</a>
+            <a href="/clients" class="hover:text-rasika-accent transition-colors" data-i18n="nav-clients">Clientes</a>
+            <a href="/pricing" class="hover:text-rasika-accent transition-colors" data-i18n="nav-pricing">Precios</a>
+            <a href="/blog" class="hover:text-rasika-accent transition-colors" data-i18n="nav-blog">Blog</a>
+            <button id="lang-toggle" class="border border-white/20 rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors" data-i18n="toggle-btn">EN</button>
+        </nav>
+
+        <button id="mobile-menu-btn" class="block lg:hidden p-2 text-gray-300 hover:text-white transition-colors">
+            <i data-lucide="menu" class="w-7 h-7"></i>
+        </button>
+    </div>
+
+    <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[#141619]/95 backdrop-blur-2xl border-b border-white/10 flex-col px-8 py-6 gap-6 shadow-2xl lg:hidden">
+        <a href="/demos" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-demos">Demos</a>
+        <a href="/lms" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-lms">LMS & Bots</a>
+        <a href="/clients" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-clients">Clientes</a>
+        <a href="/pricing" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-pricing">Precios</a>
+        <a href="/blog" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-blog">Blog</a>
+    </nav>
+</header>
+
+    <div id="mentor-cta-tooltip" class="fixed bottom-28 right-6 z-[90] flex flex-col items-end animate-float-bounce cursor-pointer group transition-all duration-300" onclick="openMentorWithMessage()">
+        <div class="tooltip-bubble bg-rasika-accent group-hover:bg-[#88d6e0] text-[#0a0b0d] text-sm font-extrabold px-5 py-3 rounded-2xl rounded-br-sm shadow-[0_0_30px_rgba(94,166,176,0.4)] transition-all duration-300 flex items-center gap-2">
+            <span data-i18n="cta-bubble">¡Pruébame!</span> <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="tooltip-tail w-4 h-4 bg-rasika-accent group-hover:bg-[#88d6e0] transform rotate-45 mr-4 -mt-2 transition-colors duration-300"></div>
+    </div>
+
+    <!-- EXPLICIT CONFIG FOR BLOG TO FETCH DB -->
+    <div id="blog-config" style="display:none;" 
+         data-url="https://firnxsegqamdoajycpyf.supabase.co" 
+         data-key="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpcm54c2VncWFtZG9hanljcHlmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY4Nzg3NDQsImV4cCI6MjA5MjQ1NDc0NH0.6gco42bT4pP96XuMUg79sD0r4I5ZPRHr0xxuT6tq4zo">
+    </div>
+
+    <header class="pt-36 pb-16 relative z-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-rasika-accent/10 border border-rasika-accent/20 text-rasika-accent text-xs font-bold mb-6">
+                <i data-lucide="book-open" class="w-3.5 h-3.5"></i> <span data-i18n="blog-badge">Insights & Innovación</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-bold text-white mb-6 tracking-tight leading-tight" data-i18n="blog-title">
+                E-Learning en la era de la <br/>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Simbiosis Digital</span>
+            </h1>
+            <p class="text-lg text-gray-400 max-w-2xl leading-relaxed" data-i18n="blog-desc">
+                Una mezcla curada de artículos profundos elaborados por nuestros expertos y actualizaciones de mercado en tiempo real generadas por agentes de IA.
+            </p>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 pb-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <section class="lg:col-span-8 flex flex-col gap-10">
+            <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-2">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i data-lucide="pen-tool" class="w-5 h-5 text-rasika-accent"></i> <span data-i18n="sect-human">Artículos Destacados</span>
+                </h2>
+            </div>
+            
+            <div id="human-articles-container" class="flex flex-col gap-10">
+                <!-- Articles injected here via JS -->
+            </div>
+        </section>
+
+        <aside class="lg:col-span-4">
+            <div class="sticky top-28 flex flex-col gap-6">
+                <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-2">
+                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                        <i data-lucide="radar" class="w-5 h-5 text-rasika-accent"></i> <span data-i18n="sect-ai">Radar IA (Tendencias)</span>
+                    </h2>
+                    <span class="flex h-2 w-2 relative">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rasika-accent opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-rasika-accent"></span>
+                    </span>
+                </div>
+
+                <div id="ai-radar-container" class="flex flex-col gap-4">
+                    <!-- AI Trends injected here via JS -->
+                </div>
+
+                <div class="p-5 rounded-2xl bg-gradient-to-br from-rasika-accent/10 to-transparent border border-rasika-accent/20 mt-4 text-center">
+                    <i data-lucide="bot" class="w-8 h-8 text-rasika-accent mx-auto mb-3"></i>
+                    <p class="text-sm text-gray-300 font-medium mb-4" data-i18n="agent-cta">¿Quieres que nuestro agente analice el stack tecnológico de tu empresa?</p>
+                    <button onclick="askBotAboutTech()" class="px-4 py-2 w-full bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-lg text-sm font-bold transition-all">Hablar con IA</button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 font-medium">
+            <p data-i18n="footer-text">© 2026 Rasika Producciones. Todos los derechos reservados.</p>
+            <div class="flex gap-6">
+                <a href="https://linkedin.com" target="_blank" class="hover:text-rasika-accent transition-colors">LinkedIn</a>
+                <a href="#" class="hover:text-rasika-accent transition-colors">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <div id="reader-modal" class="fixed inset-0 z-[200] hidden items-center justify-center opacity-0 transition-opacity duration-500">
+        
+        <!-- FIX: SOFTER GLASS EFFECT BACKDROP -->
+        <div class="absolute inset-0 bg-[#0a0c0e]/70 backdrop-blur-sm transition-all" onclick="closeReader()"></div>
+        
+        <div class="relative w-full max-w-5xl h-[100dvh] md:h-[90vh] bg-[#141619] md:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 transform scale-95 transition-transform duration-500" id="reader-container">
+            
+            <div class="flex justify-between items-center p-4 md:px-8 md:py-5 border-b border-white/5 bg-[#1E2226] shrink-0 z-20 relative">
+                <span class="text-sm font-bold text-gray-400 uppercase tracking-wider" id="reader-category">Insight</span>
+                <button onclick="closeReader()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative" id="reader-scroll-area">
+                
+                <!-- Dynamic Hero Background -->
+                <div id="reader-hero-bg" class="w-full h-48 md:h-[24rem] bg-[#0f1114] relative border-b border-white/5 transition-all duration-500">
+                    <div class="absolute inset-0 opacity-40 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>
+                </div>
+
+                <div class="max-w-3xl mx-auto px-6 py-12 md:py-16 relative z-10">
+                    <h1 id="reader-title" class="text-3xl md:text-5xl font-extrabold text-white mb-8 leading-tight font-sans tracking-tight"></h1>
+                    
+                    <div class="flex items-center gap-4 pb-8 mb-10 border-b border-white/10">
+                        <div class="w-12 h-12 rounded-full bg-[#1E2226] flex items-center justify-center border border-white/10 overflow-hidden">
+                            <i id="reader-author-icon" data-lucide="user" class="w-6 h-6 text-gray-400"></i>
+                        </div>
+                        <div>
+                            <div id="reader-author" class="text-base font-bold text-white"></div>
+                            <div id="reader-date" class="text-sm text-gray-500"></div>
+                        </div>
+                    </div>
+
+                    <!-- THE TARGET READER BODY -->
+                    <div id="reader-body" class="text-left">
+                    </div>
+
+                    <div class="mt-16 pt-6 border-t border-white/10 flex flex-col">
+                        <div class="flex items-center gap-4 py-4">
+                            <button onclick="shareFacebook()" class="relative group/share hover:-translate-y-1 transition-transform flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-[#1877F2]/20">
+                                <img src="/images/social/facebook.svg" alt="Facebook" class="w-4 h-4 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="hidden items-center justify-center text-gray-400 group-hover/share:text-[#1877F2] transition-colors w-full h-full">
+                                    <i data-lucide="facebook" class="w-4 h-4"></i>
+                                </div>
+                                <span class="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded opacity-0 group-hover/share:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">Facebook</span>
+                            </button>
+                            
+                            <button onclick="shareTwitter()" class="relative group/share hover:-translate-y-1 transition-transform flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-white/20">
+                                <img src="/images/social/x.svg" alt="X (Twitter)" class="w-4 h-4 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="hidden items-center justify-center text-gray-400 group-hover/share:text-white transition-colors w-full h-full">
+                                    <i data-lucide="twitter" class="w-4 h-4"></i>
+                                </div>
+                                <span class="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded opacity-0 group-hover/share:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">X (Twitter)</span>
+                            </button>
+                            
+                            <button onclick="shareLinkedIn()" class="relative group/share hover:-translate-y-1 transition-transform flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-[#0A66C2]/20">
+                                <img src="/images/social/linkedin.svg" alt="LinkedIn" class="w-4 h-4 object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                                <div class="hidden items-center justify-center text-gray-400 group-hover/share:text-[#0A66C2] transition-colors w-full h-full">
+                                    <i data-lucide="linkedin" class="w-4 h-4"></i>
+                                </div>
+                                <span class="absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded opacity-0 group-hover/share:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">LinkedIn</span>
+                            </button>
+                            
+                            <button onclick="copyLink(this)" class="relative group/share hover:-translate-y-1 transition-transform flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-white/20 ml-2 border border-white/10">
+                                <div class="flex items-center justify-center text-gray-400 group-hover/share:text-white transition-colors w-full h-full">
+                                    <i data-lucide="link" class="w-4 h-4 transition-transform duration-300"></i>
+                                </div>
+                                <span class="copy-tooltip absolute -top-10 left-1/2 -translate-x-1/2 bg-white text-black text-xs font-bold px-2.5 py-1.5 rounded opacity-0 group-hover/share:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-lg">Copiar enlace</span>
+                            </button>
+                        </div>
+                        
+                        <div class="flex items-center justify-between border-t border-white/10 py-5">
+                            <span class="text-sm text-gray-400 font-medium tracking-wide" id="reader-views">0 visualizaciones</span>
+                            <button class="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors group" onclick="toggleLike(this)">
+                                <span class="text-sm font-bold transition-colors" id="reader-likes">0</span>
+                                <i data-lucide="heart" class="w-5 h-5 group-hover:scale-110 transition-all"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-6 md:p-8 rounded-2xl bg-gradient-to-br from-[#1E2226] to-[#141619] border border-white/5 flex flex-col md:flex-row items-center gap-6 justify-between">
+                        <div class="w-full md:w-auto text-center md:text-left">
+                            <h4 class="text-lg font-bold text-white mb-2" data-i18n="newsletter-title">Suscríbete a nuestro newsletter</h4>
+                            <p class="text-sm text-gray-400" data-i18n="newsletter-desc">Recibe las últimas tendencias en EdTech e IA directamente en tu correo.</p>
+                        </div>
+                        <div class="flex w-full md:w-auto gap-2">
+                            <input type="email" placeholder="Tu correo electrónico" data-i18n-placeholder="newsletter-placeholder" class="bg-[#141619] border border-white/10 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-rasika-accent w-full md:w-64 transition-all">
+                            <button onclick="alert('¡Gracias por suscribirte!')" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm transition-colors shrink-0" data-i18n="newsletter-btn">Suscribir</button>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 p-8 rounded-2xl bg-gradient-to-br from-rasika-accent/10 to-transparent border border-rasika-accent/20 text-center">
+                        <i data-lucide="message-square-text" class="w-8 h-8 text-rasika-accent mx-auto mb-4"></i>
+                        <h3 class="text-xl font-bold text-white mb-2" data-i18n="reader-cta-title">¿Profundizamos en este tema?</h3>
+                        <p class="text-gray-400 text-sm mb-6" data-i18n="reader-cta-desc">CourseMentor ha procesado este artículo. Pregúntale cómo aplica a la realidad de tu empresa.</p>
+                        <button onclick="askBotAboutArticle()" class="px-6 py-3 bg-rasika-accent hover:bg-[#88d6e0] text-[#0a0b0d] rounded-full font-bold transition-all inline-flex items-center gap-2">
+                            Discutir con CourseMentor <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script is:inline>
+        const blogConfigDiv = document.getElementById('blog-config');
+        const GLOBAL_SUPA_URL = blogConfigDiv ? blogConfigDiv.getAttribute('data-url') : null;
+        const GLOBAL_SUPA_KEY = blogConfigDiv ? blogConfigDiv.getAttribute('data-key') : null;
+
+        let articles = {};
+        let currentArticleId = null;
+        let hasLiked = false;
+
+// Mobile Menu Toggle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if(mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+            // Toggle visibility and flexbox stacking
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('flex');
+            
+            // Swap hamburger icon for 'X' icon
+            const icon = mobileBtn.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.setAttribute('data-lucide', 'menu');
+            } else {
+                icon.setAttribute('data-lucide', 'x');
+            }
+            if(window.lucide) lucide.createIcons();
+        });
+    }
+});
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const referredBy = urlParams.get('ref');
+            
+            if (referredBy && referredBy !== window.mentorLeadId) {
+                localStorage.setItem('rasika_referred_by', referredBy);
+            }
+
+            loadBlogData();
+        });
+
+        async function loadBlogData() {
+            if (!GLOBAL_SUPA_URL || !GLOBAL_SUPA_KEY) {
+                console.error("Falta configuración de Supabase en blog.astro");
+                return;
+            }
+
+            try {
+                const res = await fetch(GLOBAL_SUPA_URL.replace(/\/$/, '') + '/rest/v1/blog_posts?order=created_at.desc', {
+                    headers: { 'apikey': GLOBAL_SUPA_KEY, 'Authorization': 'Bearer ' + GLOBAL_SUPA_KEY }
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    const humanContainer = document.getElementById('human-articles-container');
+                    const aiContainer = document.getElementById('ai-radar-container');
+                    
+                    humanContainer.innerHTML = '';
+                    aiContainer.innerHTML = '';
+
+                    data.forEach(post => {
+                        const dateObj = new Date(post.created_at);
+                        const dateString = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                        const readTime = post.read_time || '5 min read';
+                        
+                        // Save into memory dictionary
+                        articles[post.id] = {
+                            title: post.title,
+                            author: post.author,
+                            icon: post.icon || 'user',
+                            date: dateString + ' • ' + readTime,
+                            category: post.category || 'General',
+                            views: post.views || 0,
+                            likes: post.likes || 0,
+                            body: post.content_html,
+                            cover_image: post.cover_image || null
+                        };
+
+                        if (post.type === 'human') {
+                            
+                            // Use cover image or fallback abstract gradient
+                            const coverHtml = post.cover_image 
+                                ? `<img src="${post.cover_image}" class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-90 group-hover:scale-105 transition-all duration-700">`
+                                : `<div class="absolute inset-0 bg-gradient-to-br from-[#1A2026] via-[#111A1F] to-[#0A1014] opacity-80 group-hover:scale-105 transition-transform duration-700"></div>
+                                   <div class="absolute inset-0 flex items-center justify-center">
+                                       <i data-lucide="layers" class="w-16 h-16 text-rasika-accent/20"></i>
+                                   </div>`;
+
+                            humanContainer.innerHTML += `
+                                <article class="group cursor-pointer mb-5" onclick="openReader('${post.id}')">
+                                    <div class="relative w-full aspect-[21/9] rounded-2xl overflow-hidden mb-5 bg-[#0f1114] ring-1 ring-white/10 group-hover:ring-rasika-accent/50 transition-all">
+                                        ${coverHtml}
+                                    </div>
+                                    <div class="flex items-center gap-3 text-xs text-gray-400 mb-3 font-medium">
+                                        <span class="bg-white/5 px-2 py-1 rounded text-white">${articles[post.id].category}</span>
+                                        <span>•</span>
+                                        <span>${readTime}</span>
+                                    </div>
+                                    <h3 class="text-3xl font-bold text-white mb-3 group-hover:text-rasika-accent transition-colors leading-tight">${post.title}</h3>
+                                    <div class="flex items-center justify-between border-t border-white/5 pt-5">
+                                        <div class="flex items-center gap-3">
+                                            <div class="w-10 h-10 rounded-full bg-[#1E2226] border border-white/10 flex items-center justify-center overflow-hidden">
+                                                <i data-lucide="${articles[post.id].icon}" class="w-5 h-5 text-gray-400"></i>
+                                            </div>
+                                            <div class="flex flex-col">
+                                                <span class="text-sm font-bold text-white">${post.author}</span>
+                                                <span class="text-xs text-gray-500">${dateString}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </article>
+                            `;
+                        } else if (post.type === 'agent') {
+                            aiContainer.innerHTML += `
+                                <div class="ai-border p-5 group cursor-pointer mb-4" onclick="openReader('${post.id}')">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <i data-lucide="sparkles" class="w-4 h-4 text-rasika-accent"></i>
+                                        <span class="text-xs font-bold text-rasika-accent tracking-widest uppercase">${post.author || 'Rasika Agent'}</span>
+                                        <span class="text-xs text-gray-500 ml-auto">Nuevo</span>
+                                    </div>
+                                    <h4 class="text-base font-bold text-white mb-2 leading-snug">${post.title}</h4>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    if (window.lucide) lucide.createIcons();
+
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const articleParam = urlParams.get('article');
+                    if(articleParam && articles[articleParam]) {
+                        openReader(articleParam);
+                    }
+                }
+            } catch (e) { console.error("Error loading blog data:", e); }
+        }
+
+        window.openMentorWithMessage = function() {
+            const fab = document.getElementById('mentor-fab');
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+
+            if (fab) {
+                const isEn = document.documentElement.lang === 'en';
+                window.mentorCustomGreetingHTML = isEn 
+                    ? "Hi! I am CourseMentor. Would you like to discuss any of our articles or market trends?"
+                    : "¡Hola! Soy CourseMentor. ¿Te gustaría discutir alguno de nuestros articles o tendencias del mercado?";
+                
+                window.mentorCustomGreetingText = window.mentorCustomGreetingHTML.replace(/<[^>]*>?/gm, '');
+                fab.click();
+            }
+        };
+
+        window.addEventListener('scroll', () => {
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (!tooltip) return;
+            
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 200;
+            
+            if (scrollPosition >= threshold) {
+                tooltip.classList.add('cta-glow-active');
+            } else {
+                tooltip.classList.remove('cta-glow-active');
+            }
+        });
+
+        function openReader(id) {
+            const article = articles[id];
+            if (!article) return;
+            currentArticleId = id;
+
+            document.getElementById('reader-title').innerHTML = article.title;
+            document.getElementById('reader-author').innerText = article.author;
+            document.getElementById('reader-date').innerText = article.date;
+            document.getElementById('reader-category').innerText = article.category;
+            document.getElementById('reader-body').innerHTML = article.body;
+            
+            // Hero Background Processing
+            const heroDiv = document.getElementById('reader-hero-bg');
+            if (article.cover_image) {
+                heroDiv.style.backgroundImage = `url('${article.cover_image}')`;
+                heroDiv.style.backgroundSize = 'cover';
+                heroDiv.style.backgroundPosition = 'center';
+                heroDiv.innerHTML = '<div class="absolute inset-0 opacity-80 bg-gradient-to-b from-transparent via-[#141619]/60 to-[#141619]"></div>';
+            } else {
+                heroDiv.style.backgroundImage = 'none';
+                heroDiv.innerHTML = '<div class="absolute inset-0 opacity-40 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>';
+            }
+            
+            hasLiked = false;
+            document.getElementById('reader-views').innerText = article.views + (document.documentElement.lang === 'en' ? ' views' : ' visualizaciones');
+            document.getElementById('reader-likes').innerText = article.likes;
+            const heartBtn = document.getElementById('reader-likes').nextElementSibling;
+            heartBtn.parentElement.classList.remove('text-red-400');
+            heartBtn.setAttribute('fill', 'none');
+            
+            const iconEl = document.getElementById('reader-author-icon');
+            iconEl.setAttribute('data-lucide', article.icon);
+            if(article.icon === 'bot') {
+                iconEl.classList.add('text-rasika-accent');
+            } else {
+                iconEl.classList.remove('text-rasika-accent');
+            }
+            if (window.lucide) lucide.createIcons();
+
+            const modal = document.getElementById('reader-modal');
+            const container = document.getElementById('reader-container');
+            const scrollArea = document.getElementById('reader-scroll-area');
+            
+            document.body.style.overflow = 'hidden'; 
+            scrollArea.scrollTop = 0;
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            
+            requestAnimationFrame(() => {
+                modal.classList.remove('opacity-0');
+                container.classList.remove('scale-95');
+            });
+        }
+
+        window.closeReader = function() {
+            const modal = document.getElementById('reader-modal');
+            const container = document.getElementById('reader-container');
+            
+            // Wipe the URL parameter cleanly when closing
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+            window.history.pushState({path:newUrl}, '', newUrl);
+            
+            modal.classList.add('opacity-0');
+            container.classList.add('scale-95');
+            
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                document.body.style.overflow = ''; 
+                currentArticleId = null;
+            }, 500);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && currentArticleId) closeReader();
+        });
+
+        async function trackShareAction(platform) {
+            if (!currentArticleId || !GLOBAL_SUPA_URL || !GLOBAL_SUPA_KEY) return;
+            try {
+                fetch(GLOBAL_SUPA_URL.replace(/\/$/, '') + '/rest/v1/article_shares', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': GLOBAL_SUPA_KEY,
+                        'Authorization': 'Bearer ' + GLOBAL_SUPA_KEY
+                    },
+                    body: JSON.stringify({
+                        article_id: currentArticleId,
+                        platform: platform,
+                        lead_id: window.mentorLeadId || null
+                    })
+                }).catch(e => console.log("Tracking skip"));
+
+                if(platform === 'facebook' || platform === 'twitter' || platform === 'linkedin') {
+                    const fab = document.getElementById('mentor-fab');
+                    const chatWindow = document.getElementById('mentor-window');
+                    
+                    if (fab && (!chatWindow || chatWindow.style.display === 'none')) {
+                        const isEn = document.documentElement.lang === 'en';
+                        window.mentorCustomGreetingHTML = isEn 
+                            ? "Thank you for sharing! 🚀 Would you like me to notify you when we publish similar EdTech insights? Just drop your email below."
+                            : "¡Gracias por compartir! 🚀 ¿Te gustaría que te avise cuando publiquemos artículos similares sobre EdTech? Déjame tu correo aquí abajo.";
+                        
+                        setTimeout(() => fab.click(), 1500); 
+                    }
+                }
+            } catch (e) {
+                console.log("Share tracking failed.");
+            }
+        }
+
+        function getTrackableUrl() {
+            let url = new URL(window.location.href);
+            if(currentArticleId) url.searchParams.set('article', currentArticleId);
+            if (window.mentorLeadId) url.searchParams.set('ref', window.mentorLeadId);
+            return url.toString();
+        }
+
+        window.toggleLike = function(btn) {
+            const span = document.getElementById('reader-likes');
+            const icon = btn.querySelector('i');
+            let likes = parseInt(span.innerText);
+            
+            if(!hasLiked) {
+                likes++;
+                btn.classList.add('text-red-400');
+                icon.setAttribute('fill', 'currentColor');
+                hasLiked = true;
+                trackShareAction('like');
+            } else {
+                likes--;
+                btn.classList.remove('text-red-400');
+                icon.setAttribute('fill', 'none');
+                hasLiked = false;
+            }
+            span.innerText = likes;
+        }
+
+        window.copyLink = function(btn) {
+            const dummy = document.createElement('input');
+            document.body.appendChild(dummy);
+            dummy.value = getTrackableUrl(); 
+            dummy.select();
+            document.execCommand('copy');
+            document.body.removeChild(dummy);
+            
+            const iconContainer = btn.querySelector('div');
+            const tooltip = btn.querySelector('.copy-tooltip');
+            
+            iconContainer.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400 scale-125 transition-transform"></i>';
+            if(tooltip) tooltip.innerText = "¡Copiado!";
+            if (window.lucide) lucide.createIcons();
+            
+            trackShareAction('clipboard');
+            
+            setTimeout(() => {
+                iconContainer.innerHTML = '<i data-lucide="link" class="w-4 h-4 transition-transform duration-300"></i>';
+                if(tooltip) tooltip.innerText = "Copiar enlace";
+                if (window.lucide) lucide.createIcons();
+            }, 2000);
+        }
+
+        window.shareFacebook = function() {
+            const url = encodeURIComponent(getTrackableUrl());
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${url}`, '_blank', 'width=600,height=600');
+            trackShareAction('facebook');
+        }
+
+        window.shareLinkedIn = function() {
+            const url = encodeURIComponent(getTrackableUrl());
+            const title = encodeURIComponent(articles[currentArticleId]?.title || "Rasika Insights");
+            window.open(`https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`, '_blank', 'width=600,height=600');
+            trackShareAction('linkedin');
+        }
+
+        window.shareTwitter = function() {
+            const url = encodeURIComponent(getTrackableUrl());
+            const text = encodeURIComponent(`Muy interesante: ${articles[currentArticleId]?.title || "Rasika Insights"}`);
+            window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
+            trackShareAction('twitter');
+        }
+
+        window.askBotAboutArticle = function() {
+            const title = articles[currentArticleId]?.title || "este artículo";
+            const fab = document.getElementById('mentor-fab');
+            if (fab) {
+                const isEn = document.documentElement.lang === 'en';
+                window.mentorCustomGreetingHTML = isEn 
+                    ? `I see you just read **"${title}"**. Would you like to know how these concepts apply to your specific LMS architecture?`
+                    : `Veo que acabas de leer **"${title}"**. ¿Te gustaría saber cómo aplicar estos conceptos en la arquitectura de tu empresa?`;
+                
+                closeReader();
+                setTimeout(() => fab.click(), 400); 
+            }
+        }
+
+        window.askBotAboutTech = function() {
+            const fab = document.getElementById('mentor-fab');
+            if (fab) {
+                const isEn = document.documentElement.lang === 'en';
+                window.mentorCustomGreetingHTML = isEn 
+                    ? "Hi! I am Rasika's Technical Agent. What LMS or platform are you currently using to train your team?"
+                    : "¡Hola! Soy el Agente Técnico de Rasika. ¿Qué LMS o plataforma utilizan actualmente para entrenar a su equipo?";
+                fab.click();
+            }
+        }
+
+        const translations = {
+            es: {
+                "nav-demos": "Demos",
+                "nav-lms": "LMS & Bots",
+                "nav-clients": "Clientes",
+                "nav-pricing": "Precios",
+                "nav-blog": "Blog",
+                "toggle-btn": "EN",
+                "cta-bubble": "¡Pruébame!",
+                "blog-badge": "Insights & Innovación",
+                "blog-title": "E-Learning en la era de la <br/>\n<span class=\"text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]\">Simbiosis Digital</span>",
+                "blog-desc": "Una mezcla curada de artículos profundos elaborados por nuestros expertos y actualizaciones de mercado en tiempo real generadas por agentes de IA.",
+                "sect-human": "Artículos Destacados",
+                "sect-ai": "Radar IA (Tendencias)",
+                "tag-lms": "Diseño Instruccional",
+                "tag-video": "Video Learning",
+                "agent-cta": "¿Quieres que nuestro agente analice el stack tecnológico de tu empresa?",
+                "reader-cta-title": "¿Profundizamos en este tema?",
+                "reader-cta-desc": "CourseMentor ha procesado este artículo. Pregúntale cómo aplica a la realidad de tu empresa.",
+                "newsletter-title": "Suscríbete a nuestro newsletter",
+                "newsletter-desc": "Recibe las últimas tendencias en EdTech e IA directamente en tu correo.",
+                "newsletter-btn": "Suscribir",
+                "footer-text": "© 2026 Rasika Producciones. Todos los derechos reservados."
+            },
+            en: {
+                "nav-demos": "Demos",
+                "nav-lms": "LMS & Bots",
+                "nav-clients": "Clients",
+                "nav-pricing": "Pricing",
+                "nav-blog": "Blog",
+                "toggle-btn": "ES",
+                "cta-bubble": "Try me!",
+                "blog-badge": "Insights & Innovation",
+                "blog-title": "E-Learning in the era of <br/>\n<span class=\"text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]\">Digital Symbiosis</span>",
+                "blog-desc": "A curated blend of deep-dive articles crafted by our experts and real-time market updates generated by AI agents.",
+                "sect-human": "Featured Articles",
+                "sect-ai": "AI Radar (Trends)",
+                "tag-lms": "Instructional Design",
+                "tag-video": "Video Learning",
+                "agent-cta": "Want our agent to analyze your company's tech stack?",
+                "reader-cta-title": "Want to dive deeper?",
+                "reader-cta-desc": "CourseMentor has processed this article. Ask how these concepts apply to your business.",
+                "newsletter-title": "Subscribe to our newsletter",
+                "newsletter-desc": "Get the latest EdTech and AI trends delivered directly to your inbox.",
+                "newsletter-btn": "Subscribe",
+                "footer-text": "© 2026 Rasika Productions. All rights reserved."
+            }
+        };
+
+        const toggleBtn = document.getElementById('lang-toggle');
+        let currentLang = "es";
+
+        if(toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                currentLang = currentLang === "es" ? "en" : "es";
+                document.documentElement.lang = currentLang;
+
+                document.querySelectorAll('[data-i18n]').forEach(el => {
+                    const key = el.getAttribute('data-i18n');
+                    if (translations[currentLang][key]) {
+                        el.innerHTML = translations[currentLang][key];
+                    }
+                });
+                
+                document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                    const key = el.getAttribute('data-i18n-placeholder');
+                    if(currentLang === 'en') {
+                        if(key === 'newsletter-placeholder') el.placeholder = "Your email address";
+                    } else {
+                        if(key === 'newsletter-placeholder') el.placeholder = "Tu correo electrónico";
+                    }
+                });
+                
+                if(currentArticleId) {
+                    const article = articles[currentArticleId];
+                    document.getElementById('reader-views').innerText = article.views + (currentLang === 'en' ? ' views' : ' visualizaciones');
+                }
+                
+                toggleBtn.innerText = translations[currentLang]["toggle-btn"];
+                if (window.lucide) lucide.createIcons();
+            });
+        }
+    </script>
+    
+    <Chatbot />
+</body>
+</html>

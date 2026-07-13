@@ -1,0 +1,677 @@
+---
+// src/pages/pricing.astro
+import '../styles/global.css'; 
+import Chatbot from '../components/Chatbot.astro';
+import SEO from '../components/SEO.astro';
+import { seoPages } from '../data/seo';
+
+const seo = seoPages.pricing;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <SEO {...seo} />
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        rasika: {
+                            accent: '#5EA6B0',    
+                            dark: '#141619',      
+                            surface: '#1E2226',   
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script is:inline src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .price-toggle:checked + label { background-color: #5EA6B0; border-color: #5EA6B0; }
+        .price-toggle:checked + label > div { transform: translateX(24px); }
+        .saas-card { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .saas-card:hover { transform: translateY(-8px); }
+        .desc-text strong { color: #fff; font-weight: 700; }
+        
+        /* Floating CTA Animation (Bounce Kept Intact on Wrapper) */
+        @keyframes float-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float-bounce { animation: float-bounce 2s infinite ease-in-out; }
+        
+        /* Bottom Scroll Glow Class (Scale removed to prevent tail separation and bounce overrides) */
+        .cta-glow-active .tooltip-bubble {
+            box-shadow: 0 0 40px rgba(94,166,176,0.6) !important;
+            background-color: #88d6e0 !important;
+        }
+        .cta-glow-active .tooltip-tail {
+            background-color: #88d6e0 !important;
+        }
+
+        /* --- REFINED: Ultra-soft Cyan Message Glow + Subtle Bounce --- */
+        @keyframes msg-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(94, 166, 176, 0.05); transform: translateY(0); }
+            50% { box-shadow: 0 0 20px rgba(94, 166, 176, 0.15); transform: translateY(-4px); }
+        }
+        .animate-msg-glow { animation: msg-glow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="tech-bg text-gray-200 font-sans min-h-screen relative overflow-x-hidden selection:bg-rasika-accent selection:text-[#0a0b0d]">
+
+    <!-- VIDEO BACKGROUND -->
+    <div class="fixed inset-0 z-[-1] w-full h-full bg-rasika-dark">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-50 mix-blend-screen filter saturate-150 contrast-150">
+            <source src="/videos/backgrounds/animated_bg.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-rasika-dark/95 via-rasika-dark/60 to-transparent pointer-events-none"></div>
+    </div>
+
+    <!-- FIXED TOP NAVIGATION -->
+    <header class="fixed top-0 left-0 w-full border-b border-white/5 bg-[#141619]/80 backdrop-blur-xl z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center relative">
+        
+        <a href="/" class="block w-32 sm:w-40 transition-transform hover:scale-105">
+            <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones Logo" class="w-full h-auto" />
+        </a>
+        
+        <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-300">
+            <a href="/demos" class="hover:text-rasika-accent transition-colors" data-i18n="nav-demos">Demos</a>
+            <a href="/lms" class="hover:text-rasika-accent transition-colors" data-i18n="nav-lms">LMS & Bots</a>
+            <a href="/clients" class="hover:text-rasika-accent transition-colors" data-i18n="nav-clients">Clientes</a>
+            <a href="/pricing" class="hover:text-rasika-accent transition-colors" data-i18n="nav-pricing">Precios</a>
+            <a href="/blog" class="hover:text-rasika-accent transition-colors" data-i18n="nav-blog">Blog</a>
+            <button id="lang-toggle" class="border border-white/20 rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors" data-i18n="toggle-btn">EN</button>
+        </nav>
+
+        <button id="mobile-menu-btn" class="block lg:hidden p-2 text-gray-300 hover:text-white transition-colors">
+            <i data-lucide="menu" class="w-7 h-7"></i>
+        </button>
+    </div>
+
+    <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[#141619]/95 backdrop-blur-2xl border-b border-white/10 flex-col px-8 py-6 gap-6 shadow-2xl lg:hidden">
+        <a href="/demos" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-demos">Demos</a>
+        <a href="/lms" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-lms">LMS & Bots</a>
+        <a href="/clients" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-clients">Clientes</a>
+        <a href="/pricing" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-pricing">Precios</a>
+        <a href="/blog" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-blog">Blog</a>
+    </nav>
+</header>
+
+    <!-- FLOATING CTA (Clean Bubble - Zero Borders, Scale removed to preserve tail) -->
+    <div id="mentor-cta-tooltip" class="fixed bottom-28 right-6 z-[90] flex flex-col items-end animate-float-bounce cursor-pointer group transition-all duration-300" onclick="openMentorWithMessage()">
+        <div class="tooltip-bubble bg-rasika-accent group-hover:bg-[#88d6e0] text-[#0a0b0d] text-sm font-extrabold px-5 py-3 rounded-2xl rounded-br-sm shadow-[0_0_30px_rgba(94,166,176,0.4)] transition-all duration-300 flex items-center gap-2">
+            ¡Pruébame! <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="tooltip-tail w-4 h-4 bg-rasika-accent group-hover:bg-[#88d6e0] transform rotate-45 mr-4 -mt-2 transition-colors duration-300"></div>
+    </div>
+
+    <!-- HERO HEADER -->
+    <section class="pt-36 pb-12 px-6 relative text-center">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-rasika-accent uppercase bg-rasika-accent/10 rounded-full border border-rasika-accent/20">
+                Transparencia & Escalabilidad
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-white" data-i18n="pricing-title">
+                Modelos de Inversión <br class="hidden sm:block"/> 
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Flexibles</span>
+            </h1>
+            <p class="text-lg text-gray-400 font-medium leading-relaxed" data-i18n="pricing-desc">
+                Desde cápsulas lineales hasta agentes de IA integrados. Todo lo que necesitas para planificar el presupuesto de tu academia digital en 2026.
+            </p>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 relative z-10 space-y-24">
+
+        <!-- NOTA ACLARATORIA -->
+        <div class="w-full bg-[#1A1D21] border-l-4 border-rasika-accent p-6 rounded-r-2xl flex items-start gap-4 shadow-lg">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-white shrink-0 mt-0.5"></i>
+            <p class="text-gray-300 text-sm leading-relaxed"><strong class="text-white">Nota:</strong> Los precios están expresados en UF (Unidad de Fomento). Los plazos de producción corresponden a días hábiles estimados y comienzan a partir de la recepción de los guiones/contenidos finales aprobados. Los rangos de tiempo representan el tiempo promedio de navegación/reproducción del usuario.</p>
+        </div>
+
+        <!-- SECTION 1: Activos Lineales -->
+        <section>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                    <span class="w-1.5 h-8 bg-rasika-accent block rounded-full"></span>
+                    1. Activos de Producción de Video y Medios
+                </h2>
+                <p class="text-gray-400 ml-5">Activos lineales modulares. Pueden entregarse como MP4 independientes o integrarse en paquetes interactivos.</p>
+            </div>
+
+            <div class="overflow-x-auto rounded-[2rem] ring-1 ring-inset ring-white/10 bg-rasika-surface/60 backdrop-blur-md shadow-2xl">
+                <table class="w-full text-left border-collapse min-w-[900px]">
+                    <thead>
+                        <tr class="bg-black/40 text-gray-300 text-xs uppercase tracking-widest border-b border-white/10">
+                            <th class="p-6 w-[20%] font-semibold">Tipo de Activo</th>
+                            <th class="p-6 w-[35%] font-semibold">Descripción e Inclusiones</th>
+                            <th class="p-6 text-center font-semibold">Corto <span class="block text-[10px] text-gray-500 normal-case mt-1">(1 a 5 min)</span></th>
+                            <th class="p-6 text-center font-semibold">Medio <span class="block text-[10px] text-gray-500 normal-case mt-1">(5 a 10 min)</span></th>
+                            <th class="p-6 text-center font-semibold">Largo <span class="block text-[10px] text-gray-500 normal-case mt-1">(10 a 20 min)</span></th>
+                            <th class="p-6 text-center font-semibold w-[15%]">Demos</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-white/5">
+                        <tr class="bg-white/5 transition-colors">
+                            <td class="p-6 font-semibold text-white">Plazos de Producción</td>
+                            <td class="p-6 text-gray-400">Días hábiles estándar requeridos.</td>
+                            <td class="p-6 text-center font-medium">5 días</td>
+                            <td class="p-6 text-center font-medium">7 a 10 días</td>
+                            <td class="p-6 text-center font-medium">10 a 14 días</td>
+                            <td class="p-6 text-center text-gray-500">-</td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Video con IA Ultra-Realista</td>
+                            <td class="p-6 text-gray-400 desc-text">Videos en alta definición. Permite elementos de marca o adición de personajes, e incluye locución generada por IA y subtítulos opcionales</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">15 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">20 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">40 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Secuencia de Aprendizaje', 'IA Ultra-Realista', 'Clase Ejecutiva UC', '2024', 'Videos en alta definición con presentadores hiperrealistas mediante Inteligencia Artificial.', '/videos/standalone/ai_ultrarealistic.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Cápsulas de Video (IA + Boards)</td>
+                            <td class="p-6 text-gray-400 desc-text">Secuencias de video con IA combinadas con boards animados. <br><br><strong>Incluye:</strong> Generación de video con IA, transiciones en motion graphics, boards de texto e íconos animados, locución sincronizada y subtítulos.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">25 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">35 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">50 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Cápsula Explicativa', 'IA + Boards Animados', 'Clase Ejecutiva UC', '2024', 'Secuencias de video con IA combinadas con boards animados e íconos.', '/videos/standalone/ai_plus_boards.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Video Presentador (Estudio)</td>
+                            <td class="p-6 text-gray-400 desc-text">Presentador humano profesional grabado en estudio. <br><br><strong>Incluye:</strong> Tiempo de estudio, vestuario, edición de video, corrección de color, postproducción, chroma key y subtítulos. <br><strong>Excluye</strong> arte, mobiliario y utilería.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">25 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">35 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">50 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Curso de Liderazgo', 'Video Presentador (Estudio)', 'Cencosud', '2023', 'Presentador humano profesional grabado en estudio para comunicaciones directas.', '/videos/standalone/presenter_actor.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Video Role-Playing (Estudio)</td>
+                            <td class="p-6 text-gray-400 desc-text">Escenarios con múltiples actores grabados en estudio para demostrar habilidades blandas o procedimientos. <br><br><strong>Incluye:</strong> Hasta 2 actores, tiempo de estudio, vestuario, edición, corrección de color, postproducción, chroma key y subtítulos. <br><strong>Excluye</strong> arte, mobiliario y utilería.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">40 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">60 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">100 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Simulador de Atención', 'Video Role-Playing (Estudio)', 'Cencosud', '2024', 'Entrenamiento de habilidades blandas usando múltiples actores y escenarios reales.', '/videos/standalone/roleplay_actors.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">2D Motion Graphics (Flat Design)</td>
+                            <td class="p-6 text-gray-400 desc-text">Videos explicativos utilizando Flat design moderno. <br><br><strong>Incluye:</strong> Storyboard a medida, animación 2D, locución, música de fondo y subtítulos.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">40 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">60 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">80 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Video Operacional', '2D Motion Graphics', 'AMSA', '2023', 'Animación 2D con diseño de storyboard a medida y elementos visuales dinámicos.', '/videos/standalone/2D_motion_graphics.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Videos de Marketing de Alta Calidad</td>
+                            <td class="p-6 text-gray-400 desc-text">Videos promocionales o explicativos premium. <br><br><strong>Incluye:</strong> Videos de stock en 4K de primer nivel, locutor humano profesional, licenciamiento de música premium, edición de alto nivel y subtítulos.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">100 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">150 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">200 UF</td>
+                            <td class="p-6 text-center">
+                                <button type="button" onclick="launchDemo('Video Promocional', 'Marketing Premium 4K', 'Glencore', '2023', 'Pieza audiovisual de alta gama con material de stock 4K y locución profesional.', '/videos/standalone/premium_marketing_4K_stock.mp4')" class="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent">Ver Demo <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 2: SCORM -->
+        <section>
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+                    <span class="w-1.5 h-8 bg-rasika-accent block rounded-full"></span>
+                    2. Módulos Interactivos HTML y SCORM
+                </h2>
+                <p class="text-gray-400 ml-5">Paquetes interactivos que requieren diseño instruccional, envoltura en HTML y navegación compleja por parte del usuario. Estos módulos envuelven cualquiera de los activos multimedia de la tabla anterior.</p>
+            </div>
+
+            <div class="overflow-x-auto rounded-[2rem] ring-1 ring-inset ring-white/10 bg-rasika-surface/60 backdrop-blur-md shadow-2xl">
+                <table class="w-full text-left border-collapse min-w-[900px]">
+                    <thead>
+                        <tr class="bg-black/40 text-gray-300 text-xs uppercase tracking-widest border-b border-white/10">
+                            <th class="p-6 w-[20%] font-semibold">Entregable Interactivo</th>
+                            <th class="p-6 w-[35%] font-semibold">Descripción e Inclusiones</th>
+                            <th class="p-6 text-center font-semibold">Nivel 1 <span class="block text-[10px] text-gray-500 normal-case mt-1">(10 a 20 min)</span></th>
+                            <th class="p-6 text-center font-semibold">Nivel 2 <span class="block text-[10px] text-gray-500 normal-case mt-1">(20 a 40 min)</span></th>
+                            <th class="p-6 text-center font-semibold">Nivel 3 <span class="block text-[10px] text-gray-500 normal-case mt-1">(40 a 60 min)</span></th>
+                            <th class="p-6 text-center font-semibold w-[15%]">Demos</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-sm divide-y divide-white/5">
+                        <tr class="bg-white/5 transition-colors">
+                            <td class="p-6 font-semibold text-white">Plazos de Producción de Contenido</td>
+                            <td class="p-6 text-gray-400">Días hábiles estándar requeridos.</td>
+                            <td class="p-6 text-center font-medium">10 a 14 días</td>
+                            <td class="p-6 text-center font-medium">15 a 20 días</td>
+                            <td class="p-6 text-center font-medium">20 a 25 días</td>
+                            <td class="p-6 text-center text-gray-500">-</td>
+                        </tr>
+                        <tr class="hover:bg-white/5 transition-colors group">
+                            <td class="p-6 font-bold text-white">Curso Estándar SCORM / HTML5</td>
+                            <td class="p-6 text-gray-400 desc-text">Desarrollado con Adobe Captivate, Rise 360 o código HTML5 a medida. Compatible con SCORM 1.2. <br><br><strong>Incluye:</strong> Diseño instruccional, integración de activos multimedia, hotspots interactivos, formato de texto alternativo (alt-text) y evaluaciones/controles de conocimiento.</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">40 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">80 UF</td>
+                            <td class="p-6 text-center font-bold text-rasika-accent text-lg">100 UF</td>
+                            <td class="p-6 text-center flex flex-col gap-3">
+                                <button type="button" onclick="launchDemo('Transformación Digital', 'Curso SCORM', 'Clase Ejecutiva UC', '2023', 'Curso interactivo con evaluaciones gamificadas.', 'https://eycapacitacion.talentlms.com/unit/view/id:3500')" class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent w-full">Demo 1 <i data-lucide="play" class="w-3 h-3"></i></button>
+                                <button type="button" onclick="launchDemo('Gobierno de Datos', 'Curso SCORM', 'Codelco', '2024', 'Navegación interactiva y empaquetado HTML5.', 'https://eycapacitacion.talentlms.com/unit/view/id:3509')" class="inline-flex justify-center items-center gap-2 px-4 py-2 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] rounded-xl font-bold transition-all text-xs border border-white/10 hover:border-transparent w-full">Demo 2 <i data-lucide="play" class="w-3 h-3"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- SECTION 3: COURSEMENTOR SAAS -->
+        <section>
+            <div class="mb-10 text-center max-w-3xl mx-auto">
+                <div class="inline-flex items-center justify-center p-3 mb-4 rounded-2xl bg-rasika-accent/10 border border-rasika-accent/20">
+                    <i data-lucide="bot" class="w-8 h-8 text-rasika-accent"></i>
+                </div>
+                <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-4">CourseMentor en tu LMS</h2>
+                <p class="text-gray-400 text-lg">Asistente conversacional impulsado por Inteligencia Artificial y RAG Multimodal que se integra nativamente en tu Moodle, TalentLMS y otros LMS. Actúa como un tutor virtual y soporte técnico de primer nivel, disponible 24/7.</p>
+            </div>
+
+            <!-- Billing Toggle -->
+            <div class="flex items-center justify-center gap-4 mb-12">
+                <span class="text-sm font-bold text-gray-400">Mensual</span>
+                <div class="relative">
+                    <input type="checkbox" id="billing-toggle" class="price-toggle hidden">
+                    <label for="billing-toggle" class="block w-14 h-8 bg-black/50 rounded-full cursor-pointer border border-white/20 p-1 transition-colors duration-300">
+                        <div class="w-6 h-6 bg-white rounded-full shadow-lg transition-transform duration-300"></div>
+                    </label>
+                </div>
+                <span class="text-sm font-bold text-white flex items-center gap-2">
+                    Anual <span class="bg-rasika-accent/20 text-rasika-accent border border-rasika-accent/30 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider">-20% Dcto</span>
+                </span>
+            </div>
+
+            <!-- Pricing Cards Grid: Using Tailwind Group for smooth CSS hovering -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 group/cards">
+                
+                <!-- Proyecto Tier -->
+                <div class="saas-card flex flex-col p-10 bg-[#1A1D21] ring-1 ring-inset ring-white/10 hover:ring-rasika-accent/50 hover:shadow-[0_0_30px_rgba(94,166,176,0.15)] rounded-[2.5rem] transition-all duration-300 cursor-pointer" onclick="openMentorWithPlan('Proyecto')">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold text-white mb-2">Proyecto</h3>
+                        <p class="text-sm text-gray-400">Ideal para pilotos y cohortes específicas.</p>
+                    </div>
+                    <div class="mb-8 flex items-baseline gap-1">
+                        <span class="text-4xl font-black text-white price-val transition-opacity duration-150" data-monthly="3.000" data-yearly="2.400">$3.000</span>
+                        <span class="text-sm font-medium text-gray-500">CLP/usuario/mes</span>
+                    </div>
+                    <ul class="space-y-4 flex-1 text-sm text-gray-300 mb-10">
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> <strong>1 – 300</strong> Usuarios Activos (MAU)</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Procesamiento Base (Textos, Docs, SCORM) <strong>Ilimitado</strong></li>
+                        <li class="flex gap-3 items-start"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <div>RAG Visual (Imágenes, Gráficos, Videos) para <strong>1 Ingesta</strong><div class="text-[11px] text-gray-500 mt-1 leading-tight">Eq. a 1 curso de 6 clases en Rise.</div></div></li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Límite: <strong>100 consultas</strong> / Mes por usuario</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Soporte Técnico: IA + Humano (4h)</li>
+                    </ul>
+                    <button class="w-full py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] hover:border-transparent hover:scale-105 text-white font-bold transition-all" onclick="openMentorWithPlan('Proyecto'); event.stopPropagation();">Contactar a ventas</button>
+                </div>
+
+                <!-- Corporativo Tier (Default Highlighted via pure CSS, demotes smoothly when siblings hovered) -->
+                <div class="saas-card flex flex-col p-10 ring-inset rounded-[2.5rem] relative transition-all duration-500 cursor-pointer hover:scale-[1.02]
+                            bg-gradient-to-b from-[#1E2226] to-[#141619] ring-2 ring-rasika-accent/50 shadow-[0_0_30px_rgba(94,166,176,0.15)] md:-translate-y-4
+                            group-hover/cards:bg-none group-hover/cards:bg-[#1A1D21] group-hover/cards:ring-1 group-hover/cards:ring-white/10 group-hover/cards:shadow-none group-hover/cards:translate-y-0
+                            hover:!bg-gradient-to-b hover:!from-[#1E2226] hover:!to-[#141619] hover:!ring-2 hover:!ring-rasika-accent/50 hover:!shadow-[0_0_30px_rgba(94,166,176,0.15)] hover:md:!-translate-y-4" 
+                     onclick="openMentorWithPlan('Corporativo')">
+                    
+                    <div class="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-rasika-accent text-[#0a0b0d] text-[10px] font-black uppercase tracking-widest rounded-full shadow-lg">Más Recomendado</div>
+                    
+                    <div class="mb-8 mt-2">
+                        <h3 class="text-2xl font-bold text-white mb-2">Corporativo</h3>
+                        <p class="text-sm text-gray-400">Soporte IA a escala para empresas consolidadas.</p>
+                    </div>
+                    <div class="mb-8 flex items-baseline gap-1">
+                        <span class="text-5xl font-black text-white price-val transition-opacity duration-150" data-monthly="2.500" data-yearly="2.000">$2.500</span>
+                        <span class="text-sm font-medium text-gray-500">CLP/usuario/mes</span>
+                    </div>
+                    <ul class="space-y-4 flex-1 text-sm text-gray-200 mb-10">
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> <strong>301 – 1000</strong> Usuarios Activos (MAU)</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Procesamiento Base (Textos, Docs, SCORM) <strong>Ilimitado</strong></li>
+                        <li class="flex gap-3 items-start"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <div>RAG Visual (Imágenes, Gráficos, Videos) para <strong>3 Ingestas</strong><div class="text-[11px] text-gray-400 mt-1 leading-tight">Eq. a 3 cursos de 6 clases en Rise.</div></div></li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Límite: <strong>150 consultas</strong> / Mes por usuario</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Soporte Técnico: IA + Humano (4h)</li>
+                    </ul>
+                    
+                    <!-- The button mirrors the card's active/inactive state -->
+                    <button class="w-full py-4 rounded-xl text-white font-bold transition-all shadow-lg
+                                   bg-rasika-accent text-[#0a0b0d]
+                                   group-hover/cards:bg-white/5 group-hover/cards:text-white group-hover/cards:border group-hover/cards:border-white/10 group-hover/cards:shadow-none
+                                   hover:!bg-[#88d6e0] hover:!text-[#0a0b0d] hover:!scale-105 hover:!border-transparent hover:!shadow-lg" 
+                            onclick="openMentorWithPlan('Corporativo'); event.stopPropagation();">
+                        Contactar a ventas
+                    </button>
+                </div>
+
+                <!-- Institucional Tier -->
+                <div class="saas-card flex flex-col p-10 bg-[#1A1D21] ring-1 ring-inset ring-white/10 hover:ring-rasika-accent/50 hover:shadow-[0_0_30px_rgba(94,166,176,0.15)] rounded-[2.5rem] transition-all duration-300 cursor-pointer" onclick="openMentorWithPlan('Institucional')">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold text-white mb-2">Institucional</h3>
+                        <p class="text-sm text-gray-400">Inteligencia y telemetría total para instituciones grandes.</p>
+                    </div>
+                    <div class="mb-8 flex items-baseline gap-1">
+                        <span class="text-4xl font-black text-white price-val transition-opacity duration-150" data-monthly="2.000" data-yearly="1.600">$2.000</span>
+                        <span class="text-sm font-medium text-gray-500">CLP/usuario/mes</span>
+                    </div>
+                    <ul class="space-y-4 flex-1 text-sm text-gray-300 mb-10">
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> <strong>1001 – 3000+</strong> Usuarios Activos (MAU)</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Procesamiento Base (Textos, Docs, SCORM) <strong>Ilimitado</strong></li>
+                        <li class="flex gap-3 items-start"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <div>RAG Visual (Imágenes, Gráficos, Videos) para <strong>6 Ingestas</strong><div class="text-[11px] text-gray-500 mt-1 leading-tight">Eq. a 6 cursos de 6 clases en Rise.</div></div></li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Límite: <strong>200 consultas</strong> / Mes por usuario</li>
+                        <li class="flex gap-3"><i data-lucide="check-circle-2" class="w-5 h-5 text-rasika-accent shrink-0"></i> Soporte Técnico: IA + Humano (2h)</li>
+                    </ul>
+                    <button class="w-full py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] hover:border-transparent hover:scale-105 text-white font-bold transition-all" onclick="openMentorWithPlan('Institucional'); event.stopPropagation();">Contactar a ventas</button>
+                </div>
+
+            </div>
+
+            <!-- Fine print note for SaaS -->
+            <div class="w-full mt-10 bg-[#1A1D21] border-l-4 border-rasika-accent p-6 rounded-r-2xl flex items-start gap-4 shadow-lg">
+                <i data-lucide="alert-circle" class="w-5 h-5 text-white shrink-0 mt-0.5"></i>
+                <p class="text-gray-300 text-sm leading-relaxed"><strong class="text-white">Límite de consultas:</strong> Estadísticamente sólo el 5-10% de los MAU alcanza el límite mensual, mientras que la media de uso ronda las 60 a 80 consultas mensuales. El límite de consultas mensuales funciona como una protección pedagógica para evitar que la IA se convierta en una máquina de hacer tareas, fomentando el pensamiento crítico del estudiante.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10 mt-10">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 font-medium">
+            <p data-i18n="footer-text">© 2026 Rasika Producciones. Todos los derechos reservados.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-rasika-accent transition-colors">LinkedIn</a>
+                <a href="#" class="hover:text-rasika-accent transition-colors">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Cinematic Modal for Demos -->
+    <div id="demo-modal" class="fixed inset-0 bg-rasika-dark/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 p-4 sm:p-8">
+        <div class="w-full max-w-6xl flex flex-col gap-4 text-white mb-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                            <i data-lucide="building-2" class="w-4 h-4 text-rasika-accent"></i>
+                            <span id="demo-client" class="text-xs font-bold tracking-widest uppercase text-white">Cliente</span>
+                        </div>
+                        <span id="demo-year" class="text-gray-400 text-sm font-semibold tracking-wider">Año</span>
+                    </div>
+                    <h3 id="demo-title-modal" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Cargando...</h3>
+                </div>
+                <button onclick="closeDemo()" class="p-3 bg-white/5 hover:bg-rasika-accent hover:text-[#0a0b0d] hover:border-transparent border border-white/10 rounded-full transition-all text-gray-300 shrink-0">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p id="demo-desc-modal" class="text-gray-400 text-sm sm:text-base max-w-4xl leading-relaxed">Descripción del proyecto...</p>
+        </div>
+        
+        <div id="player-container" class="w-full max-w-6xl flex justify-center items-center relative z-10">
+            <div class="w-full aspect-video max-h-[65vh] rounded-3xl ring-1 ring-inset ring-white/10 bg-[#0f1114] flex flex-col items-center justify-center text-gray-500 shadow-2xl" style="max-width: calc(65vh * 16 / 9);">
+                <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4 text-rasika-accent"></i>
+                <p id="demo-subtitle" class="text-sm font-medium tracking-wide">Simulando despliegue de recurso...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- INTERNACIONALIZACIÓN, TOGGLE Y LÓGICA DE MODAL -->
+    <script is:inline>
+        // Mobile Menu Toggle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if(mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+            // Toggle visibility and flexbox stacking
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('flex');
+            
+            // Swap hamburger icon for 'X' icon
+            const icon = mobileBtn.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.setAttribute('data-lucide', 'menu');
+            } else {
+                icon.setAttribute('data-lucide', 'x');
+            }
+            if(window.lucide) lucide.createIcons();
+        });
+    }
+});
+    
+        // Open Mentor depending on the plan chosen
+        window.openMentorWithPlan = function(planKey) {
+            const planMap = {
+                'Proyecto': 'Proyecto',
+                'Corporativo': 'Empresa',
+                'Institucional': 'Institución'
+            };
+            const planName = planMap[planKey] || planKey;
+
+            const fab = document.getElementById('mentor-fab');
+            const chatWindow = document.getElementById('mentor-window');
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            
+            if (tooltip) tooltip.style.display = 'none';
+
+            if (fab && chatWindow && chatWindow.style.display === 'none') {
+                fab.click();
+                
+                setTimeout(() => {
+                    const msgBox = document.getElementById('mentor-messages');
+                    if (msgBox) {
+                        const msgDiv = document.createElement('div');
+                        // Utilizing the ultra-soft animate-msg-glow
+                        msgDiv.className = 'bg-[#2A2F35] text-gray-200 border border-white/5 p-3 rounded-2xl rounded-tl-sm text-sm self-start max-w-[85%] mt-2 mb-2 animate-msg-glow';
+                        msgDiv.innerHTML = `Veo que te interesa CourseMentor para tu <strong>${planName}</strong>. Para comenzar, ¿con quién tengo el gusto?`;
+                        msgBox.appendChild(msgDiv);
+                        msgBox.scrollTop = msgBox.scrollHeight;
+                        
+                        if(window.mentorChatHistory) {
+                            window.mentorChatHistory.push(`CourseMentor: Veo que te interesa CourseMentor para tu ${planName}. Para comenzar, ¿con quién tengo el gusto?`);
+                        }
+                    }
+                }, 500);
+            }
+        };
+
+        // Fallback for floating CTA
+        window.openMentorWithMessage = function() {
+            window.openMentorWithPlan('Proyecto');
+        };
+
+        // Hide tooltip if user opens the chatbot manually
+        document.addEventListener('DOMContentLoaded', () => {
+            const fab = document.getElementById('mentor-fab');
+            if(fab) {
+                fab.addEventListener('click', () => {
+                    const tooltip = document.getElementById('mentor-cta-tooltip');
+                    if(tooltip) tooltip.style.display = 'none';
+                });
+            }
+        });
+
+        // Scroll Observer for Bottom Floating CTA Glow
+        window.addEventListener('scroll', () => {
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (!tooltip) return;
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 200;
+            if (scrollPosition >= threshold) {
+                tooltip.classList.add('cta-glow-active');
+            } else {
+                tooltip.classList.remove('cta-glow-active');
+            }
+        });
+
+        // Demo Modal Logic
+        const modal = document.getElementById('demo-modal');
+        const demoTitleModal = document.getElementById('demo-title-modal');
+        const demoSubtitle = document.getElementById('demo-subtitle');
+        const demoClient = document.getElementById('demo-client');
+        const demoYear = document.getElementById('demo-year');
+        const demoDescModal = document.getElementById('demo-desc-modal');
+
+        function launchDemo(courseName, formatType, clientName, year, description, courseUrl) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            
+            demoTitleModal.innerText = courseName;
+            demoSubtitle.innerText = `Desplegando formato: ${formatType}`;
+            demoClient.innerText = clientName;
+            demoYear.innerText = year;
+            demoDescModal.innerText = description;
+
+            const playerArea = document.getElementById('player-container');
+            
+            if (courseUrl.toLowerCase().endsWith('.mp4')) {
+                playerArea.innerHTML = `
+                    <div class="w-fit max-w-full rounded-3xl overflow-hidden shadow-2xl ring-1 ring-inset ring-white/10 bg-black relative flex items-center justify-center isolate [transform:translateZ(0)]">
+                        <video src="${courseUrl}" controls autoplay class="max-w-full w-auto max-h-[65vh] outline-none block rounded-3xl"></video>
+                    </div>
+                `;
+            } else {
+                playerArea.innerHTML = `
+                    <div class="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl ring-1 ring-inset ring-white/10 bg-[#0f1114] relative flex items-center justify-center isolate [transform:translateZ(0)]" style="max-height: 65vh; max-width: calc(65vh * 16 / 9);">
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-0 pointer-events-none">
+                            <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4 text-rasika-accent"></i>
+                            <p class="text-sm font-medium tracking-wide">Simulando despliegue de recurso...</p>
+                        </div>
+                        <iframe src="${courseUrl}" class="relative z-10 w-full h-full border-0 bg-white rounded-3xl" allowfullscreen></iframe>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+            }
+
+            window.mentorActiveCourse = courseName + " (" + formatType + ")";
+
+            setTimeout(() => {
+                const fab = document.getElementById('mentor-fab');
+                const chatWindow = document.getElementById('mentor-window');
+                if (chatWindow && chatWindow.style.display === 'none' && fab) {
+                    fab.click();
+                }
+            }, 10000);
+        }
+
+        function closeDemo() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                
+                const playerArea = document.getElementById('player-container');
+                if(playerArea) {
+                    playerArea.innerHTML = `
+                        <div class="w-full aspect-video max-h-[65vh] rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 bg-[#0f1114] flex flex-col items-center justify-center text-gray-500 shadow-2xl" style="max-width: calc(65vh * 16 / 9);">
+                            <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4 text-rasika-accent"></i>
+                            <p class="text-sm font-medium tracking-wide">Cerrando recurso...</p>
+                        </div>
+                    `;
+                }
+                if (window.lucide) lucide.createIcons();
+            }, 300);
+            window.mentorActiveCourse = "Catálogo General";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+
+            // Toggle Billing Logic
+            const toggle = document.getElementById('billing-toggle');
+            const prices = document.querySelectorAll('.price-val');
+
+            if(toggle) {
+                toggle.addEventListener('change', () => {
+                    prices.forEach(price => {
+                        const monthly = price.getAttribute('data-monthly');
+                        const yearly = price.getAttribute('data-yearly');
+                        price.style.opacity = '0';
+                        setTimeout(() => {
+                            price.textContent = toggle.checked ? `$${yearly}` : `$${monthly}`;
+                            price.style.opacity = '1';
+                        }, 150);
+                    });
+                });
+            }
+
+            // Language/i18n Logic
+            let currentLang = document.documentElement.lang || "es";
+            const toggleBtn = document.getElementById('lang-toggle');
+
+            const translations = {
+                es: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clientes",
+                    "nav-blog": "Blog",
+                    "nav-pricing": "Precios",
+                    "toggle-btn": "EN",
+                    "pricing-title": "Modelos de Inversión\nFlexibles",
+                    "pricing-desc": "Desde cápsulas lineales hasta agentes de IA integrados. Todo lo que necesitas para planificar el presupuesto de tu academia digital en 2026.",
+                    "footer-text": "© 2026 Rasika Producciones. Todos los derechos reservados."
+                },
+                en: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clients",
+                    "nav-blog": "Blog",
+                    "nav-pricing": "Pricing",
+                    "toggle-btn": "ES",
+                    "pricing-title": "Flexible Investment\nModels",
+                    "pricing-desc": "From linear capsules to integrated AI agents. Everything you need to budget your digital academy in 2026.",
+                    "footer-text": "© 2026 Rasika Productions. All rights reserved."
+                }
+            };
+
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    currentLang = currentLang === "es" ? "en" : "es";
+                    document.documentElement.lang = currentLang;
+
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        const key = el.getAttribute('data-i18n');
+                        if (translations[currentLang][key]) {
+                            if (key === 'pricing-title') {
+                                el.innerHTML = translations[currentLang][key].replace('\n', '<br class="hidden sm:block"/>');
+                                el.innerHTML = el.innerHTML.replace('Flexibles', '<span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Flexibles</span>').replace('Models', '<span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Models</span>');
+                            } else {
+                                el.innerText = translations[currentLang][key];
+                            }
+                        }
+                    });
+                    
+                    toggleBtn.innerText = translations[currentLang]["toggle-btn"];
+                });
+            }
+        });
+    </script>
+    
+    <Chatbot />
+</body>
+</html>

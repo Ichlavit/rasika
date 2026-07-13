@@ -13,9 +13,14 @@ yarn-error.log*
 pnpm-debug.log*
 
 
-# environment variables
+# environment variables and local secrets
 .env
-.env.production
+.env.*
+!.env.example
+.ssh/
+.keys/
+.vscode/sftp.json
+supabase/.temp/
 
 # macOS-specific files
 .DS_Store

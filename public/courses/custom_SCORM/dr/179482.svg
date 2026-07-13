@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" onmouseup="{ if(window.parent.document.onmouseup) window.parent.document.onmouseup(arguments[0]);}" viewBox="0 0 211 211" data-name="Capa 30" id="Capa_30"><circle data-cppathid="10000" fill="#fff" r="105.5" cy="105.5" cx="105.5"/><path data-cppathid="10001" fill="#343e48" transform="translate(0 -0.01)" d="M132.05,121h10.19v18.17H132.05v21.28H108.61V139.18H68.43l-1.35-14.42,41.53-65v-.21h23.44Zm-44.86,0h21.42V89.6l-.41-.07-2.57,5.2Z"/></svg>

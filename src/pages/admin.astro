@@ -1,0 +1,656 @@
+---
+// src/pages/admin.astro
+import '../styles/global.css';
+import SEO from '../components/SEO.astro';
+import { seoPages } from '../data/seo';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const seo = seoPages.admin;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <SEO {...seo} />
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <script is:inline src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
+
+    <style is:global>
+        body { background-color: #0a0c0e; color: #fff; }
+        
+        .ql-toolbar.ql-snow { 
+            background: #1E2226; 
+            border-color: rgba(255,255,255,0.1); 
+            border-top-left-radius: 0.5rem; 
+            border-top-right-radius: 0.5rem; 
+            position: sticky;
+            top: -24px; 
+            z-index: 50;
+            box-shadow: 0 -24px 0 0 #1E2226, 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+        }
+        
+        .ql-container.ql-snow { 
+            border-color: rgba(255,255,255,0.1); 
+            border-bottom-left-radius: 0.5rem; 
+            border-bottom-right-radius: 0.5rem; 
+            background: #141619; 
+            min-height: 400px; 
+            font-size: 1rem; 
+            color: #E5E7EB !important; 
+        }
+        
+        .ql-snow .ql-stroke { stroke: #D1D5DB; }
+        .ql-snow .ql-fill { fill: #D1D5DB; }
+        .ql-snow .ql-picker { color: #D1D5DB; }
+
+        .ql-snow .ql-editor.ql-blank::before {
+            color: #9CA3AF !important; 
+            opacity: 1 !important;     
+            font-style: normal !important;
+        }
+
+        /* --- QUILL TOOLTIP FIX (MODAL UI) --- */
+        .ql-snow .ql-tooltip {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            z-index: 9999 !important;
+            background: #1E2226 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            border-radius: 1rem !important;
+            padding: 2rem !important;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8) !important;
+            color: #fff !important;
+            width: 90% !important;
+            max-width: 400px !important;
+            margin-top: 0 !important;
+            white-space: normal !important;
+        }
+
+        .ql-snow .ql-tooltip input[type="text"] {
+            background: #141619 !important;
+            border: 1px solid rgba(255,255,255,0.2) !important;
+            color: #fff !important;
+            border-radius: 0.5rem !important;
+            padding: 0.75rem 1rem !important;
+            width: 100% !important;
+            margin: 1rem 0 !important;
+            font-size: 0.9rem !important;
+        }
+
+        .ql-snow .ql-tooltip a.ql-action {
+            display: inline-block !important;
+            background: #5EA6B0 !important;
+            color: #000 !important;
+            font-weight: bold !important;
+            padding: 0.5rem 1.5rem !important;
+            border-radius: 0.5rem !important;
+            text-decoration: none !important;
+            margin-top: 0.5rem !important;
+        }
+        
+        .ql-snow .ql-tooltip a.ql-action::after { content: "Guardar" !important; border-right: none !important; padding-right: 0 !important; }
+        .ql-snow .ql-tooltip a.ql-remove { display: inline-block !important; color: #F87171 !important; font-weight: bold !important; margin-left: 1rem !important; }
+        .ql-snow .ql-tooltip a.ql-remove::before { content: "Cancelar" !important; }
+
+        .ql-snow .ql-tooltip[data-mode="link"]::before { content: "Ingresa el enlace URL:" !important; font-weight: bold; color:#9CA3AF; }
+        .ql-snow .ql-tooltip[data-mode="video"]::before { content: "URL de Video o Contenido Interactivo:" !important; font-weight: bold; color:#9CA3AF; }
+
+
+        /* --- SEPARATED STYLING: VIDEOS VS IMAGES --- */
+        
+        /* Videos/Iframes (Force 16:9 Aspect Ratio) */
+        .ql-editor iframe.ql-video {
+            width: 100%;
+            height: auto; 
+            aspect-ratio: 16/9; 
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.1);
+            background-color: #0a0c0e;
+            margin: 2rem 0;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        /* Images/GIFs (Keep Natural Aspect Ratio) */
+        .ql-editor img {
+            width: 100%;
+            height: auto; 
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin: 2rem 0;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        /* Alignment Sizing (Applies to both) */
+        .ql-align-left iframe.ql-video, .ql-align-left img { width: 50%; margin: 2rem auto 2rem 0; }
+        .ql-align-center iframe.ql-video, .ql-align-center img { width: 75%; margin: 2rem auto; }
+        .ql-align-right iframe.ql-video, .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-6">
+
+    <div id="admin-config" style="display:none;" 
+         data-url={supabaseUrl} 
+         data-key={supabaseAnonKey}>
+    </div>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="w-full max-w-md bg-[#1E2226] p-8 rounded-2xl ring-1 ring-white/10 shadow-2xl">
+        <div class="text-center mb-8">
+            <i data-lucide="lock" class="w-10 h-10 text-[#5EA6B0] mx-auto mb-4"></i>
+            <h1 class="text-2xl font-bold">Rasika CMS</h1>
+            <p class="text-sm text-gray-400 mt-2">Ingresa tus credenciales de administrador</p>
+        </div>
+        
+        <form id="login-form" class="space-y-4" onsubmit="handleLogin(event)">
+            <input type="email" id="email" placeholder="Correo electrónico" required class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#5EA6B0]">
+            <input type="password" id="password" placeholder="Contraseña" required class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-[#5EA6B0]">
+            <p id="login-error" class="text-red-400 text-sm hidden"></p>
+            <button type="submit" class="w-full bg-[#5EA6B0] text-black font-bold rounded-xl py-3 hover:bg-[#88d6e0] transition-colors">Ingresar</button>
+        </form>
+    </div>
+
+    <!-- DASHBOARD SCREEN -->
+    <div id="dashboard-screen" class="w-full max-w-5xl hidden flex-col h-[90vh]">
+        
+        <div class="flex justify-between items-center mb-4 bg-[#1E2226] p-4 rounded-xl ring-1 ring-white/10">
+            <div class="flex items-center gap-3">
+                <i data-lucide="layout-dashboard" class="w-6 h-6 text-[#5EA6B0]"></i>
+                <h1 class="text-xl font-bold">Editor de Artículos</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <input type="password" id="php-token" placeholder="Token Subida PHP" class="w-40 bg-[#141619] border border-white/10 rounded-lg px-3 py-1.5 outline-none text-white text-sm focus:border-[#5EA6B0]" title="La contraseña secreta de tu archivo upload.php">
+                <button onclick="logout()" class="text-sm text-gray-400 hover:text-white flex items-center gap-2">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
+                </button>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4 mb-4">
+            <div class="flex-1 relative">
+                <select id="edit-selector" onchange="handleEditSelection(this.value)" class="w-full bg-[#1A1E22] border border-white/20 rounded-xl px-4 py-3 appearance-none outline-none text-white focus:border-[#5EA6B0] font-medium">
+                    <option value="">✨ Crear Nuevo Artículo...</option>
+                </select>
+                <i data-lucide="chevron-down" class="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+            </div>
+            <button onclick="document.getElementById('edit-selector').value=''; handleEditSelection('');" class="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-colors">
+                Limpiar
+            </button>
+        </div>
+
+        <div class="flex-1 bg-[#1E2226] rounded-2xl ring-1 ring-white/10 p-6 overflow-y-auto no-scrollbar relative">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Tipo de Contenido</label>
+                    <select id="post-type" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                        <option value="human">Human: Artículo Destacado</option>
+                        <option value="agent">AI: Radar / Tendencia</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Título</label>
+                    <input type="text" id="post-title" placeholder="Ej: El fin del SCORM..." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Autor / Agente</label>
+                    <input type="text" id="post-author" placeholder="Ej: Ignacio G." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Categoría</label>
+                    <input type="text" id="post-category" placeholder="Ej: Diseño Instruccional" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                </div>
+                <div class="md:col-span-2">
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase flex justify-between">
+                        <span>Ruta de la Imagen de Portada (Carpeta Public)</span>
+                        <button type="button" onclick="uploadCoverImage()" class="text-[#5EA6B0] hover:text-white flex items-center gap-1 normal-case"><i data-lucide="upload" class="w-3 h-3"></i> Subir Imagen</button>
+                    </label>
+                    <input type="text" id="post-cover" placeholder="/images/blog/mi-portada.jpg" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Contenido del Artículo</label>
+                <div id="editor"></div>
+            </div>
+
+            <div class="flex justify-end gap-4 mt-6 pt-4 border-t border-white/10">
+                <button onclick="saveDraft()" id="save-btn" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all flex items-center gap-2 text-gray-300">
+                    <i data-lucide="save" class="w-4 h-4"></i> Guardar Borrador
+                </button>
+                <button onclick="openPreview()" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all text-gray-300 flex items-center gap-2">
+                    <i data-lucide="eye" class="w-4 h-4"></i> Vista Previa
+                </button>
+                <button onclick="publishPost()" id="publish-btn" class="px-8 py-3 bg-[#5EA6B0] text-black font-bold rounded-xl hover:bg-[#88d6e0] transition-colors flex items-center gap-2">
+                    <i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script is:inline>
+        lucide.createIcons();
+        
+        const config = document.getElementById('admin-config');
+        const SUPA_URL = config.getAttribute('data-url').replace(/\/$/, '');
+        const SUPA_KEY = config.getAttribute('data-key');
+        
+        let currentEditingId = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = sessionStorage.getItem('adminToken');
+            if (token && token !== 'undefined' && token.split('.').length === 3) {
+                document.getElementById('login-screen').classList.add('hidden');
+                document.getElementById('dashboard-screen').classList.replace('hidden', 'flex');
+                
+                await loadArticlesList(); 
+                window.loadDraft();              
+            } else {
+                sessionStorage.removeItem('adminToken');
+            }
+        });
+
+        // --- CUSTOM QUILL IMAGE HANDLER (CONNECTS TO UPLOAD.PHP) ---
+        function customImageHandler() {
+            const token = document.getElementById('php-token').value;
+            if (!token) {
+                alert("Por favor, ingresa el Token de Subida (PHP) en la esquina superior derecha.");
+                return;
+            }
+
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+
+            input.onchange = async () => {
+                const file = input.files[0];
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    // Send to your SiteGround upload.php
+                    const res = await fetch('/upload.php', {
+                        method: 'POST',
+                        headers: {
+                            'X-Upload-Token': token,
+                            'X-Upload-Path': 'blog' // Tell PHP to save in /images/blog/
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    
+                    if (res.ok && data.success) {
+                        // Insert the live image URL securely generated by the server
+                        const range = quill.getSelection(true);
+                        quill.insertEmbed(range.index, 'image', data.url);
+                        quill.setSelection(range.index + 1);
+                    } else {
+                        alert("Error del servidor: " + (data.error || "Desconocido"));
+                    }
+                } catch (err) {
+                    console.error("Upload error:", err);
+                    alert("Error de conexión con upload.php.");
+                }
+            };
+        }
+
+        var quill = new Quill('#editor', {
+            theme: 'snow',
+            placeholder: 'Comienza a escribir aquí...',
+            modules: {
+                toolbar: {
+                    container: [
+                        [{ 'header': [2, 3, false] }],
+                        ['bold', 'italic', 'underline', 'blockquote'],
+                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                        [{ 'align': '' }, { 'align': 'center' }, { 'align': 'right' }, { 'align': 'justify' }],
+                        ['link', 'video', 'image'],
+                        ['clean']
+                    ],
+                    handlers: {
+                        image: customImageHandler
+                    }
+                }
+            }
+        });
+
+        // --- COVER IMAGE UPLOADER ---
+        window.uploadCoverImage = function() {
+            const token = document.getElementById('php-token').value;
+            if (!token) return alert("Por favor, ingresa el Token de Subida (PHP) en la esquina superior derecha.");
+
+            const input = document.createElement('input');
+            input.setAttribute('type', 'file');
+            input.setAttribute('accept', 'image/*');
+            input.click();
+
+            input.onchange = async () => {
+                const file = input.files[0];
+                if (!file) return;
+
+                document.getElementById('post-cover').value = "Subiendo...";
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                try {
+                    const res = await fetch('/upload.php', {
+                        method: 'POST',
+                        headers: {
+                            'X-Upload-Token': token,
+                            'X-Upload-Path': 'blog'
+                        },
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        document.getElementById('post-cover').value = data.url;
+                    } else {
+                        document.getElementById('post-cover').value = "";
+                        alert("Error del servidor: " + (data.error || "Desconocido"));
+                    }
+                } catch (err) {
+                    console.error("Upload error:", err);
+                    document.getElementById('post-cover').value = "";
+                    alert("Error de conexión al subir la imagen de portada.");
+                }
+            };
+        }
+
+        window.handleLogin = async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorEl = document.getElementById('login-error');
+
+            try {
+                const res = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'apikey': SUPA_KEY },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+                
+                if (data.error || !data.access_token) {
+                    errorEl.innerText = data.error_description || data.msg || "Credenciales incorrectas.";
+                    errorEl.classList.remove('hidden');
+                } else {
+                    sessionStorage.setItem('adminToken', data.access_token);
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('dashboard-screen').classList.replace('hidden', 'flex');
+                    
+                    await loadArticlesList(); 
+                    window.loadDraft();
+                }
+            } catch (err) {
+                console.error(err);
+                errorEl.innerText = "Error de red. Revisa tu conexión o API Key.";
+                errorEl.classList.remove('hidden');
+            }
+        }
+
+        window.logout = function() {
+            sessionStorage.removeItem('adminToken');
+            document.getElementById('dashboard-screen').classList.replace('flex', 'hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('password').value = '';
+        }
+
+        async function loadArticlesList() {
+            const token = sessionStorage.getItem('adminToken');
+            try {
+                const res = await fetch(`${SUPA_URL}/rest/v1/blog_posts?select=id,title,type&order=created_at.desc`, {
+                    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` }
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    const selector = document.getElementById('edit-selector');
+                    selector.innerHTML = '<option value="">✨ Crear Nuevo Artículo...</option>';
+                    data.forEach(post => {
+                        const icon = post.type === 'agent' ? '🤖' : '📝';
+                        selector.innerHTML += `<option value="${post.id}">${icon} ${post.title}</option>`;
+                    });
+                }
+            } catch (e) { console.error("Error loading articles list", e); }
+        }
+
+        window.handleEditSelection = async function(id) {
+            currentEditingId = id || null;
+            const publishBtn = document.getElementById('publish-btn');
+            
+            if(!id) {
+                document.getElementById('post-title').value = '';
+                document.getElementById('post-author').value = '';
+                document.getElementById('post-category').value = '';
+                document.getElementById('post-cover').value = '';
+                quill.root.innerHTML = '';
+                publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                lucide.createIcons();
+                return;
+            }
+
+            publishBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Cargando datos...';
+            lucide.createIcons();
+
+            const token = sessionStorage.getItem('adminToken');
+            try {
+                const res = await fetch(`${SUPA_URL}/rest/v1/blog_posts?id=eq.${id}`, {
+                    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) throw new Error("Fallo en la petición a Supabase");
+                
+                const data = await res.json();
+                
+                if(data && data[0]) {
+                    const post = data[0];
+                    document.getElementById('post-type').value = post.type || 'human';
+                    document.getElementById('post-title').value = post.title || '';
+                    document.getElementById('post-author').value = post.author || '';
+                    document.getElementById('post-category').value = post.category || '';
+                    document.getElementById('post-cover').value = post.cover_image || '';
+                    quill.root.innerHTML = post.content_html || '';
+                    
+                    publishBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
+                } else {
+                    alert("El artículo fue eliminado o no existe.");
+                    publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                }
+            } catch(e) { 
+                console.error("Error loading article details", e); 
+                alert("Error de conexión al cargar los detalles del artículo.");
+                publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+            }
+            lucide.createIcons();
+        }
+
+        window.saveDraft = function() {
+            const draft = {
+                type: document.getElementById('post-type').value,
+                title: document.getElementById('post-title').value,
+                author: document.getElementById('post-author').value,
+                category: document.getElementById('post-category').value,
+                cover_image: document.getElementById('post-cover').value,
+                content: quill.root.innerHTML,
+                editingId: currentEditingId 
+            };
+            localStorage.setItem('rasika_blog_draft', JSON.stringify(draft));
+            
+            const saveBtn = document.getElementById('save-btn');
+            const originalHTML = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i> Guardado';
+            lucide.createIcons();
+            setTimeout(() => { saveBtn.innerHTML = originalHTML; lucide.createIcons(); }, 2000);
+        }
+
+        window.loadDraft = function() {
+            const saved = localStorage.getItem('rasika_blog_draft');
+            if(saved) {
+                const draft = JSON.parse(saved);
+                document.getElementById('post-type').value = draft.type || 'human';
+                document.getElementById('post-title').value = draft.title || '';
+                document.getElementById('post-author').value = draft.author || '';
+                document.getElementById('post-category').value = draft.category || '';
+                document.getElementById('post-cover').value = draft.cover_image || '';
+                if(draft.content && draft.content !== '<p><br></p>') quill.root.innerHTML = draft.content;
+                
+                if(draft.editingId) {
+                    currentEditingId = draft.editingId;
+                    document.getElementById('edit-selector').value = draft.editingId;
+                    document.getElementById('publish-btn').innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        window.openPreview = function() {
+            const htmlContent = quill.root.innerHTML;
+            const title = document.getElementById('post-title').value || 'Sin Título';
+            const author = document.getElementById('post-author').value || 'Autor';
+            const cover = document.getElementById('post-cover').value;
+            
+            let coverSrc = cover;
+            if (cover && cover.startsWith('/')) {
+                coverSrc = window.location.origin + cover;
+            }
+            
+            const processedHtml = htmlContent.replace(/src="\//g, 'src="' + window.location.origin + '/');
+
+            const coverHtml = coverSrc 
+                ? `<img src="${coverSrc}" style="width:100%; height:300px; object-fit:cover; border-radius:1rem; margin-bottom:2rem;">` 
+                : '';
+
+            const htmlString = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Vista Previa: ${title}</title>
+                    <link rel="preconnect" href="https://fonts.googleapis.com">
+                    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+                    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                    <style>
+                        body { background: #141619; color: #D1D5DB; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 400; line-height: 1.8; margin: 0; padding: 3rem 1.5rem; }
+                        .container { max-width: 800px; margin: 0 auto; }
+                        h1, h2, h3, h4, h5, h6 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #fff; font-weight: 700; }
+                        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; letter-spacing: -0.025em; }
+                        h2 { font-size: 1.75rem; margin-top: 2em; margin-bottom: 1em; letter-spacing: -0.025em; }
+                        h3 { font-size: 1.25rem; margin-top: 1.5em; margin-bottom: 0.75em; }
+                        .meta { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #9CA3AF; font-size: 0.9rem; margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                        blockquote { border-left: 4px solid #5EA6B0; padding-left: 1.25rem; font-style: italic; color: #9CA3AF; margin: 2.5em 0; font-size: 1.1rem; }
+                        strong { color: #fff; font-weight: 600; }
+                        
+                        /* Previsualización idéntica al CMS Separando Videos de Imagenes */
+                        .content iframe { width: 100%; height: auto; aspect-ratio: 16/9; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); background-color: #0a0c0e; margin: 2rem 0; display: block; }
+                        .content img { width: 100%; height: auto; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 2rem 0; display: block; }
+                        
+                        .ql-align-left iframe, .ql-align-left img { width: 50%; margin: 2rem auto 2rem 0; }
+                        .ql-align-center iframe, .ql-align-center img { width: 75%; margin: 2rem auto; }
+                        .ql-align-right iframe, .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
+                        .ql-align-center { text-align: center; }
+                        .ql-align-right { text-align: right; }
+                        .ql-align-justify { text-align: justify; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        ${coverHtml}
+                        <h1>${title}</h1>
+                        <div class="meta">Por ${author} • Modo Vista Previa</div>
+                        <div class="content">${processedHtml}</div>
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            const blob = new Blob([htmlString], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        };
+
+        window.publishPost = async function() {
+            const token = sessionStorage.getItem('adminToken');
+            
+            if(!token || token === 'undefined' || token.split('.').length !== 3) {
+                window.logout();
+                return alert("Tu sesión se corrompió o expiró. Por favor, ingresa nuevamente.");
+            }
+            
+            const btn = document.getElementById('publish-btn');
+            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Procesando...';
+            lucide.createIcons();
+
+            const type = document.getElementById('post-type').value;
+            const title = document.getElementById('post-title').value;
+            const author = document.getElementById('post-author').value;
+            const category = document.getElementById('post-category').value;
+            const cover = document.getElementById('post-cover').value;
+            const htmlContent = quill.root.innerHTML;
+            
+            const payload = {
+                type: type,
+                title: title,
+                author: author,
+                category: category,
+                cover_image: cover || null,
+                icon: type === 'agent' ? 'bot' : 'user',
+                content_html: htmlContent
+            };
+
+            const endpoint = currentEditingId 
+                ? `${SUPA_URL}/rest/v1/blog_posts?id=eq.${currentEditingId}` 
+                : `${SUPA_URL}/rest/v1/blog_posts`;
+                
+            const httpMethod = currentEditingId ? 'PATCH' : 'POST';
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: httpMethod,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPA_KEY,
+                        'Authorization': `Bearer ${token}`,
+                        'Prefer': 'return=representation'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if(res.ok) {
+                    const responseData = await res.json();
+                    const savedArticleId = responseData[0]?.id || currentEditingId; 
+                    
+                    alert(`¡Artículo ${currentEditingId ? 'actualizado' : 'publicado'} exitosamente!`);
+                    
+                    localStorage.removeItem('rasika_blog_draft'); 
+                    window.location.href = '/blog?article=' + savedArticleId;
+                    
+                } else {
+                    const errData = await res.json();
+                    alert("Error. Revisa los permisos de tu base de datos: " + (errData.message || "Desconocido"));
+                }
+            } catch (e) {
+                console.error(e);
+                alert("Error de red.");
+            } finally {
+                btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>

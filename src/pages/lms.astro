@@ -1,0 +1,575 @@
+---
+// src/pages/lms.astro
+import '../styles/global.css'; 
+import Chatbot from '../components/Chatbot.astro';
+import SEO from '../components/SEO.astro';
+import { seoPages } from '../data/seo';
+
+const seo = seoPages.lms;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <SEO {...seo} />
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        rasika: {
+                            accent: '#5EA6B0',    
+                            dark: '#141619',      
+                            surface: '#1E2226',   
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script is:inline src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Floating CTA Animation */
+        @keyframes float-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float-bounce { animation: float-bounce 2s infinite ease-in-out; }
+        
+        /* Bottom Scroll Glow Class */
+        .cta-glow-active .tooltip-bubble {
+            box-shadow: 0 0 40px rgba(94,166,176,0.6) !important;
+            background-color: #88d6e0 !important;
+        }
+        .cta-glow-active .tooltip-tail {
+            background-color: #88d6e0 !important;
+        }
+
+        /* Message Glow */
+        @keyframes msg-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(94, 166, 176, 0.05); transform: translateY(0); }
+            50% { box-shadow: 0 0 20px rgba(94, 166, 176, 0.15); transform: translateY(-4px); }
+        }
+        .animate-msg-glow { animation: msg-glow 3s infinite ease-in-out; }
+        
+        /* Article Typography styling */
+        .prose p { margin-bottom: 1.5em; line-height: 1.8; color: #9ca3af; }
+        .prose strong { color: #fff; font-weight: 600; }
+    </style>
+</head>
+<body class="tech-bg text-gray-200 font-sans min-h-screen relative overflow-x-hidden selection:bg-rasika-accent selection:text-[#0a0b0d]">
+
+    <!-- VIDEO BACKGROUND (Opacity reduced to 30% for readability) -->
+    <div class="fixed inset-0 z-[-1] w-full h-full bg-rasika-dark">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-30 mix-blend-screen filter saturate-150 contrast-150">
+            <source src="/videos/backgrounds/animated_bg.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-rasika-dark/95 via-rasika-dark/60 to-transparent pointer-events-none"></div>
+    </div>
+
+    <!-- FIXED TOP NAVIGATION -->
+   <header class="fixed top-0 left-0 w-full border-b border-white/5 bg-[#141619]/80 backdrop-blur-xl z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center relative">
+        
+        <a href="/" class="block w-32 sm:w-40 transition-transform hover:scale-105">
+            <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones Logo" class="w-full h-auto" />
+        </a>
+        
+        <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-300">
+            <a href="/demos" class="hover:text-rasika-accent transition-colors" data-i18n="nav-demos">Demos</a>
+            <a href="/lms" class="hover:text-rasika-accent transition-colors" data-i18n="nav-lms">LMS & Bots</a>
+            <a href="/clients" class="hover:text-rasika-accent transition-colors" data-i18n="nav-clients">Clientes</a>
+            <a href="/pricing" class="hover:text-rasika-accent transition-colors" data-i18n="nav-pricing">Precios</a>
+            <a href="/blog" class="hover:text-rasika-accent transition-colors" data-i18n="nav-blog">Blog</a>
+            <button id="lang-toggle" class="border border-white/20 rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors" data-i18n="toggle-btn">EN</button>
+        </nav>
+
+        <button id="mobile-menu-btn" class="block lg:hidden p-2 text-gray-300 hover:text-white transition-colors">
+            <i data-lucide="menu" class="w-7 h-7"></i>
+        </button>
+    </div>
+
+    <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[#141619]/95 backdrop-blur-2xl border-b border-white/10 flex-col px-8 py-6 gap-6 shadow-2xl lg:hidden">
+        <a href="/demos" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-demos">Demos</a>
+        <a href="/lms" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-lms">LMS & Bots</a>
+        <a href="/clients" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-clients">Clientes</a>
+        <a href="/pricing" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-pricing">Precios</a>
+        <a href="/blog" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-blog">Blog</a>
+    </nav>
+</header>
+
+    <!-- FLOATING CTA -->
+    <div id="mentor-cta-tooltip" class="fixed bottom-28 right-6 z-[90] flex flex-col items-end animate-float-bounce cursor-pointer group transition-all duration-300" onclick="openMentorWithMessage()">
+        <div class="tooltip-bubble bg-rasika-accent group-hover:bg-[#88d6e0] text-[#0a0b0d] text-sm font-extrabold px-5 py-3 rounded-2xl rounded-br-sm shadow-[0_0_30px_rgba(94,166,176,0.4)] transition-all duration-300 flex items-center gap-2">
+            <span data-i18n="cta-bubble">¡Pruébame!</span> <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="tooltip-tail w-4 h-4 bg-rasika-accent group-hover:bg-[#88d6e0] transform rotate-45 mr-4 -mt-2 transition-colors duration-300"></div>
+    </div>
+
+    <!-- HERO HEADER -->
+    <section class="pt-36 pb-12 px-6 relative text-center">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-rasika-accent uppercase bg-rasika-accent/10 rounded-full border border-rasika-accent/20">
+                Ecosistemas Inteligentes
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-white" data-i18n="lms-title">
+                Un nuevo paradigma <br class="hidden sm:block"/> 
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">LMS & IA Conversacional</span>
+            </h1>
+            <p class="text-lg text-gray-400 font-medium leading-relaxed max-w-2xl mx-auto" data-i18n="lms-desc">
+                Descubre cómo transformamos repositorios estáticos en plataformas dinámicas mediante la integración profunda de tutores virtuales y telemetría avanzada.
+            </p>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 relative z-10 space-y-32">
+
+        <!-- SECTION 1: EDUCATIONAL BLOG (The "Why") -->
+        <div class="space-y-24">
+            
+            <!-- Block A: The LMS limitation -->
+            <section class="flex flex-col lg:flex-row gap-16 items-center">
+                <!-- Visual Left -->
+                <div class="w-full lg:w-5/12">
+                    <div class="aspect-square rounded-[3rem] bg-gradient-to-br from-[#1E2226] to-[#141619] ring-1 ring-inset ring-white/10 shadow-2xl p-10 flex flex-col items-center justify-center text-center relative overflow-hidden isolate">
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHptMC0zMFYwaC0ydjRoLTR2Mmg0djRoMnYtNGg0VjJoLTR6bS0xMS41IDI3LjVsMS41LTEuNSAxLjUtMS41VjIwbC0xLjUgMS41LTEuNSAxLjVWMTZMMjIgMTRsLTEuNSAxLjUtMS41IDEuNXYxN2wxLjUgMS41IDEuNSAxLjVWMzJsMS41LTEuNWwxLjUtMS41djE3eiIgZmlsbD0iIzVFNkI3MCIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9nPjwvc3ZnPg==')] opacity-50 z-0"></div>
+                        <div class="relative z-10 w-full">
+                            <div class="w-24 h-24 bg-rasika-accent/10 border border-rasika-accent/20 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(94,166,176,0.2)]">
+                                <i data-lucide="network" class="w-12 h-12 text-rasika-accent"></i>
+                            </div>
+                            <h3 class="text-3xl font-extrabold text-white mb-4" data-i18n="blog-v1-title">La Evolución del Elearning</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed mb-8" data-i18n="blog-v1-desc">El LMS tradicional gestiona el acceso. La IA conversacional gestiona el aprendizaje. Juntos, crean un entorno donde la retención del conocimiento se dispara.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prose Right -->
+                <div class="w-full lg:w-7/12 prose prose-lg prose-invert max-w-none">
+                    <h2 class="text-4xl font-extrabold text-white tracking-tight mb-8" data-i18n="blog-h1">¿Por qué un LMS ya no es suficiente?</h2>
+                    <p data-i18n="blog-p1">Durante décadas, el <strong>Learning Management System (LMS)</strong> ha sido la columna vertebral de la formación corporativa y académica. Plataformas robustas que permiten organizar mallas curriculares, enrolar a miles de usuarios, alojar paquetes SCORM y emitir certificados. Sin embargo, su diseño fundamental responde a una era de <em>distribución pasiva</em> de contenido.</p>
+                    <p data-i18n="blog-p2">El problema actual no es el acceso a la información; es el <strong>aislamiento cognitivo</strong>. Cuando un colaborador o estudiante se enfrenta a un módulo interactivo complejo o a un video instruccional denso, <strong>las dudas surgen en tiempo real</strong>. En un entorno LMS tradicional, ese usuario debe abandonar la plataforma, enviar un correo al instructor o buscar en foros internos, rompiendo el flujo de aprendizaje. Muchas veces, ante la fricción, la duda simplemente se abandona.</p>
+                </div>
+            </section>
+
+            <!-- Block B: The Conversational Paradigm -->
+            <section class="flex flex-col-reverse lg:flex-row gap-16 items-center">
+                <!-- Prose Left -->
+                <div class="w-full lg:w-7/12 prose prose-lg prose-invert max-w-none">
+                    <h2 class="text-4xl font-extrabold text-white tracking-tight mb-8" data-i18n="blog-h2">El paradigma conversacional</h2>
+                    <p data-i18n="blog-p3">Aquí es donde la Inteligencia Artificial interviene para cambiar las reglas del juego. Integrar agentes conversacionales (Bots) directamente en la interfaz del LMS transforma la experiencia de un monólogo institucional a un <strong>diálogo socrático personalizado</strong>.</p>
+                    <p data-i18n="blog-p4">Imagina un escenario de capacitación en ventas corporativas o resolución de conflictos de liderazgo. Mientras el usuario avanza, nuestro bot ya ha procesado todo el material del curso: transcripciones de los videos, imágenes, diagramas y contenido en texto. Si un estudiante no comprende cómo aplicar una técnica, el bot no solo le recita la teoría, sino que <strong>crea escenarios dinámicos y ejemplos cotidianos para resolver sus dudas</strong>. Actúa como un tutor empático y con los pies en la tierra, construyendo confianza y acompañando el proceso de manera cercana.</p>
+                    <div class="bg-[#1A1D21] border-l-4 border-rasika-accent p-6 rounded-r-2xl my-10 shadow-lg">
+                        <p class="text-white text-sm m-0 italic font-medium leading-relaxed" data-i18n="blog-quote">"El LMS organiza el viaje. El Bot camina al lado del estudiante, iluminando el camino y evitando que tropiece con las dudas."</p>
+                    </div>
+                </div>
+                
+                <!-- Visual Right -->
+                <div class="w-full lg:w-5/12">
+                    <div class="aspect-square rounded-[3rem] bg-gradient-to-bl from-[#1E2226] to-[#141619] ring-1 ring-inset ring-white/10 shadow-2xl p-10 flex flex-col items-center justify-center text-center relative overflow-hidden isolate">
+                        <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAzNHYtNGgtMnY0aC00djJoNHY0aDJ2LTRoNHYtMmgtNHptMC0zMFYwaC0ydjRoLTR2Mmg0djRoMnYtNGg0VjJoLTR6bS0xMS41IDI3LjVsMS41LTEuNSAxLjUtMS41VjIwbC0xLjUgMS41LTEuNSAxLjVWMTZMMjIgMTRsLTEuNSAxLjUtMS41IDEuNXYxN2wxLjUgMS41IDEuNSAxLjVWMzJsMS41LTEuNWwxLjUtMS41djE3eiIgZmlsbD0iIzVFNkI3MCIgZmlsbC1vcGFjaXR5PSIwLjA1Ii8+PC9nPjwvc3ZnPg==')] opacity-50 z-0"></div>
+                        <div class="relative z-10 w-full">
+                            <div class="w-24 h-24 bg-rasika-accent/10 border border-rasika-accent/20 rounded-full flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(94,166,176,0.2)]">
+                                <i data-lucide="message-circle" class="w-12 h-12 text-rasika-accent"></i>
+                            </div>
+                            <h3 class="text-3xl font-extrabold text-white mb-4" data-i18n="blog-v2-title">Diálogo Socrático</h3>
+                            <p class="text-gray-400 text-sm leading-relaxed mb-8" data-i18n="blog-v2-desc">Pasamos de un monólogo institucional estático a una conversación hiper-personalizada en tiempo real, conectada al contexto del usuario.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Full Width Benefits -->
+            <section>
+                <div class="text-center mb-12">
+                    <h3 class="text-3xl font-extrabold text-white" data-i18n="blog-h3">Beneficios inmediatos de la Simbiosis</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <!-- Benefit 1 -->
+                    <div class="bg-rasika-surface/40 backdrop-blur-sm p-8 rounded-[2rem] border border-white/5 shadow-xl hover:-translate-y-2 transition-transform duration-300">
+                        <div class="w-14 h-14 bg-rasika-accent/10 rounded-xl flex items-center justify-center mb-6">
+                            <i data-lucide="zap" class="w-7 h-7 text-rasika-accent"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg mb-3" data-i18n="ben-1-t">Resolución instantánea</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed" data-i18n="ben-1-d">Eliminación de los cuellos de botella en soporte académico (Zero-Wait).</p>
+                    </div>
+                    <!-- Benefit 2 -->
+                    <div class="bg-rasika-surface/40 backdrop-blur-sm p-8 rounded-[2rem] border border-white/5 shadow-xl hover:-translate-y-2 transition-transform duration-300">
+                        <div class="w-14 h-14 bg-rasika-accent/10 rounded-xl flex items-center justify-center mb-6">
+                            <i data-lucide="bar-chart-3" class="w-7 h-7 text-rasika-accent"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg mb-3" data-i18n="ben-2-t">Telemetría cualitativa</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed" data-i18n="ben-2-d">Generación de reportes personalizados desde Supabase que integran interacciones con el bot, desafíos de aprendizaje y dificultades técnicas al navegar los cursos o la plataforma, nutriendo las métricas de rendimiento.</p>
+                    </div>
+                    <!-- Benefit 3 -->
+                    <div class="bg-rasika-surface/40 backdrop-blur-sm p-8 rounded-[2rem] border border-white/5 shadow-xl hover:-translate-y-2 transition-transform duration-300">
+                        <div class="w-14 h-14 bg-rasika-accent/10 rounded-xl flex items-center justify-center mb-6">
+                            <i data-lucide="clock" class="w-7 h-7 text-rasika-accent"></i>
+                        </div>
+                        <h4 class="text-white font-bold text-lg mb-3" data-i18n="ben-3-t">Accesibilidad 24/7</h4>
+                        <p class="text-gray-400 text-sm leading-relaxed" data-i18n="ben-3-d">Tutoría experta disponible en cualquier turno horario o huso geográfico continuo.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- SECTION 2: HOW WE DO IT (Moodle vs TalentLMS) -->
+        <section>
+            <div class="mb-16 text-center max-w-3xl mx-auto">
+                <h2 class="text-3xl md:text-5xl font-extrabold text-white mb-6" data-i18n="integ-title">Integración Agnóstica</h2>
+                <p class="text-gray-400 text-lg leading-relaxed" data-i18n="integ-desc">Entendemos que cada cliente tiene su propia infraestructura. Por ello conectamos y adaptamos nuestro ecosistema CourseMentor a las arquitecturas más populares del mercado.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                
+                <!-- Open Source (Moodle) Card -->
+                <div class="bg-[#1A1D21] ring-1 ring-inset ring-white/10 rounded-[2.5rem] p-10 flex flex-col relative overflow-hidden group shadow-2xl">
+                    <!-- Cyan Gradient -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-rasika-accent/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 transition-all duration-500 group-hover:bg-rasika-accent/20"></div>
+                    
+                    <div class="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-8 relative z-10 p-2">
+                        <img src="/images/logos/moodle_logo.svg" alt="Moodle" class="w-full h-full object-contain drop-shadow-md" />
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-white mb-4 relative z-10">Open Source: Moodle</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 relative z-10 flex-1" data-i18n="integ-mo-desc">
+                        Integración nativa segura. Conectamos la plataforma vía LTI/xAPI hacia nuestro backend privado (Supabase SOC2 Type 2), asegurando la hiper-personalización y el aislamiento total de la información institucional.
+                    </p>
+                    
+                    <ul class="space-y-4 text-sm text-gray-300 relative z-10 mb-8 border-t border-white/5 pt-8">
+                        <li class="flex items-start gap-3"><i data-lucide="database" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <span><strong class="text-white">Multi-Tenancy & RLS:</strong> Datos vectoriales aislados. Operamos con APIs corporativas garantizando cero entrenamiento de LLMs públicos.</span></li>
+                        <li class="flex items-start gap-3"><i data-lucide="shield-check" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <span><strong class="text-white">Zero Retention & PII:</strong> Purgado automático de historiales de chat y anonimización de datos de identificación personal.</span></li>
+                        <li class="flex items-start gap-3"><i data-lucide="eye-off" class="w-5 h-5 text-rasika-accent shrink-0 mt-0.5"></i> <span><strong class="text-white">Configuración Condicional:</strong> Apagado automático del bot durante foros evaluados, controles o exámenes.</span></li>
+                    </ul>
+                </div>
+
+                <!-- Proprietary (TalentLMS) Card -->
+                <div class="bg-[#1A1D21] ring-1 ring-inset ring-white/10 rounded-[2.5rem] p-10 flex flex-col relative overflow-hidden group shadow-2xl">
+                    <!-- White Luminous Gradient -->
+                    <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 transition-all duration-500 group-hover:bg-white/20"></div>
+                    
+                    <div class="w-16 h-16 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center mb-8 relative z-10 p-2">
+                        <img src="/images/logos/talentlms_logo.svg" alt="TalentLMS" class="w-full h-full object-contain drop-shadow-md" />
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold text-white mb-4 relative z-10">LMS Propietario: TalentLMS</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 relative z-10 flex-1" data-i18n="integ-tl-desc">
+                        Conexión sin fricciones en entornos cerrados SaaS. Creamos un backend separado en Supabase que escucha activamente los eventos xAPI en TalentLMS, almacenando y procesando cada interacción.
+                    </p>
+                    
+                    <ul class="space-y-4 text-sm text-gray-300 relative z-10 mb-8 border-t border-white/5 pt-8">
+                        <li class="flex items-start gap-3"><i data-lucide="activity" class="w-5 h-5 text-white shrink-0 mt-0.5"></i> <span><strong class="text-white">Telemetría xAPI:</strong> Escucha de eventos en tiempo real para reconocer instantáneamente el ID de curso, unidad y usuario activo.</span></li>
+                        <li class="flex items-start gap-3"><i data-lucide="brain-circuit" class="w-5 h-5 text-white shrink-0 mt-0.5"></i> <span><strong class="text-white">Hiper-Personalización:</strong> Almacenamiento del registro de interacciones con el contenido y el widget para adaptar pedagógicamente las respuestas.</span></li>
+                        <li class="flex items-start gap-3"><i data-lucide="layers" class="w-5 h-5 text-white shrink-0 mt-0.5"></i> <span><strong class="text-white">Integración UI:</strong> Despliegue global del widget, sintiéndose como una pieza nativa del ecosistema TalentLMS.</span></li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 3: COURSEMENTOR ARCHITECTURE -->
+        <section class="bg-gradient-to-br from-[#1E2226] to-[#141619] ring-1 ring-inset ring-white/10 rounded-[3rem] p-8 lg:p-16 shadow-2xl relative overflow-hidden isolate">
+            <div class="absolute top-0 right-0 w-[800px] h-[800px] bg-rasika-accent/5 blur-[120px] rounded-full translate-x-1/3 -translate-y-1/3 pointer-events-none"></div>
+            
+            <div class="flex flex-col lg:flex-row gap-16 items-center relative z-10">
+                <div class="w-full lg:w-1/2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-white text-xs font-bold uppercase tracking-widest mb-6">
+                        <i data-lucide="bot" class="w-4 h-4 text-rasika-accent"></i> <span data-i18n="arch-badge">Arquitectura RAG</span>
+                    </div>
+                    <h2 class="text-3xl lg:text-4xl font-extrabold text-white mb-6" data-i18n="arch-title">¿Cómo funciona CourseMentor?</h2>
+                    <p class="text-gray-400 text-lg leading-relaxed mb-8" data-i18n="arch-desc">
+                        CourseMentor no es un ChatGPT genérico insertado en tu página. Utiliza una arquitectura <strong>Retrieval-Augmented Generation (RAG) Multimodal</strong> para asegurar que las respuestas sean precisas, privadas y basadas estrictamente en tus contenidos.
+                    </p>
+                    
+                    <div class="space-y-6">
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-rasika-accent/10 border border-rasika-accent/30 flex items-center justify-center shrink-0">
+                                <span class="text-rasika-accent font-bold">1</span>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold mb-1" data-i18n="arch-s1-t">Ingesta Segura</h4>
+                                <p class="text-sm text-gray-400 leading-relaxed" data-i18n="arch-s1-d">Procesamos tus PDFs, videos SCORM e infografías. Los convertimos en vectores matemáticos y los almacenamos en una base de datos vectorial privada (Supabase) con seguridad a nivel de fila (RLS).</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-rasika-accent/10 border border-rasika-accent/30 flex items-center justify-center shrink-0">
+                                <span class="text-rasika-accent font-bold">2</span>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold mb-1" data-i18n="arch-s2-t">Recuperación Semántica</h4>
+                                <p class="text-sm text-gray-400 leading-relaxed" data-i18n="arch-s2-d">Cuando un alumno hace una pregunta en tu LMS, nuestro sistema busca en milisegundos los fragmentos exactos de tu material que contienen la respuesta.</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-4">
+                            <div class="w-10 h-10 rounded-full bg-rasika-accent/10 border border-rasika-accent/30 flex items-center justify-center shrink-0">
+                                <span class="text-rasika-accent font-bold">3</span>
+                            </div>
+                            <div>
+                                <h4 class="text-white font-bold mb-1" data-i18n="arch-s3-t">Generación y Citación</h4>
+                                <p class="text-sm text-gray-400 leading-relaxed" data-i18n="arch-s3-d">Un LLM de grado empresarial redacta una respuesta pedagógica utilizando <em>únicamente</em> la información recuperada, evitando alucinaciones y protegiendo tu propiedad intelectual.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Abstract Visual representation of RAG -->
+                <div class="w-full lg:w-1/2 flex justify-center">
+                    <div class="w-full max-w-md aspect-square relative">
+                        <!-- Central Brain/LLM (Avatar) with Hover Effect & Click Action -->
+                        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-[#1A1D21] border-2 border-rasika-accent rounded-[2rem] flex items-center justify-center shadow-[0_0_50px_rgba(94,166,176,0.3)] hover:shadow-[0_0_80px_rgba(94,166,176,0.7)] hover:scale-110 cursor-pointer transition-all duration-300 z-20 overflow-hidden p-2 group" onclick="openMentorWithDemoInvite()">
+                            <img src="/images/svg/avatar_animated.svg" alt="CourseMentor" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                        </div>
+                        
+                        <!-- Orbiting Elements -->
+                        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center backdrop-blur-md animate-[bounce_3s_ease-in-out_infinite]">
+                            <i data-lucide="file-text" class="w-6 h-6 text-gray-400"></i>
+                        </div>
+                        <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center backdrop-blur-md animate-[bounce_3s_ease-in-out_infinite_0.5s]">
+                            <i data-lucide="video" class="w-6 h-6 text-gray-400"></i>
+                        </div>
+                        <div class="absolute top-1/2 left-0 -translate-y-1/2 w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center backdrop-blur-md animate-[bounce_3s_ease-in-out_infinite_1s]">
+                            <i data-lucide="database" class="w-6 h-6 text-gray-400"></i>
+                        </div>
+                        <div class="absolute top-1/2 right-0 -translate-y-1/2 w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center backdrop-blur-md animate-[bounce_3s_ease-in-out_infinite_1.5s]">
+                            <i data-lucide="message-square" class="w-6 h-6 text-gray-400"></i>
+                        </div>
+                        
+                        <!-- Connecting Lines (SVG) -->
+                        <svg class="absolute inset-0 w-full h-full pointer-events-none opacity-20" viewBox="0 0 100 100">
+                            <line x1="50" y1="20" x2="50" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="2 2" />
+                            <line x1="50" y1="80" x2="50" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="2 2" />
+                            <line x1="20" y1="50" x2="50" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="2 2" />
+                            <line x1="80" y1="50" x2="50" y2="50" stroke="white" stroke-width="0.5" stroke-dasharray="2 2" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10 mt-10">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 font-medium">
+            <p data-i18n="footer-text">© 2026 Rasika Producciones. Todos los derechos reservados.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-rasika-accent transition-colors">LinkedIn</a>
+                <a href="#" class="hover:text-rasika-accent transition-colors">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- SCRIPTS -->
+    <script is:inline>
+
+        // Mobile Menu Toggle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if(mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+            // Toggle visibility and flexbox stacking
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('flex');
+            
+            // Swap hamburger icon for 'X' icon
+            const icon = mobileBtn.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.setAttribute('data-lucide', 'menu');
+            } else {
+                icon.setAttribute('data-lucide', 'x');
+            }
+            if(window.lucide) lucide.createIcons();
+        });
+    }
+});    
+        // Floating CTA Logic
+        window.openMentorWithMessage = function() {
+            const fab = document.getElementById('mentor-fab');
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+
+            if (fab) {
+                const isEn = document.documentElement.lang === 'en';
+                // 1. Just set the global variables
+                window.mentorCustomGreetingHTML = isEn 
+                    ? "Hi! I am CourseMentor. I am natively integrated here. Do you have any technical questions about how we connect to your LMS?"
+                    : "¡Hola! Soy CourseMentor. Estoy integrado nativamente aquí. ¿Tienes alguna duda técnica sobre cómo nos conectamos a tu LMS?";
+                window.mentorCustomGreetingText = window.mentorCustomGreetingHTML.replace(/<[^>]*>?/gm, '');
+                
+                // 2. Click the FAB. Chatbot.astro takes over, saves to DB, and prints to UI!
+                fab.click();
+            }
+        };
+
+        // CourseMentor Avatar Interactive Click Logic
+        window.openMentorWithDemoInvite = function() {
+    const fab = document.getElementById('mentor-fab');
+    if (fab) {
+        // Simplemente pasamos el texto exacto que quieres (en formato Markdown para el link)
+        window.mentorCustomGreetingHTML = "Veo que te interesó **CourseMentor**. Su capacidad de integrar múltiples formatos transforma el aprendizaje. ¿Te gustaría probarme en una muestra de curso? ¡Ve a nuestra [página de Demos](/demos?openChat=true), te espero ahí!";
+        
+        // Y hacemos clic. El chatbot hará el resto (formatear, mostrar y guardar en DB).
+        fab.click();
+    }
+};
+
+        window.addEventListener('scroll', () => {
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (!tooltip) return;
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 200;
+            if (scrollPosition >= threshold) {
+                tooltip.classList.add('cta-glow-active');
+            } else {
+                tooltip.classList.remove('cta-glow-active');
+            }
+        });
+
+        // Translation Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+
+            let currentLang = document.documentElement.lang || "es";
+            const toggleBtn = document.getElementById('lang-toggle');
+
+            const translations = {
+                es: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clientes",
+                    "nav-pricing": "Precios",
+                    "nav-blog": "Blog",
+                    "toggle-btn": "EN",
+                    "lms-title": "Un nuevo paradigma \nLMS & IA Conversacional",
+                    "lms-desc": "Descubre cómo transformamos repositorios estáticos en plataformas dinámicas mediante la integración profunda de tutores virtuales y telemetría avanzada.",
+                    
+                    "blog-v1-title": "La Evolución del Elearning",
+                    "blog-v1-desc": "El LMS tradicional gestiona el acceso. La IA conversacional gestiona el aprendizaje. Juntos, crean un entorno donde la retención del conocimiento se dispara.",
+                    "blog-h1": "¿Por qué un LMS ya no es suficiente?",
+                    "blog-p1": "Durante décadas, el <strong>Learning Management System (LMS)</strong> ha sido la columna vertebral de la formación corporativa y académica. Plataformas robustas que permiten organizar mallas curriculares, enrolar a miles de usuarios, alojar paquetes SCORM y emitir certificados. Sin embargo, su diseño fundamental responde a una era de <em>distribución pasiva</em> de contenido.",
+                    "blog-p2": "El problema actual no es el acceso a la información; es el <strong>aislamiento cognitivo</strong>. Cuando un colaborador o estudiante se enfrenta a un módulo interactivo complejo o a un video instruccional denso, <strong>las dudas surgen en tiempo real</strong>. En un entorno LMS tradicional, ese usuario debe abandonar la plataforma, enviar un correo al instructor o buscar en foros internos, rompiendo el flujo de aprendizaje. Muchas veces, ante la fricción, la duda simplemente se abandona.",
+                    
+                    "blog-h2": "El paradigma conversacional",
+                    "blog-p3": "Aquí es donde la Inteligencia Artificial interviene para cambiar las reglas del juego. Integrar agentes conversacionales (Bots) directamente en la interfaz del LMS transforma la experiencia de un monólogo institucional a un <strong>diálogo socrático personalizado</strong>.",
+                    "blog-p4": "Imagina un escenario de capacitación en ventas corporativas o resolución de conflictos de liderazgo. Mientras el usuario avanza, nuestro bot ya ha procesado todo el material del curso: transcripciones de los videos, imágenes, diagramas y contenido en texto. Si un estudiante no comprende cómo aplicar una técnica, el bot no solo le recita la teoría, sino que <strong>crea escenarios dinámicos y ejemplos cotidianos para resolver sus dudas</strong>. Actúa como un tutor empático y con los pies en la tierra, construyendo confianza y acompañando el proceso de manera cercana.",
+                    "blog-quote": "\"El LMS organiza el viaje. El Bot camina al lado del estudiante, iluminando el camino y evitando que tropiece con las dudas.\"",
+                    "blog-v2-title": "Diálogo Socrático",
+                    "blog-v2-desc": "Pasamos de un monólogo institucional estático a una conversación hiper-personalizada en tiempo real, conectada al contexto del usuario.",
+                    
+                    "blog-h3": "Beneficios inmediatos de la Simbiosis",
+                    "ben-1-t": "Resolución instantánea",
+                    "ben-1-d": "Eliminación de los cuellos de botella en soporte académico (Zero-Wait).",
+                    "ben-2-t": "Telemetría cualitativa",
+                    "ben-2-d": "Generación de reportes personalizados desde Supabase que integran interacciones con el bot, desafíos de aprendizaje y dificultades técnicas al navegar los cursos o la plataforma, nutriendo las métricas de rendimiento.",
+                    "ben-3-t": "Accesibilidad 24/7",
+                    "ben-3-d": "Tutoría experta disponible en cualquier turno horario o huso geográfico continuo.",
+
+                    "integ-title": "Integración Agnóstica",
+                    "integ-desc": "Entendemos que cada cliente tiene su propia infraestructura. Así es como conectamos y adaptamos nuestro ecosistema CourseMentor a las arquitecturas más populares del mercado.",
+                    "integ-mo-desc": "Integración nativa segura. Conectamos la plataforma vía LTI/xAPI hacia nuestro backend privado (Supabase SOC2 Type 2), asegurando la hiper-personalización y el aislamiento total de la información institucional.",
+                    "integ-tl-desc": "Conexión sin fricciones en entornos cerrados SaaS. Creamos un backend separado en Supabase que escucha activamente los eventos xAPI en TalentLMS, almacenando y procesando cada interacción.",
+                    
+                    "arch-badge": "Arquitectura RAG",
+                    "arch-title": "¿Cómo funciona CourseMentor?",
+                    "arch-desc": "CourseMentor no es un ChatGPT genérico insertado en tu página. Utiliza una arquitectura <strong>Retrieval-Augmented Generation (RAG) Multimodal</strong> para asegurar que las respuestas sean precisas, privadas y basadas estrictamente en tus contenidos.",
+                    "arch-s1-t": "Ingesta Segura",
+                    "arch-s1-d": "Procesamos tus PDFs, videos SCORM e infografías. Los convertimos en vectores matemáticos y los almacenamos en una base de datos vectorial privada (Supabase) con seguridad a nivel de fila (RLS).",
+                    "arch-s2-t": "Recuperación Semántica",
+                    "arch-s2-d": "Cuando un alumno hace una pregunta en tu LMS, nuestro sistema busca en milisegundos los fragmentos exactos de tu material que contienen la respuesta.",
+                    "arch-s3-t": "Generación y Citación",
+                    "arch-s3-d": "Un LLM de grado empresarial redacta una respuesta pedagógica utilizando <em>únicamente</em> la información recuperada, evitando alucinaciones y protegiendo tu propiedad intelectual.",
+
+                    "footer-text": "© 2026 Rasika Producciones. Todos los derechos reservados.",
+                    "cta-bubble": "¡Pruébame!"
+                },
+                en: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clients",
+                    "nav-pricing": "Pricing",
+                    "nav-blog": "Blog",
+                    "toggle-btn": "ES",
+                    "lms-title": "A new paradigm \nLMS & Conversational AI",
+                    "lms-desc": "Discover how we transform static repositories into dynamic platforms through deep integration of virtual tutors and advanced telemetry.",
+                    
+                    "blog-v1-title": "The Evolution of Elearning",
+                    "blog-v1-desc": "Traditional LMS manages access. Conversational AI manages learning. Together, they create an environment where knowledge retention skyrockets.",
+                    "blog-h1": "Why is an LMS no longer enough?",
+                    "blog-p1": "For decades, the <strong>Learning Management System (LMS)</strong> has been the backbone of corporate and academic training. Robust platforms that allow organizing curricula, enrolling thousands of users, hosting SCORM packages, and issuing certificates. However, their fundamental design responds to an era of <em>passive distribution</em> of content.",
+                    "blog-p2": "The current problem is not access to information; it is <strong>cognitive isolation</strong>. When a collaborator or student faces a complex interactive module or a dense instructional video, <strong>doubts arise in real time</strong>. In a traditional LMS environment, that user must leave the platform, email the instructor, or search internal forums, breaking the learning flow. Often, faced with friction, the doubt is simply abandoned.",
+                    
+                    "blog-h2": "The Conversational Paradigm",
+                    "blog-p3": "This is where Artificial Intelligence steps in to change the rules of the game. Integrating conversational agents (Bots) directly into the LMS interface transforms the experience from an institutional monologue to a <strong>personalized Socratic dialogue</strong>.",
+                    "blog-p4": "Imagine a corporate sales training or leadership conflict resolution scenario. As the user progresses, our bot has already processed all the course material: video transcriptions, images, diagrams, and text content. If a student doesn't understand how to apply a technique, the bot doesn't just recite the theory; it <strong>dynamically creates scenarios and everyday examples to resolve their queries</strong>. It acts as an empathetic, down-to-earth tutor, building rapport and guiding the process.",
+                    "blog-quote": "\"The LMS organizes the journey. The Bot walks alongside the student, illuminating the path and preventing them from stumbling over doubts.\"",
+                    "blog-v2-title": "Socratic Dialogue",
+                    "blog-v2-desc": "We move from a static institutional monologue to a hyper-personalized real-time conversation, connected to the user's context.",
+                    
+                    "blog-h3": "Immediate Benefits of Symbiosis",
+                    "ben-1-t": "Instant Resolution",
+                    "ben-1-d": "Elimination of academic support bottlenecks (Zero-Wait).",
+                    "ben-2-t": "Qualitative Telemetry",
+                    "ben-2-d": "Generation of custom reports from Supabase integrating chatbot interactions, users' learning challenges, or technical difficulties navigating the courses or platform, contributing to learning performance metrics.",
+                    "ben-3-t": "24/7 Accessibility",
+                    "ben-3-d": "Expert tutoring available continuously across any time zone or shift.",
+
+                    "integ-title": "Agnostic Integration",
+                    "integ-desc": "We understand that every client has its own infrastructure. That's why we connect and adapt our CourseMentor ecosystem to the most popular architectures on the market.",
+                    "integ-mo-desc": "Secure native integration. We connect the platform via LTI/xAPI to our private backend (Supabase SOC2 Type 2), ensuring hyper-personalization and total isolation of institutional information.",
+                    "integ-tl-desc": "Frictionless connection in closed SaaS environments. We create a separate backend in Supabase that actively listens to xAPI events in TalentLMS, storing and processing every interaction.",
+                    
+                    "arch-badge": "RAG Architecture",
+                    "arch-title": "How does CourseMentor work?",
+                    "arch-desc": "CourseMentor is not a generic ChatGPT embedded in your page. It uses a <strong>Multimodal Retrieval-Augmented Generation (RAG)</strong> architecture to ensure responses are accurate, private, and based strictly on your content.",
+                    "arch-s1-t": "Secure Ingestion",
+                    "arch-s1-d": "We process your PDFs, SCORM videos, and infographics. We convert them into mathematical vectors and store them in a private vector database (Supabase) with Row-Level Security (RLS).",
+                    "arch-s2-t": "Semantic Retrieval",
+                    "arch-s2-d": "When a student asks a question in your LMS, our system searches in milliseconds for the exact fragments of your material that contain the answer.",
+                    "arch-s3-t": "Generation and Citation",
+                    "arch-s3-d": "An enterprise-grade LLM drafts a pedagogical response using <em>only</em> the retrieved information, avoiding hallucinations and protecting your intellectual property.",
+                    
+                    "footer-text": "© 2026 Rasika Productions. All rights reserved.",
+                    "cta-bubble": "Try me!"
+                }
+            };
+
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    currentLang = currentLang === "es" ? "en" : "es";
+                    document.documentElement.lang = currentLang;
+
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        const key = el.getAttribute('data-i18n');
+                        if (translations[currentLang][key]) {
+                            if (key === 'lms-title') {
+                                el.innerHTML = translations[currentLang][key].replace('\n', '<br class="hidden sm:block"/>');
+                                el.innerHTML = el.innerHTML.replace('LMS & IA Conversacional', '<span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">LMS & IA Conversacional</span>').replace('LMS & Conversational AI', '<span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">LMS & Conversational AI</span>');
+                            } else {
+                                // Usamos innerHTML para todo el resto. 
+                                // Como nosotros controlamos el diccionario, es 100% seguro.
+                                el.innerHTML = translations[currentLang][key];
+                            }
+                        }
+                    });
+                    
+                    toggleBtn.innerText = translations[currentLang]["toggle-btn"];
+                });
+            }
+        });
+    </script>
+    
+    <Chatbot />
+</body>
+</html>

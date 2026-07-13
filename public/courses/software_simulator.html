@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Training Simulation - Advanced</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js for dynamic charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .spotlight-active {
+            position: relative;
+            z-index: 50 !important;
+            pointer-events: none;
+            box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.7);
+            border-radius: 0.5rem;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        @keyframes popIn {
+            0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-pop { animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .no-select { user-select: none; }
+    </style>
+</head>
+<body class="bg-gray-50 h-screen flex flex-col font-sans overflow-hidden no-select text-slate-800">
+
+    <!-- Top Navigation -->
+    <header class="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-6 z-10 relative">
+        <div class="flex items-center gap-2 text-indigo-600 font-bold text-xl tracking-tight">
+            <!-- Simulating local logo asset -->
+            <img src="./assets/logo.svg" onerror="this.style.display='none'" alt="Logo" class="w-6 h-6">
+            <i data-lucide="layers" class="w-6 h-6 fallback-icon"></i>
+            OmniERP <span class="text-slate-400 font-normal text-sm ml-2">v4.2</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <button class="p-2 text-gray-400 hover:text-gray-600 rounded-full" id="btn-search">
+                <i data-lucide="search" class="w-5 h-5"></i>
+            </button>
+            <!-- Simulating local avatar asset -->
+            <img src="./assets/avatar-jane.png" onerror="this.style.display='none'; document.getElementById('avatar-fallback').style.display='flex';" class="w-8 h-8 rounded-full border border-gray-200 object-cover" alt="User">
+            <div id="avatar-fallback" class="w-8 h-8 rounded-full bg-indigo-100 border border-indigo-200 hidden items-center justify-center text-indigo-700 font-bold text-sm">JD</div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 h-[calc(100vh-4rem)]">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-10 relative">
+            <div class="p-4">
+                <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Main Menu</p>
+                <nav class="space-y-1">
+                    <button id="nav-dashboard" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-900 bg-gray-100">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5 text-gray-500"></i> Dashboard
+                    </button>
+                    <button id="nav-reports" class="w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+                        <i data-lucide="bar-chart-3" class="w-5 h-5 text-gray-400"></i> Reports
+                    </button>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 overflow-y-auto p-8 relative" id="main-content">
+            
+            <!-- VIEW: Dashboard -->
+            <div id="view-dashboard" class="block">
+                <h1 class="text-2xl font-bold text-gray-900 mb-6" id="welcome-text">Welcome back.</h1>
+                <div class="grid grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500">Total Revenue</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-2" id="metric-revenue">$0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500">Pending Approvals</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">14</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500">Active Users</h3>
+                        <p class="text-3xl font-bold text-gray-900 mt-2">1,204</p>
+                    </div>
+                </div>
+                <!-- Dynamic Chart Container -->
+                <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-80 relative">
+                    <h3 class="text-sm font-medium text-gray-900 mb-4">Revenue Overview (YTD)</h3>
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+
+            <!-- VIEW: Reports -->
+            <div id="view-reports" class="hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-bold text-gray-900">Financial Reports</h1>
+                    <button id="btn-new-report" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4"></i> Create New Report
+                    </button>
+                </div>
+                
+                <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 border-b border-gray-200 text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3 font-medium">Report Name</th>
+                                <th class="px-6 py-3 font-medium">Date Generated</th>
+                                <th class="px-6 py-3 font-medium">Status</th>
+                            </tr>
+                        </thead>
+                        <!-- Data will be injected here via JS Mock DB -->
+                        <tbody id="reports-table-body" class="divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- MODAL: New Report (With Input Validation) -->
+            <div id="modal-overlay" class="hidden fixed inset-0 bg-gray-900/50 z-40 flex items-center justify-center">
+                <div id="modal-content" class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 relative">
+                    <h2 class="text-lg font-bold text-gray-900 mb-4">Configure Report</h2>
+                    <div class="space-y-4">
+                        <!-- New Input Validation Field -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Report Title</label>
+                            <input type="text" id="input-report-title" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Q3 Summary">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Select Period</label>
+                            <div class="relative">
+                                <button id="btn-select-period" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-left flex justify-between items-center bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <span id="period-text" class="text-gray-400">Choose a quarter...</span>
+                                    <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400"></i>
+                                </button>
+                                <div id="dropdown-options" class="hidden absolute top-full left-0 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                                    <button class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-700">Q1 (Jan - Mar)</button>
+                                    <button class="w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-gray-700">Q2 (Apr - Jun)</button>
+                                    <button id="opt-q3" class="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 hover:text-indigo-700 font-medium text-gray-700">Q3 (Jul - Sep)</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8 flex justify-end gap-3">
+                        <button id="btn-cancel" class="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                        <button id="btn-run-report" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-all">Run Report</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SUCCESS MESSAGE -->
+            <div id="view-success" class="hidden absolute inset-0 bg-white z-30 flex flex-col items-center justify-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-500 mb-4 animate-pop">
+                    <i data-lucide="check" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2">Report Generated!</h2>
+                <p class="text-gray-500 text-center max-w-sm mb-6">The report data has been pulled from the database and processed.</p>
+                <button id="btn-restart" class="text-indigo-600 font-medium hover:underline">Start Over</button>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- INSTRUCTOR / CONTROL PANEL -->
+    <div class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-white rounded-full shadow-lg border border-gray-200 p-2 flex items-center gap-2 z-[100]">
+        <div class="px-4 py-1 border-r border-gray-200">
+            <span class="text-xs font-bold uppercase tracking-wider text-gray-400 block mb-0.5">Mode</span>
+            <div class="flex items-center gap-2" id="mode-indicator">
+                <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+                <span class="text-sm font-medium text-gray-700">Idle</span>
+            </div>
+        </div>
+        <button id="ctrl-demo" class="px-5 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-blue-50 transition-colors flex items-center gap-2">
+            <i data-lucide="play-circle" class="w-4 h-4"></i> Play Demo
+        </button>
+        <button id="ctrl-sim" class="px-5 py-2 rounded-full text-sm font-medium bg-gray-100 text-gray-700 hover:bg-emerald-50 transition-colors flex items-center gap-2">
+            <i data-lucide="mouse-pointer-click" class="w-4 h-4"></i> Start Simulation
+        </button>
+    </div>
+
+    <!-- DYNAMIC TOOLTIP -->
+    <div id="tooltip-container" class="fixed z-[60] hidden pointer-events-none animate-pop">
+        <div class="bg-gray-900 text-white px-4 py-3 rounded-lg shadow-xl text-sm max-w-xs relative flex gap-3 items-start">
+            <div id="tooltip-icon" class="mt-0.5 shrink-0"></div>
+            <div><p id="tooltip-text" class="leading-relaxed"></p></div>
+            <div class="absolute w-3 h-3 bg-gray-900 transform rotate-45" id="tooltip-arrow"></div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        /* =========================================================================
+           1. MOCK DATABASE (Simulating external JSON or API)
+           ========================================================================= */
+        const mockDB = {
+            user: { name: "Jane Doe", role: "Admin" },
+            metrics: { totalRevenue: "$84,230" },
+            chartData: {
+                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul'],
+                datasets: [{
+                    label: 'Revenue 2023',
+                    data: [12000, 19000, 15000, 22000, 18000, 25000, 29000],
+                    borderColor: '#4f46e5', // Indigo 600
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            reportsHistory: [
+                { title: "Q2 Financial Summary", date: "Oct 12, 2023", status: "Ready", statusClass: "bg-green-100 text-green-700" },
+                { title: "Annual Audit '22", date: "Jan 05, 2023", status: "Archived", statusClass: "bg-gray-100 text-gray-700" }
+            ]
+        };
+
+        /* =========================================================================
+           2. INITIALIZE DYNAMIC DATA & CHARTS
+           ========================================================================= */
+        function initData() {
+            // Inject User & Metrics
+            document.getElementById('welcome-text').textContent = `Welcome back, ${mockDB.user.name}.`;
+            document.getElementById('metric-revenue').textContent = mockDB.metrics.totalRevenue;
+
+            // Render Chart.js
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: mockDB.chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+
+            // Inject Table Data dynamically
+            const tbody = document.getElementById('reports-table-body');
+            tbody.innerHTML = ''; // Clear hardcoded
+            mockDB.reportsHistory.forEach(report => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="px-6 py-4 font-medium text-gray-900">${report.title}</td>
+                        <td class="px-6 py-4">${report.date}</td>
+                        <td class="px-6 py-4"><span class="${report.statusClass} px-2 py-1 rounded-full text-xs font-medium">${report.status}</span></td>
+                    </tr>
+                `;
+            });
+        }
+        
+        // Run init on load
+        window.addEventListener('DOMContentLoaded', initData);
+
+
+        /* =========================================================================
+           3. SIMULATION ENGINE (With Validation Support)
+           ========================================================================= */
+        const steps = [
+            {
+                targetId: 'nav-reports',
+                demoText: "Navigate to the <b>Reports</b> module to begin.",
+                errorText: "Click on 'Reports' in the sidebar menu.",
+                placement: 'right',
+                action: () => {
+                    document.getElementById('nav-dashboard').classList.replace('bg-gray-100', 'bg-transparent');
+                    document.getElementById('nav-dashboard').classList.replace('text-gray-900', 'text-gray-600');
+                    document.getElementById('nav-reports').classList.replace('bg-transparent', 'bg-gray-100');
+                    document.getElementById('nav-reports').classList.replace('text-gray-600', 'text-gray-900');
+                    document.getElementById('view-dashboard').classList.add('hidden');
+                    document.getElementById('view-reports').classList.remove('hidden');
+                }
+            },
+            {
+                targetId: 'btn-new-report',
+                demoText: "Click <b>Create New Report</b>.",
+                errorText: "Click the blue 'Create New Report' button.",
+                placement: 'bottom',
+                action: () => { document.getElementById('modal-overlay').classList.remove('hidden'); }
+            },
+            {
+                targetId: 'input-report-title',
+                demoText: "First, name the report <b>Q3 Summary</b>.",
+                errorText: "Click inside the 'Report Title' text box to start typing.",
+                placement: 'top',
+                isInput: true, // Flag for demo automation
+                action: () => { 
+                    document.getElementById('input-report-title').focus();
+                    document.getElementById('input-report-title').value = "Q3 Summary"; 
+                }
+            },
+            {
+                targetId: 'btn-select-period',
+                demoText: "Open the <b>Select Period</b> dropdown.",
+                errorText: "Click the dropdown menu to select a quarter.",
+                placement: 'bottom',
+                action: () => { document.getElementById('dropdown-options').classList.remove('hidden'); }
+            },
+            {
+                targetId: 'opt-q3',
+                demoText: "Select <b>Q3 (Jul - Sep)</b>.",
+                errorText: "Please click on Q3.",
+                placement: 'right',
+                action: () => {
+                    document.getElementById('dropdown-options').classList.add('hidden');
+                    const periodText = document.getElementById('period-text');
+                    periodText.textContent = "Q3 (Jul - Sep)";
+                    periodText.classList.add('text-gray-900', 'font-medium');
+                }
+            },
+            {
+                targetId: 'btn-run-report',
+                demoText: "Finally, click <b>Run Report</b>. The system will validate your input.",
+                errorText: "Click the 'Run Report' button.",
+                placement: 'top',
+                // VALIDATION LOGIC HAPPENS HERE
+                validate: () => {
+                    const title = document.getElementById('input-report-title').value;
+                    if (title !== 'Q3 Summary') {
+                        return { 
+                            success: false, 
+                            msg: "Validation Failed: Report Title must be exactly 'Q3 Summary'." 
+                        };
+                    }
+                    return { success: true };
+                },
+                action: () => {
+                    document.getElementById('modal-overlay').classList.add('hidden');
+                    document.getElementById('view-reports').classList.add('hidden');
+                    document.getElementById('view-success').classList.remove('hidden');
+                }
+            }
+        ];
+
+        /* Engine Variables */
+        let currentMode = 'idle'; 
+        let currentStepIndex = 0;
+        let demoTimeoutId = null;
+        const tooltip = document.getElementById('tooltip-container');
+        const modeIndicator = document.getElementById('mode-indicator');
+
+        function resetUI() {
+            clearTimeout(demoTimeoutId);
+            tooltip.classList.add('hidden');
+            document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+            document.getElementById('demo-overlay')?.remove();
+            
+            document.getElementById('nav-dashboard').className = 'w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-900 bg-gray-100';
+            document.getElementById('nav-reports').className = 'w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900';
+            
+            document.getElementById('view-dashboard').classList.remove('hidden');
+            document.getElementById('view-reports').classList.add('hidden');
+            document.getElementById('view-success').classList.add('hidden');
+            document.getElementById('modal-overlay').classList.add('hidden');
+            document.getElementById('dropdown-options').classList.add('hidden');
+            
+            document.getElementById('input-report-title').value = '';
+            document.getElementById('period-text').textContent = "Choose a quarter...";
+            document.getElementById('period-text').className = 'text-gray-400';
+        }
+
+        function showTooltip(targetEl, text, placement, type = 'info', x = null, y = null) {
+            document.getElementById('tooltip-text').innerHTML = text;
+            tooltip.classList.remove('hidden');
+            
+            const arrow = document.getElementById('tooltip-arrow');
+            const bgClass = type === 'error' ? 'bg-red-600' : 'bg-gray-900';
+            
+            tooltip.querySelector('div').className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-xl text-sm max-w-xs relative flex gap-3 items-start`;
+            arrow.className = `absolute w-3 h-3 transform rotate-45 ${bgClass}`;
+            document.getElementById('tooltip-icon').innerHTML = type === 'error' ? `<i data-lucide="alert-triangle" class="w-5 h-5 text-white"></i>` : `<i data-lucide="info" class="w-5 h-5 text-blue-400"></i>`;
+            lucide.createIcons();
+
+            tooltip.classList.remove('animate-pop'); void tooltip.offsetWidth; tooltip.classList.add('animate-pop');
+
+            if (x !== null && y !== null) {
+                tooltip.style.left = `${x + 15}px`; tooltip.style.top = `${y + 15}px`;
+                arrow.classList.add('hidden');
+                return;
+            }
+
+            arrow.classList.remove('hidden');
+            const rect = targetEl.getBoundingClientRect();
+            const ttRect = tooltip.getBoundingClientRect();
+
+            if (placement === 'right') {
+                tooltip.style.top = `${rect.top + (rect.height/2) - (ttRect.height/2)}px`;
+                tooltip.style.left = `${rect.right + 15}px`;
+                arrow.classList.add('-left-1.5', 'top-1/2', '-translate-y-1/2');
+            } else if (placement === 'bottom') {
+                tooltip.style.top = `${rect.bottom + 15}px`;
+                tooltip.style.left = `${rect.left + (rect.width/2) - (ttRect.width/2)}px`;
+                arrow.classList.add('-top-1.5', 'left-1/2', '-translate-x-1/2');
+            } else if (placement === 'top') {
+                tooltip.style.top = `${rect.top - ttRect.height - 15}px`;
+                tooltip.style.left = `${rect.left + (rect.width/2) - (ttRect.width/2)}px`;
+                arrow.classList.add('-bottom-1.5', 'left-1/2', '-translate-x-1/2');
+            }
+        }
+
+        /* Demo Mode */
+        document.getElementById('ctrl-demo').addEventListener('click', () => {
+            currentMode = 'demo'; currentStepIndex = 0; resetUI();
+            modeIndicator.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span><span class="text-sm font-bold text-gray-700">DEMO PLAYING</span>`;
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'demo-overlay';
+            overlay.className = 'fixed inset-0 z-40 bg-slate-900/40 pointer-events-auto';
+            document.body.appendChild(overlay);
+            playDemoStep();
+        });
+
+        function playDemoStep() {
+            if (currentMode !== 'demo') return;
+            if (currentStepIndex >= steps.length) {
+                currentMode = 'idle'; tooltip.classList.add('hidden'); document.getElementById('demo-overlay')?.remove();
+                modeIndicator.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-gray-400"></span><span class="text-sm font-bold text-gray-700">Idle</span>`;
+                return;
+            }
+            const step = steps[currentStepIndex];
+            const targetEl = document.getElementById(step.targetId);
+            document.querySelectorAll('.spotlight-active').forEach(el => el.classList.remove('spotlight-active'));
+            targetEl.classList.add('spotlight-active');
+            showTooltip(targetEl, step.demoText, step.placement, 'info');
+
+            demoTimeoutId = setTimeout(() => {
+                step.action();
+                currentStepIndex++;
+                demoTimeoutId = setTimeout(playDemoStep, 800);
+            }, 3000); 
+        }
+
+        /* Simulation Mode */
+        document.getElementById('ctrl-sim').addEventListener('click', () => {
+            currentMode = 'sim'; currentStepIndex = 0; resetUI();
+            modeIndicator.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-sm font-bold text-gray-700">SIMULATION</span>`;
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.fixed.bottom-6') || e.target.id === 'btn-restart' || e.target.tagName === 'INPUT') return;
+
+            if (currentMode === 'sim') {
+                if (currentStepIndex >= steps.length) return;
+                const step = steps[currentStepIndex];
+                const targetEl = document.getElementById(step.targetId);
+
+                if (targetEl && (e.target === targetEl || targetEl.contains(e.target))) {
+                    // Check validation if the step has it
+                    if (step.validate) {
+                        const result = step.validate();
+                        if (!result.success) {
+                            e.preventDefault(); e.stopPropagation();
+                            showTooltip(null, result.msg, null, 'error', e.clientX, e.clientY);
+                            clearTimeout(demoTimeoutId); demoTimeoutId = setTimeout(() => tooltip.classList.add('hidden'), 3000);
+                            return; // Stop here, don't advance
+                        }
+                    }
+
+                    tooltip.classList.add('hidden');
+                    step.action();
+                    currentStepIndex++;
+                    if(currentStepIndex >= steps.length) modeIndicator.innerHTML = `<span class="w-2.5 h-2.5 rounded-full bg-green-500"></span><span class="text-sm font-bold text-gray-700">Completed</span>`;
+                } else {
+                    e.preventDefault(); e.stopPropagation();
+                    
+                    // If we are waiting for text input, adjust error message slightly
+                    let err = step.errorText;
+                    if(step.isInput && document.activeElement !== document.getElementById(step.targetId)) {
+                        err = "Click inside the text box and type exactly 'Q3 Summary' first.";
+                    }
+
+                    showTooltip(null, err, null, 'error', e.clientX, e.clientY);
+                    clearTimeout(demoTimeoutId); demoTimeoutId = setTimeout(() => tooltip.classList.add('hidden'), 3000);
+                }
+            } else if (currentMode === 'demo') {
+                e.preventDefault(); e.stopPropagation();
+            }
+        }, true);
+        
+        // Handle explicit input change for the simulation step
+        document.getElementById('input-report-title').addEventListener('input', (e) => {
+             if(currentMode === 'sim' && steps[currentStepIndex].targetId === 'input-report-title') {
+                 if(e.target.value === 'Q3 Summary') {
+                     currentStepIndex++; // Automatically advance when correct text is typed
+                     tooltip.classList.add('hidden');
+                 }
+             }
+        });
+
+        document.getElementById('btn-restart').addEventListener('click', () => { if(currentMode === 'sim') document.getElementById('ctrl-sim').click(); });
+    </script>
+</body>
+</html>

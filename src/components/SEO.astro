@@ -1,0 +1,59 @@
+---
+import {
+  SITE,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  organizationJsonLd,
+  webpageJsonLd,
+  websiteJsonLd,
+  type SeoPage,
+} from "../data/seo";
+
+type Props = SeoPage;
+
+const page = Astro.props;
+const canonicalUrl = absoluteUrl(page.path);
+const imageUrl = absoluteUrl(page.image || SITE.defaultImage);
+const robots = page.noindex
+  ? "noindex,nofollow"
+  : "index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1";
+const keywords = page.keywords?.join(", ");
+const jsonLdItems = page.noindex
+  ? []
+  : [
+      organizationJsonLd,
+      websiteJsonLd,
+      webpageJsonLd(page),
+      breadcrumbJsonLd(page),
+      ...(page.jsonLd || []),
+    ];
+const jsonLd = JSON.stringify(jsonLdItems).replace(/</g, "\\u003c");
+---
+
+<title>{page.title}</title>
+<meta name="description" content={page.description} />
+<meta name="robots" content={robots} />
+{keywords && <meta name="keywords" content={keywords} />}
+<link rel="canonical" href={canonicalUrl} />
+<link rel="alternate" hreflang="es-CL" href={canonicalUrl} />
+<link rel="alternate" hreflang="x-default" href={canonicalUrl} />
+
+<meta property="og:site_name" content={SITE.name} />
+<meta property="og:locale" content={SITE.locale} />
+<meta property="og:type" content={page.type === "article" ? "article" : "website"} />
+<meta property="og:title" content={page.title} />
+<meta property="og:description" content={page.description} />
+<meta property="og:url" content={canonicalUrl} />
+<meta property="og:image" content={imageUrl} />
+<meta property="og:image:alt" content={page.title} />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={page.title} />
+<meta name="twitter:description" content={page.description} />
+<meta name="twitter:image" content={imageUrl} />
+
+<meta name="geo.region" content="CL-RM" />
+<meta name="geo.placename" content="Santiago, Chile" />
+<meta name="classification" content="EdTech, e-learning, LMS, SCORM, IA educativa" />
+
+{!page.noindex && <script type="application/ld+json" set:html={jsonLd}></script>}

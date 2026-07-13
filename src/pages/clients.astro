@@ -1,0 +1,841 @@
+---
+// src/pages/clients.astro
+import '../styles/global.css'; 
+import Chatbot from '../components/Chatbot.astro';
+import SEO from '../components/SEO.astro';
+import { seoPages } from '../data/seo';
+
+const seo = seoPages.clients;
+---
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <SEO {...seo} />
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                    },
+                    colors: {
+                        rasika: {
+                            accent: '#5EA6B0',    
+                            dark: '#141619',      
+                            surface: '#1E2226',   
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script is:inline src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Floating CTA Animation */
+        @keyframes float-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        .animate-float-bounce { animation: float-bounce 2s infinite ease-in-out; }
+        
+        /* Bottom Scroll Glow Class */
+        .cta-glow-active .tooltip-bubble {
+            box-shadow: 0 0 40px rgba(94,166,176,0.6) !important;
+            background-color: #88d6e0 !important;
+        }
+        .cta-glow-active .tooltip-tail {
+            background-color: #88d6e0 !important;
+        }
+
+        /* Message Glow */
+        @keyframes msg-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(94, 166, 176, 0.05); transform: translateY(0); }
+            50% { box-shadow: 0 0 20px rgba(94, 166, 176, 0.15); transform: translateY(-4px); }
+        }
+        .animate-msg-glow { animation: msg-glow 3s infinite ease-in-out; }
+    </style>
+</head>
+<body class="tech-bg text-gray-200 font-sans min-h-screen relative overflow-x-hidden selection:bg-rasika-accent selection:text-[#0a0b0d]">
+
+    <div class="fixed inset-0 z-[-1] w-full h-full bg-rasika-dark">
+        <video autoplay loop muted playsinline class="w-full h-full object-cover opacity-50 mix-blend-screen filter saturate-150 contrast-150">
+            <source src="/videos/backgrounds/animated_bg.mp4" type="video/mp4">
+        </video>
+        <div class="absolute inset-0 bg-gradient-to-b from-rasika-dark/95 via-rasika-dark/60 to-transparent pointer-events-none"></div>
+    </div>
+
+    <!-- FIXED TOP NAVIGATION -->
+<header class="fixed top-0 left-0 w-full border-b border-white/5 bg-[#141619]/80 backdrop-blur-xl z-50 shadow-lg">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center relative">
+        
+        <a href="/" class="block w-32 sm:w-40 transition-transform hover:scale-105">
+            <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones Logo" class="w-full h-auto" />
+        </a>
+        
+        <nav class="hidden lg:flex items-center gap-8 text-sm font-semibold text-gray-300">
+            <a href="/demos" class="hover:text-rasika-accent transition-colors" data-i18n="nav-demos">Demos</a>
+            <a href="/lms" class="hover:text-rasika-accent transition-colors" data-i18n="nav-lms">LMS & Bots</a>
+            <a href="/clients" class="hover:text-rasika-accent transition-colors" data-i18n="nav-clients">Clientes</a>
+            <a href="/pricing" class="hover:text-rasika-accent transition-colors" data-i18n="nav-pricing">Precios</a>
+            <a href="/blog" class="hover:text-rasika-accent transition-colors" data-i18n="nav-blog">Blog</a>
+            <button id="lang-toggle" class="border border-white/20 rounded-full px-4 py-1.5 hover:bg-white/10 transition-colors" data-i18n="toggle-btn">EN</button>
+        </nav>
+
+        <button id="mobile-menu-btn" class="block lg:hidden p-2 text-gray-300 hover:text-white transition-colors">
+            <i data-lucide="menu" class="w-7 h-7"></i>
+        </button>
+    </div>
+
+    <nav id="mobile-menu" class="hidden absolute top-full left-0 w-full bg-[#141619]/95 backdrop-blur-2xl border-b border-white/10 flex-col px-8 py-6 gap-6 shadow-2xl lg:hidden">
+        <a href="/demos" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-demos">Demos</a>
+        <a href="/lms" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-lms">LMS & Bots</a>
+        <a href="/clients" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-clients">Clientes</a>
+        <a href="/pricing" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-pricing">Precios</a>
+        <a href="/blog" class="text-lg font-bold text-gray-200 hover:text-rasika-accent transition-colors border-b border-white/5 pb-3" data-i18n="nav-blog">Blog</a>
+    </nav>
+</header>
+
+    <div id="mentor-cta-tooltip" class="fixed bottom-28 right-6 z-[90] flex flex-col items-end animate-float-bounce cursor-pointer group transition-all duration-300" onclick="openMentorWithMessage()">
+        <div class="tooltip-bubble bg-rasika-accent group-hover:bg-[#88d6e0] text-[#0a0b0d] text-sm font-extrabold px-5 py-3 rounded-2xl rounded-br-sm shadow-[0_0_30px_rgba(94,166,176,0.4)] transition-all duration-300 flex items-center gap-2">
+            ¡Pruébame! <i data-lucide="sparkles" class="w-4 h-4"></i>
+        </div>
+        <div class="tooltip-tail w-4 h-4 bg-rasika-accent group-hover:bg-[#88d6e0] transform rotate-45 mr-4 -mt-2 transition-colors duration-300"></div>
+    </div>
+
+    <section class="pt-36 pb-12 px-6 relative text-center">
+        <div class="max-w-4xl mx-auto">
+            <div class="inline-block px-4 py-1.5 mb-6 text-xs font-bold tracking-widest text-rasika-accent uppercase bg-rasika-accent/10 rounded-full border border-rasika-accent/20">
+                Casos de Éxito
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight text-white" data-i18n="clients-title">
+                Nuestros <span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Partners</span>
+            </h1>
+            <p class="text-lg text-gray-400 font-medium leading-relaxed max-w-2xl mx-auto" data-i18n="clients-desc">
+                Organizaciones e instituciones educativas que confían en nuestra simbiosis digital para potenciar la formación de sus equipos.
+            </p>
+        </div>
+    </section>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 relative z-10 space-y-16">
+
+        <!-- CLIENT BLOCK 1: CLASE EJECUTIVA UC -->
+        <section class="bg-rasika-surface/40 backdrop-blur-sm border border-white/10 rounded-[2.5rem] p-6 lg:p-12 flex flex-col lg:flex-row gap-10 lg:gap-16 items-center shadow-2xl">
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-4">
+                        <div class="w-12 h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                            <img src="/images/logos/uc_logo.svg" alt="Clase Ejecutiva UC" class="w-full h-full object-contain" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));" />
+                        </div>
+                        Clase Ejecutiva UC
+                    </h2>
+                    <span class="text-rasika-accent font-mono text-xs font-bold border border-rasika-accent/30 bg-rasika-accent/10 px-3 py-1.5 rounded-full tracking-widest shrink-0">2021 - 2026</span>
+                </div>
+                
+                <div class="bg-[#1A1D21] p-8 rounded-[2rem] border border-white/5 relative shadow-lg flex-1">
+                    <i data-lucide="quote" class="absolute top-6 right-6 w-10 h-10 text-white/5"></i>
+                    <div class="flex gap-1 mb-5 text-[#FFE600]">
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-white font-bold text-lg mb-3 leading-snug">"Innovación tecnológica que escala sin perder calidad."</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 italic">
+                        "La integración de avatares ultra-realistas nos permitió generar un volumen inmenso de contenido académico manteniendo el estándar de exigencia de la universidad, reduciendo los tiempos de estudio drásticamente."
+                    </p>
+                    
+                    <div class="flex items-center gap-4 mt-auto">
+                        <div class="w-12 h-12 rounded-full bg-[#2A2F35] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="/images/png/samantha_villarroel.png" alt="Samantha Villarroel" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\\'/%3E%3Ccircle cx=\\'12\\' cy=\\'7\\' r=\\'4\\'/%3E%3C/svg%3E'; this.classList.add('p-2','text-gray-500');" />
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Samantha Villarroel</p>
+                            <p class="text-gray-500 text-xs font-medium">Ingeniera en Operaciones Académicas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-7/12 client-slider-container relative rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 shadow-2xl aspect-video bg-black group isolate">
+                <div class="slider-track flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]">
+                    
+                    <!-- Slide 1: Interactive Courses -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        
+                        <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                            <source src="/videos/glimpses/tde_scorm.mp4" type="video/mp4">
+                        </video>
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">Curso Interactivo</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">Interactive Courses</h3>
+                            </div>
+                            <button onclick="launchDemo('Cursos Interactivos', 'Módulo SCORM', 'Clase Ejecutiva UC', '2026', 'Desarrollo de cursos interactivos con empaquetado HTML5 y SCORM.', '/courses/rise_template_SCORM/index.html')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: AI Generated Sequences -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                            <source src="/videos/standalone/ai_ultrarealistic.mp4" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">IA Ultra-Realista</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">AI Generated Sequences</h3>
+                            </div>
+                            <button onclick="launchDemo('Secuencias de Video IA', 'IA Ultra-Realista', 'Clase Ejecutiva UC', '2024', 'Videos en alta definición con presentadores hiperrealistas mediante Inteligencia Artificial.', '/videos/standalone/ai_ultrarealistic.mp4')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="absolute top-6 right-6 flex gap-2 z-20">
+                    <button class="slider-prev p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button class="slider-next p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 slider-dots-container"></div>
+            </div>
+        </section>
+
+        <!-- CLIENT BLOCK 2: EY -->
+        <section class="bg-rasika-surface/40 backdrop-blur-sm border border-white/10 rounded-[2.5rem] p-6 lg:p-12 flex flex-col-reverse lg:flex-row gap-10 lg:gap-16 items-center shadow-2xl">
+            <div class="w-full lg:w-7/12 client-slider-container relative rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 shadow-2xl aspect-video bg-black group isolate">
+                <div class="slider-track flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]">
+                    
+                    <!-- Slide 1: TAX Bootcamp -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                            <source src="/videos/glimpses/tax_scorm.mp4" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">Producción SCORM</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">TAX Bootcamp</h3>
+                            </div>
+                            <button onclick="launchDemo('TAX Bootcamp', 'Módulo Interactivo SCORM', 'EY', '2024', 'Desarrollo de paquete SCORM con evaluaciones y multimedia para bootcamp intensivo.', '/courses/tax_scorm/index.html')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: LMS Custom Integration -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+    <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+        <source src="/videos/glimpses/talentlms_demo.mp4" type="video/mp4">
+    </video>
+
+    <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+    
+    <div class="relative z-10 p-8 w-full flex justify-between items-end">
+        <div class="max-w-[70%]">
+            <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">LMS & Bots</div>
+            <h3 class="text-2xl font-bold text-white leading-tight">LMS Custom Integration</h3>
+        </div>
+        <button onclick="launchDemo('LMS Custom Integration', 'Integración Nativa', 'EY', '2024', 'Integración personalizada y automatización de procesos en el LMS.', 'https://eycapacitacion.talentlms.com/index/autologin/key:dnc75k8464pb6gubgnex17777594971740,redirect:learner/courseinfo/id:217')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+            Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+        </button>
+    </div>
+</div>
+
+                </div>
+
+                <div class="absolute top-6 right-6 flex gap-2 z-20">
+                    <button class="slider-prev p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button class="slider-next p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 slider-dots-container"></div>
+            </div>
+
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-4">
+                        <div class="w-12 h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                            <img src="/images/logos/ey_logo.svg" alt="EY" class="w-full h-full object-contain" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));" />
+                        </div>
+                        EY (Ernst & Young)
+                    </h2>
+                    <span class="text-rasika-accent font-mono text-xs font-bold border border-rasika-accent/30 bg-rasika-accent/10 px-3 py-1.5 rounded-full tracking-widest shrink-0">2022 - 2026</span>
+                </div>
+                
+                <div class="bg-[#1A1D21] p-8 rounded-[2rem] border border-white/5 relative shadow-lg flex-1">
+                    <i data-lucide="quote" class="absolute top-6 right-6 w-10 h-10 text-white/5"></i>
+                    <div class="flex gap-1 mb-5 text-[#FFE600]">
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-white font-bold text-lg mb-3 leading-snug">"Elevaron nuestros estándares de capacitación."</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 italic">
+                        "La consultoría instruccional de Rasika y sus módulos SCORM gamificados revolucionaron nuestra forma de hacer onboarding. La calidad visual y la interactividad mantienen a nuestros consultores comprometidos de principio a fin."
+                    </p>
+                    
+                    <div class="flex items-center gap-4 mt-auto">
+                        <div class="w-12 h-12 rounded-full bg-[#2A2F35] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="/images/png/sandra_arenas.png" alt="Sandra Arenas" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\\'/%3E%3Ccircle cx=\\'12\\' cy=\\'7\\' r=\\'4\\'/%3E%3C/svg%3E'; this.classList.add('p-2','text-gray-500');" />
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Sandra Arenas</p>
+                            <p class="text-gray-500 text-xs font-medium">Gerente OTEC EY Learning</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CLIENT BLOCK 3: SCOTIABANK -->
+        <section class="bg-rasika-surface/40 backdrop-blur-sm border border-white/10 rounded-[2.5rem] p-6 lg:p-12 flex flex-col lg:flex-row gap-10 lg:gap-16 items-center shadow-2xl">
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-4">
+                        <div class="w-12 h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                            <img src="/images/logos/scotiabank_logo.svg" alt="Scotiabank Perú" class="w-full h-full object-contain" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));" />
+                        </div>
+                        Scotiabank
+                    </h2>
+                    <span class="text-rasika-accent font-mono text-xs font-bold border border-rasika-accent/30 bg-rasika-accent/10 px-3 py-1.5 rounded-full tracking-widest shrink-0">2025 - 2025</span>
+                </div>
+                
+                <div class="bg-[#1A1D21] p-8 rounded-[2rem] border border-white/5 relative shadow-lg flex-1">
+                    <i data-lucide="quote" class="absolute top-6 right-6 w-10 h-10 text-white/5"></i>
+                    <div class="flex gap-1 mb-5 text-[#FFE600]">
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-white font-bold text-lg mb-3 leading-snug">"Atención inmediata gracias a CourseMentor."</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 italic">
+                        "La integración de CourseMentor redujo las consultas de soporte en un 40% en nuestro programa de formación de ejecutivos. Las cápsulas audiovisuales conectan directo con nuestra cultura."
+                    </p>
+                    
+                    <div class="flex items-center gap-4 mt-auto">
+                        <div class="w-12 h-12 rounded-full bg-[#2A2F35] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="/images/png/melissa_delascasas.png" alt="Melissa De las Casas" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\\'/%3E%3Ccircle cx=\\'12\\' cy=\\'7\\' r=\\'4\\'/%3E%3C/svg%3E'; this.classList.add('p-2','text-gray-500');" />
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Melissa De las Casas</p>
+                            <p class="text-gray-500 text-xs font-medium">Sub gerente Gestión de Portafolio</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-7/12 client-slider-container relative rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 shadow-2xl aspect-video bg-black group isolate">
+    <div class="slider-track flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]">
+        
+        <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+            <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                <source src="/videos/glimpses/scotia_scorm.mp4" type="video/mp4">
+            </video>
+
+            <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+            
+            <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                <div class="max-w-[70%]">
+                    <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">Producción SCORM</div>
+                    <h3 class="text-2xl font-bold text-white leading-tight">Entrenamiento de Ejecutivos</h3>
+                </div>
+                <button onclick="launchDemo('Entrenamiento de Ejecutivos', 'Módulo SCORM', 'Scotiabank', '2025', 'Navegación interactiva y evaluaciones empaquetadas en HTML5/SCORM.', '/courses/scotia_scorm/index.html')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                    Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+
+    </div>
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 slider-dots-container"></div>
+</div>
+        </section>
+
+        <!-- CLIENT BLOCK 4: CENCOSUD -->
+        <section class="bg-rasika-surface/40 backdrop-blur-sm border border-white/10 rounded-[2.5rem] p-6 lg:p-12 flex flex-col-reverse lg:flex-row gap-10 lg:gap-16 items-center shadow-2xl">
+            <div class="w-full lg:w-7/12 client-slider-container relative rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 shadow-2xl aspect-video bg-black group isolate">
+                <div class="slider-track flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]">
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                            <source src="/videos/standalone/presenter_actor.mp4" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">Video Presentador</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">Programa de Liderazgo</h3>
+                            </div>
+                            <button onclick="launchDemo('Programa de Liderazgo', 'Video Presentador', 'Cencosud', '2024', 'Presentador humano profesional grabado en estudio para comunicaciones directas de liderazgo.', '/videos/standalone/presenter_actor.mp4')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 slider-dots-container"></div>
+            </div>
+
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-4">
+                        <div class="w-12 h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                            <img src="/images/logos/cenco_logo.svg" alt="Cencosud" class="w-full h-full object-contain" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));" />
+                        </div>
+                        Cencosud
+                    </h2>
+                    <span class="text-rasika-accent font-mono text-xs font-bold border border-rasika-accent/30 bg-rasika-accent/10 px-3 py-1.5 rounded-full tracking-widest shrink-0">2024 - 2024</span>
+                </div>
+                
+                <div class="bg-[#1A1D21] p-8 rounded-[2rem] border border-white/5 relative shadow-lg flex-1">
+                    <i data-lucide="quote" class="absolute top-6 right-6 w-10 h-10 text-white/5"></i>
+                    <div class="flex gap-1 mb-5 text-[#FFE600]">
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-white font-bold text-lg mb-3 leading-snug">"Un cambio radical en nuestra forma de entrenar."</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 italic">
+                        "La calidad de la producción audiovisual y la precisión de los módulos de Role-Playing en estudio nos permitieron estandarizar la atención al cliente en toda la región con resultados medibles desde el primer mes."
+                    </p>
+                    
+                    <div class="flex items-center gap-4 mt-auto">
+                        <div class="w-12 h-12 rounded-full bg-[#2A2F35] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="/images/png/paulina_alvarado.png" alt="Paulina Alvarado" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\\'/%3E%3Ccircle cx=\\'12\\' cy=\\'7\\' r=\\'4\\'/%3E%3C/svg%3E'; this.classList.add('p-2','text-gray-500');" />
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Paulina Alvarado</p>
+                            <p class="text-gray-500 text-xs font-medium">Subgerente de Formación y Aprendizaje Cenco</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CLIENT BLOCK 5: BUFFALO WAFFLES -->
+        <section class="bg-rasika-surface/40 backdrop-blur-sm border border-white/10 rounded-[2.5rem] p-6 lg:p-12 flex flex-col lg:flex-row gap-10 lg:gap-16 items-center shadow-2xl">
+            <div class="w-full lg:w-5/12 flex flex-col">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-4">
+                        <div class="w-12 h-12 shrink-0 bg-white/5 border border-white/10 rounded-xl p-1.5 flex items-center justify-center shadow-inner">
+                            <img src="/images/logos/bw_logo.svg" alt="Buffalo Waffles" class="w-full h-full object-contain" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));" />
+                        </div>
+                        Buffalo Waffles
+                    </h2>
+                    <span class="text-rasika-accent font-mono text-xs font-bold border border-rasika-accent/30 bg-rasika-accent/10 px-3 py-1.5 rounded-full tracking-widest shrink-0">2020 - 2022</span>
+                </div>
+                
+                <div class="bg-[#1A1D21] p-8 rounded-[2rem] border border-white/5 relative shadow-lg flex-1">
+                    <i data-lucide="quote" class="absolute top-6 right-6 w-10 h-10 text-white/5"></i>
+                    <div class="flex gap-1 mb-5 text-[#FFE600]">
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                        <i data-lucide="star" class="fill-current w-4 h-4"></i>
+                    </div>
+                    <h4 class="text-white font-bold text-lg mb-3 leading-snug">"Eficacia total en el entrenamiento rápido."</h4>
+                    <p class="text-gray-400 text-sm leading-relaxed mb-8 italic">
+                        "Cápsulas de video rápidas y dinámicas que nuestro equipo de tienda puede consumir en minutos desde sus dispositivos. Hemos bajado el tiempo de onboarding en un 30%."
+                    </p>
+                    
+                    <div class="flex items-center gap-4 mt-auto">
+                        <div class="w-12 h-12 rounded-full bg-[#2A2F35] border border-white/10 overflow-hidden shrink-0 flex items-center justify-center">
+                            <img src="/images/png/ruben_michelli.png" alt="Rubén Michelli" class="w-full h-full object-cover" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' viewBox=\\'0 0 24 24\\' fill=\\'none\\' stroke=\\'currentColor\\' stroke-width=\\'2\\' stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\'%3E%3Cpath d=\\'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2\\'/%3E%3Ccircle cx=\\'12\\' cy=\\'7\\' r=\\'4\\'/%3E%3C/svg%3E'; this.classList.add('p-2','text-gray-500');" />
+                        </div>
+                        <div>
+                            <p class="text-white font-bold text-sm">Rubén Michelli</p>
+                            <p class="text-gray-500 text-xs font-medium">Gerente de Franquicias</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full lg:w-7/12 client-slider-container relative rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 shadow-2xl aspect-video bg-black group isolate">
+                <div class="slider-track flex w-full h-full transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]">
+                    
+                    <!-- Slide 1: Onboarding -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        <video preload="metadata" loop muted playsinline class="absolute inset-0 w-full h-full object-cover opacity-60">
+                            <source src="/videos/glimpses/bw_induccion.mp4" type="video/mp4">
+                        </video>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">2D Motion Graphics</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">Onboarding Corporativo</h3>
+                            </div>
+                            <button onclick="launchDemo('Onboarding Corporativo', 'SCORM interactivo', 'Buffalo Waffles', '2020', 'SCORM interactivo y dinámico para inducción en sucursales.', '/videos/glimpses/bw_induccion.mp4')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Slide 2: Entrenamiento de Franquiciados -->
+                    <div class="slide-item w-full h-full shrink-0 relative flex flex-col justify-end">
+                        <div class="absolute inset-0 bg-[#0f1114] flex items-center justify-center">
+                            <i data-lucide="mouse-pointer-click" class="w-16 h-16 text-rasika-accent/30"></i>
+                        </div>
+                        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0c0e] via-black/40 to-transparent pointer-events-none"></div>
+                        <div class="relative z-10 p-8 w-full flex justify-between items-end">
+                            <div class="max-w-[70%]">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-2 uppercase tracking-widest">Módulo SCORM</div>
+                                <h3 class="text-2xl font-bold text-white leading-tight">Entrenamiento de Franquiciados</h3>
+                            </div>
+                            <button onclick="launchDemo('Entrenamiento de Franquiciados', 'Curso SCORM', 'Buffalo Waffles', '2022', 'Entrenamiento interactivo con evaluaciones empaquetado en HTML5.', 'https://eycapacitacion.talentlms.com/unit/view/id:3509')" class="px-5 py-2.5 bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-xl font-bold transition-all backdrop-blur-sm text-sm flex items-center gap-2">
+                                Ver Demo <i data-lucide="play" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="absolute top-6 right-6 flex gap-2 z-20">
+                    <button class="slider-prev p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+                    </button>
+                    <button class="slider-next p-2 rounded-full bg-black/40 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/10 hover:border-transparent text-white transition-all backdrop-blur-sm">
+                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <div class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20 slider-dots-container"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10 mt-10">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 font-medium">
+            <p data-i18n="footer-text">© 2026 Rasika Producciones. Todos los derechos reservados.</p>
+            <div class="flex gap-6">
+                <a href="#" class="hover:text-rasika-accent transition-colors">LinkedIn</a>
+                <a href="#" class="hover:text-rasika-accent transition-colors">Términos</a>
+            </div>
+        </div>
+    </footer>
+
+    <div id="demo-modal" class="fixed inset-0 bg-rasika-dark/95 backdrop-blur-md z-[100] hidden flex-col items-center justify-center opacity-0 transition-opacity duration-300 p-4 sm:p-8">
+        <div class="w-full max-w-6xl flex flex-col gap-4 text-white mb-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+                            <i data-lucide="building-2" class="w-4 h-4 text-rasika-accent"></i>
+                            <span id="demo-client" class="text-xs font-bold tracking-widest uppercase text-white">Cliente</span>
+                        </div>
+                        <span id="demo-year" class="text-gray-400 text-sm font-semibold tracking-wider">Año</span>
+                    </div>
+                    <h3 id="demo-title-modal" class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">Cargando...</h3>
+                </div>
+                <button onclick="closeDemo()" class="p-3 bg-white/5 hover:bg-rasika-accent hover:text-[#0a0b0d] hover:border-transparent border border-white/10 rounded-full transition-all text-gray-300 shrink-0">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <p id="demo-desc-modal" class="text-gray-400 text-sm sm:text-base max-w-4xl leading-relaxed">Descripción del proyecto...</p>
+        </div>
+        
+        <div id="player-container" class="w-full max-w-6xl flex justify-center items-center relative z-10">
+            <div class="w-full aspect-video max-h-[65vh] rounded-3xl ring-1 ring-inset ring-white/10 bg-[#0f1114] flex flex-col items-center justify-center text-gray-500 shadow-2xl" style="max-width: calc(65vh * 16 / 9);">
+                <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4 text-rasika-accent"></i>
+                <p id="demo-subtitle" class="text-sm font-medium tracking-wide">Simulando despliegue de recurso...</p>
+            </div>
+        </div>
+    </div>
+
+    <script is:inline>
+// Mobile Menu Toggle Logic
+document.addEventListener('DOMContentLoaded', () => {
+    const mobileBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if(mobileBtn && mobileMenu) {
+        mobileBtn.addEventListener('click', () => {
+            // Toggle visibility and flexbox stacking
+            mobileMenu.classList.toggle('hidden');
+            mobileMenu.classList.toggle('flex');
+            
+            // Swap hamburger icon for 'X' icon
+            const icon = mobileBtn.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.setAttribute('data-lucide', 'menu');
+            } else {
+                icon.setAttribute('data-lucide', 'x');
+            }
+            if(window.lucide) lucide.createIcons();
+        });
+    }
+});
+
+        // Multi-Slider Logic & Lazy Video Playback
+        document.addEventListener('DOMContentLoaded', () => {
+            const sliders = document.querySelectorAll('.client-slider-container');
+            
+            sliders.forEach(container => {
+                const track = container.querySelector('.slider-track');
+                const slides = container.querySelectorAll('.slide-item');
+                const dotsContainer = container.querySelector('.slider-dots-container');
+                const btnPrev = container.querySelector('.slider-prev');
+                const btnNext = container.querySelector('.slider-next');
+                const totalSlides = slides.length;
+                let currentSlide = 0;
+                let interval;
+                let isVisible = false;
+
+                function pauseAllVideos() {
+                    slides.forEach(slide => {
+                        const vid = slide.querySelector('video');
+                        if (vid) vid.pause();
+                    });
+                }
+
+                function playCurrentVideo() {
+                    if (!isVisible) return;
+                    pauseAllVideos();
+                    if (slides[currentSlide]) {
+                        const currentVid = slides[currentSlide].querySelector('video');
+                        if (currentVid) {
+                            const playPromise = currentVid.play();
+                            if (playPromise !== undefined) {
+                                playPromise.catch(e => console.log('Video play prevented:', e));
+                            }
+                        }
+                    }
+                }
+
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        isVisible = entry.isIntersecting;
+                        if (isVisible) {
+                            playCurrentVideo();
+                        } else {
+                            pauseAllVideos();
+                        }
+                    });
+                }, { threshold: 0.33 });
+                
+                observer.observe(container);
+
+                if(totalSlides <= 1) {
+                    if(btnPrev) btnPrev.style.display = 'none';
+                    if(btnNext) btnNext.style.display = 'none';
+                    if(dotsContainer) dotsContainer.style.display = 'none';
+                    return;
+                }
+
+                for(let i=0; i<totalSlides; i++) {
+                    const dot = document.createElement('button');
+                    dot.className = i === 0 ? 'w-8 h-1.5 rounded-full bg-rasika-accent transition-all duration-300' : 'w-2 h-1.5 rounded-full bg-white/30 hover:bg-white/60 transition-all duration-300';
+                    dot.addEventListener('click', () => { goToSlide(i); });
+                    dotsContainer.appendChild(dot);
+                }
+                const dots = dotsContainer.querySelectorAll('button');
+
+                function updateSlider() {
+                    track.style.transform = `translateX(-${currentSlide * 100}%)`;
+                    dots.forEach((dot, index) => {
+                        dot.className = index === currentSlide 
+                            ? 'w-8 h-1.5 rounded-full bg-rasika-accent transition-all duration-300' 
+                            : 'w-2 h-1.5 rounded-full bg-white/30 hover:bg-white/60 transition-all duration-300';
+                    });
+                    playCurrentVideo();
+                }
+
+                function nextSlide() {
+                    currentSlide = (currentSlide + 1) % totalSlides;
+                    updateSlider();
+                    resetInterval();
+                }
+
+                function prevSlide() {
+                    currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+                    updateSlider();
+                    resetInterval();
+                }
+
+                function goToSlide(index) {
+                    currentSlide = index;
+                    updateSlider();
+                    resetInterval();
+                }
+
+                function startInterval() {
+                    interval = setInterval(nextSlide, 6000);
+                }
+
+                function resetInterval() {
+                    clearInterval(interval);
+                    startInterval();
+                }
+
+                if(btnNext) btnNext.addEventListener('click', nextSlide);
+                if(btnPrev) btnPrev.addEventListener('click', prevSlide);
+
+                startInterval();
+            });
+        });
+
+        // Floating CTA Logic
+        window.openMentorWithMessage = function() {
+            const fab = document.getElementById('mentor-fab');
+            const chatWindow = document.getElementById('mentor-window');
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            
+            if (tooltip) tooltip.style.display = 'none';
+
+            if (fab && chatWindow && chatWindow.style.display === 'none') {
+                fab.click();
+                setTimeout(() => {
+                    const msgBox = document.getElementById('mentor-messages');
+                    if (msgBox) {
+                        const msgDiv = document.createElement('div');
+                        msgDiv.className = 'bg-[#2A2F35] text-gray-200 border border-white/5 p-3 rounded-2xl rounded-tl-sm text-sm self-start max-w-[85%] mt-2 mb-2 animate-msg-glow';
+                        msgDiv.innerHTML = `¡Hola! Revisa nuestros casos de éxito. ¿Qué tipo de producción estás buscando para tu equipo?`;
+                        msgBox.appendChild(msgDiv);
+                        msgBox.scrollTop = msgBox.scrollHeight;
+                    }
+                }, 500);
+            }
+        };
+
+        window.addEventListener('scroll', () => {
+            const tooltip = document.getElementById('mentor-cta-tooltip');
+            if (!tooltip) return;
+            const scrollPosition = window.innerHeight + window.scrollY;
+            const threshold = document.body.offsetHeight - 200;
+            if (scrollPosition >= threshold) {
+                tooltip.classList.add('cta-glow-active');
+            } else {
+                tooltip.classList.remove('cta-glow-active');
+            }
+        });
+
+        // Modal Logic
+        const modal = document.getElementById('demo-modal');
+        const demoTitleModal = document.getElementById('demo-title-modal');
+        const demoSubtitle = document.getElementById('demo-subtitle');
+        const demoClient = document.getElementById('demo-client');
+        const demoYear = document.getElementById('demo-year');
+        const demoDescModal = document.getElementById('demo-desc-modal');
+
+        function launchDemo(courseName, formatType, clientName, year, description, courseUrl) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            setTimeout(() => modal.classList.remove('opacity-0'), 10);
+            
+            demoTitleModal.innerText = courseName;
+            demoSubtitle.innerText = `Desplegando formato: ${formatType}`;
+            demoClient.innerText = clientName;
+            demoYear.innerText = year;
+            demoDescModal.innerText = description;
+
+            const playerArea = document.getElementById('player-container');
+            
+            if (courseUrl.toLowerCase().endsWith('.mp4')) {
+                playerArea.innerHTML = `
+                    <div class="w-fit max-w-full rounded-3xl overflow-hidden shadow-2xl ring-1 ring-inset ring-white/10 bg-black relative flex items-center justify-center isolate [transform:translateZ(0)]">
+                        <video src="${courseUrl}" controls autoplay class="max-w-full w-auto max-h-[65vh] outline-none block rounded-3xl"></video>
+                    </div>
+                `;
+            } else {
+                playerArea.innerHTML = `
+                    <div class="w-full aspect-video rounded-3xl overflow-hidden shadow-2xl ring-1 ring-inset ring-white/10 bg-[#0f1114] relative flex items-center justify-center isolate [transform:translateZ(0)]" style="max-height: 65vh; max-width: calc(65vh * 16 / 9);">
+                        <iframe src="${courseUrl}" class="relative z-10 w-full h-full border-0 bg-white rounded-3xl" allowfullscreen></iframe>
+                    </div>
+                `;
+            }
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeDemo() {
+            modal.classList.add('opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                const playerArea = document.getElementById('player-container');
+                if(playerArea) playerArea.innerHTML = '';
+            }, 300);
+        }
+
+        // Translation Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) lucide.createIcons();
+
+            let currentLang = document.documentElement.lang || "es";
+            const toggleBtn = document.getElementById('lang-toggle');
+
+            const translations = {
+                es: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clientes",
+                    "nav-pricing": "Precios",
+                    "nav-blog": "Blog",
+                    "toggle-btn": "EN",
+                    "clients-title": "Nuestros \nPartners",
+                    "clients-desc": "Organizaciones e instituciones educativas que confían en nuestra simbiosis digital para potenciar la formación de sus equipos.",
+                    "footer-text": "© 2026 Rasika Producciones. Todos los derechos reservados."
+                },
+                en: {
+                    "nav-demos": "Demos",
+                    "nav-lms": "LMS & Bots",
+                    "nav-clients": "Clients",
+                    "nav-pricing": "Pricing",
+                    "nav-blog": "Blog",
+                    "toggle-btn": "ES",
+                    "clients-title": "Our \nPartners",
+                    "clients-desc": "Organizations and educational institutions that trust our digital symbiosis to empower their teams' training.",
+                    "footer-text": "© 2026 Rasika Productions. All rights reserved."
+                }
+            };
+
+            if(toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    currentLang = currentLang === "es" ? "en" : "es";
+                    document.documentElement.lang = currentLang;
+
+                    document.querySelectorAll('[data-i18n]').forEach(el => {
+                        const key = el.getAttribute('data-i18n');
+                        if (translations[currentLang][key]) {
+                            if (key === 'clients-title') {
+                                el.innerHTML = translations[currentLang][key].replace('\n', '<br class="hidden sm:block"/>');
+                                el.innerHTML = el.innerHTML.replace('Partners', '<span class="text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]">Partners</span>');
+                            } else {
+                                el.innerText = translations[currentLang][key];
+                            }
+                        }
+                    });
+                    
+                    toggleBtn.innerText = translations[currentLang]["toggle-btn"];
+                });
+            }
+        });
+    </script>
+    
+    <Chatbot />
+</body>
+</html>
