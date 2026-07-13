@@ -57,7 +57,7 @@ async function fetchLead(supabaseUrl: string, serviceKey: string, leadId: string
     supabaseUrl,
     `leads?id=eq.${encodeURIComponent(
       leadId,
-    )}&select=id,name,email,company_name,status,ai_summary,quoted_price,quoted_service,service_id,services(service_name,category,public_description)`,
+    )}&select=id,name,email,company_name,status,ai_summary,quoted_price,quoted_service,quoted_currency,billing_basis,service_id,services(service_name,category,public_description)`,
   );
 
   const res = await fetch(url, {
@@ -69,6 +69,36 @@ async function fetchLead(supabaseUrl: string, serviceKey: string, leadId: string
 
   if (!res.ok) {
     throw new Error(`Lead fetch failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
+async function fetchQuote(
+  supabaseUrl: string,
+  serviceKey: string,
+  leadId: string,
+  quoteId: string,
+) {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    `quotes?id=eq.${encodeURIComponent(
+      quoteId,
+    )}&lead_id=eq.${encodeURIComponent(
+      leadId,
+    )}&select=*,services(service_name,category,public_description)`,
+  );
+
+  const res = await fetch(url, {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Quote fetch failed: ${await res.text()}`);
   }
 
   const data = await res.json();
@@ -119,6 +149,38 @@ async function patchLeadStatus(supabaseUrl: string, serviceKey: string, leadId: 
   }
 }
 
+async function patchQuoteClicked(
+  supabaseUrl: string,
+  serviceKey: string,
+  quoteId: string,
+) {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    `quotes?id=eq.${encodeURIComponent(quoteId)}&status=eq.quote%20sent`,
+  );
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      Prefer: "return=representation",
+    },
+    body: JSON.stringify({
+      status: "clicked scheduling link",
+      clicked_scheduling_link_at: new Date().toISOString(),
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Quote status patch failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
 function renderChatHistory(chatData: any[], leadName: string) {
   if (!Array.isArray(chatData) || chatData.length === 0) {
     return "<p style='color:#a0aec0;margin:0;'>No hay historial registrado.</p>";
@@ -140,17 +202,34 @@ function renderChatHistory(chatData: any[], leadName: string) {
     .join("");
 }
 
-function buildInternalEmailHTML(lead: any, chatData: any[]) {
+function buildInternalEmailHTML(lead: any, chatData: any[], quote: any = null) {
   const leadName = lead?.name || "Cliente";
   const company = lead?.company_name || "No especificada";
   const email = lead?.email || "No especificado";
   const serviceName =
+    quote?.services?.service_name ||
+    quote?.quoted_service ||
     lead?.services?.service_name ||
     lead?.quoted_service ||
     "Servicio no especificado";
-  const serviceCategory = lead?.services?.category || "No especificada";
-  const quotedPrice = lead?.quoted_price ?? "No especificado";
-  const aiSummary = lead?.ai_summary || "No hay resumen disponible.";
+  const serviceCategory =
+    quote?.services?.category ||
+    lead?.services?.category ||
+    "No especificada";
+  const quoteCurrency =
+    quote?.quoted_currency ||
+    lead?.quoted_currency ||
+    "";
+  const quotedPrice =
+    quote?.quoted_price != null
+      ? `${quote.quoted_price} ${quoteCurrency}`.trim()
+      : lead?.quoted_price != null
+        ? `${lead.quoted_price} ${quoteCurrency}`.trim()
+        : "No especificado";
+  const aiSummary =
+    quote?.ai_summary ||
+    lead?.ai_summary ||
+    "No hay resumen disponible.";
   const chatHtml = renderChatHistory(chatData, leadName);
 
   return `
@@ -199,7 +278,7 @@ function buildInternalEmailHTML(lead: any, chatData: any[]) {
                     </tr>
                     <tr>
                       <td style="padding:10px 14px;font-weight:bold;color:#4a5568;">Monto estimado</td>
-                      <td style="padding:10px 14px;color:#141619;">${escapeHTML(quotedPrice)} UF/CLP</td>
+                      <td style="padding:10px 14px;color:#141619;">${escapeHTML(quotedPrice)}</td>
                     </tr>
                   </table>
 
@@ -233,16 +312,17 @@ async function notifySales(params: {
   resendApiKey: string;
   salesEmail: string;
   lead: any;
+  quote?: any;
   chatData: any[];
 }) {
-  const { resendApiKey, salesEmail, lead, chatData } = params;
+  const { resendApiKey, salesEmail, lead, quote, chatData } = params;
 
   const companyOrName =
     lead?.company_name ||
     lead?.name ||
     "Nuevo lead";
 
-  const emailHtml = buildInternalEmailHTML(lead, chatData);
+  const emailHtml = buildInternalEmailHTML(lead, chatData, quote);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -273,6 +353,7 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const leadId = url.searchParams.get("lead_id");
+    const quoteId = url.searchParams.get("quote_id");
 
     if (!leadId || !UUID_REGEX.test(leadId)) {
       return Response.redirect(getSafeRedirectUrl(redirectUrl), 302);
@@ -295,6 +376,27 @@ serve(async (req) => {
 
     redirectUrl = buildBookingUrl(lead);
 
+    let quote = null;
+    let shouldNotifySales = true;
+
+    if (quoteId && UUID_REGEX.test(quoteId)) {
+      quote = await fetchQuote(
+        supabaseUrl,
+        supabaseServiceKey,
+        leadId,
+        quoteId,
+      );
+
+      const clickedQuote = await patchQuoteClicked(
+        supabaseUrl,
+        supabaseServiceKey,
+        quoteId,
+      );
+
+      shouldNotifySales = Boolean(clickedQuote);
+      quote = clickedQuote || quote;
+    }
+
     const chatData = await fetchChatHistory(
       supabaseUrl,
       supabaseServiceKey,
@@ -307,12 +409,15 @@ serve(async (req) => {
       leadId,
     );
 
-    await notifySales({
-      resendApiKey,
-      salesEmail,
-      lead,
-      chatData,
-    });
+    if (shouldNotifySales) {
+      await notifySales({
+        resendApiKey,
+        salesEmail,
+        lead,
+        quote,
+        chatData,
+      });
+    }
 
     return Response.redirect(redirectUrl, 302);
   } catch (error) {

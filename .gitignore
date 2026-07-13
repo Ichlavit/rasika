@@ -21,6 +21,10 @@ pnpm-debug.log*
 .keys/
 .vscode/sftp.json
 supabase/.temp/
+.npm-cache/
+.deno-cache/
+.tools/
+deno.lock
 
 # macOS-specific files
 .DS_Store

@@ -35,6 +35,21 @@ type LeadRecord = {
   ai_summary?: string | null;
 };
 
+type QuoteRecord = {
+  id: string;
+  lead_id: string;
+  service_id?: string | null;
+  status?: string | null;
+  quoted_price?: number | string | null;
+  quoted_service?: string | null;
+  quoted_currency?: string | null;
+  billing_basis?: string | null;
+  ai_summary?: string | null;
+  language?: string | null;
+  sent_at?: string | null;
+  clicked_scheduling_link_at?: string | null;
+};
+
 type ServiceRecord = {
   id: string;
   service_name: string;
@@ -152,10 +167,20 @@ function buildSupabaseRestUrl(supabaseUrl: string, path: string) {
   return `${supabaseUrl.replace(/\/$/, "")}/rest/v1/${path.replace(/^\//, "")}`;
 }
 
-function buildTrackMeetingUrl(supabaseUrl: string, leadId: string) {
-  return `${supabaseUrl.replace(/\/$/, "")}/functions/v1/track-meeting?lead_id=${encodeURIComponent(
-    leadId,
-  )}`;
+function buildTrackMeetingUrl(
+  supabaseUrl: string,
+  leadId: string,
+  quoteId?: string | null,
+) {
+  const url = new URL(`${supabaseUrl.replace(/\/$/, "")}/functions/v1/track-meeting`);
+
+  url.searchParams.set("lead_id", leadId);
+
+  if (quoteId && UUID_REGEX.test(quoteId)) {
+    url.searchParams.set("quote_id", quoteId);
+  }
+
+  return url.toString();
 }
 
 async function patchLead(
@@ -193,7 +218,125 @@ async function patchLead(
   return null;
 }
 
-async function claimQuoteJob(
+async function patchQuote(
+  supabaseUrl: string,
+  serviceKey: string,
+  quoteId: string,
+  payload: Record<string, unknown>,
+  extraFilter = "",
+  prefer = "return=minimal",
+) {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    `quotes?id=eq.${encodeURIComponent(quoteId)}${extraFilter}`,
+  );
+
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+      Prefer: prefer,
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Quote PATCH failed: ${await res.text()}`);
+  }
+
+  if (prefer.includes("return=representation")) {
+    return await res.json();
+  }
+
+  return null;
+}
+
+async function fetchLead(
+  supabaseUrl: string,
+  serviceKey: string,
+  leadId: string,
+): Promise<LeadRecord | null> {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    `leads?id=eq.${encodeURIComponent(leadId)}&select=*`,
+  );
+
+  const res = await fetch(url, {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Lead fetch failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
+async function fetchPendingQuote(
+  supabaseUrl: string,
+  serviceKey: string,
+  leadId: string,
+): Promise<QuoteRecord | null> {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    `quotes?lead_id=eq.${encodeURIComponent(
+      leadId,
+    )}&status=eq.pending%20quote&select=*&order=created_at.asc&limit=1`,
+  );
+
+  const res = await fetch(url, {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Pending quote fetch failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
+async function claimPendingQuote(
+  supabaseUrl: string,
+  serviceKey: string,
+  leadId: string,
+): Promise<QuoteRecord | null> {
+  const pendingQuote = await fetchPendingQuote(
+    supabaseUrl,
+    serviceKey,
+    leadId,
+  );
+
+  if (!pendingQuote?.id || !UUID_REGEX.test(pendingQuote.id)) {
+    return null;
+  }
+
+  const claimedRows = await patchQuote(
+    supabaseUrl,
+    serviceKey,
+    pendingQuote.id,
+    { status: "quote processing" },
+    "&status=eq.pending%20quote",
+    "return=representation",
+  );
+
+  if (!Array.isArray(claimedRows) || claimedRows.length === 0) {
+    return null;
+  }
+
+  return claimedRows[0] as QuoteRecord;
+}
+
+async function claimLegacyLeadQuoteJob(
   supabaseUrl: string,
   serviceKey: string,
   leadId: string,
@@ -212,6 +355,21 @@ async function claimQuoteJob(
   }
 
   return claimedRows[0] as LeadRecord;
+}
+
+function quoteFromLead(record: LeadRecord): QuoteRecord {
+  return {
+    id: record.id,
+    lead_id: record.id,
+    service_id: record.service_id || null,
+    status: record.status || null,
+    quoted_price: record.quoted_price || null,
+    quoted_service: record.quoted_service || null,
+    quoted_currency: record.quoted_currency || null,
+    billing_basis: record.billing_basis || null,
+    ai_summary: record.ai_summary || null,
+    language: record.language || null,
+  };
 }
 
 async function fetchService(
@@ -443,6 +601,7 @@ serve(async (req) => {
   }
 
   let claimedLeadId: string | null = null;
+  let claimedQuoteId: string | null = null;
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -462,16 +621,20 @@ serve(async (req) => {
     const payload = await req.json().catch(() => null);
     const webhookRecord = payload?.record || payload;
 
-    if (!webhookRecord?.id || !UUID_REGEX.test(String(webhookRecord.id))) {
+    const webhookRecordId = String(webhookRecord?.id || "");
+    const webhookLeadId = String(webhookRecord?.lead_id || "");
+    const leadId = UUID_REGEX.test(webhookLeadId)
+      ? webhookLeadId
+      : webhookRecordId;
+
+    if (!leadId || !UUID_REGEX.test(leadId)) {
       return jsonResponse({
         success: true,
         message: "Ignored: missing or invalid lead id.",
       });
     }
 
-    const leadId = String(webhookRecord.id);
-
-    const record = await claimQuoteJob(
+    let record = await fetchLead(
       supabaseUrl,
       supabaseServiceKey,
       leadId,
@@ -480,18 +643,83 @@ serve(async (req) => {
     if (!record) {
       return jsonResponse({
         success: true,
-        message: "Ignored: quote already claimed, already processed, or not pending.",
+        message: "Ignored: lead not found.",
       });
     }
 
-    claimedLeadId = record.id;
+    let quote: QuoteRecord | null = null;
+
+    if (
+      UUID_REGEX.test(webhookRecordId) &&
+      UUID_REGEX.test(webhookLeadId)
+    ) {
+      const claimedRows = await patchQuote(
+        supabaseUrl,
+        supabaseServiceKey,
+        webhookRecordId,
+        { status: "quote processing" },
+        "&status=eq.pending%20quote",
+        "return=representation",
+      );
+
+      if (Array.isArray(claimedRows) && claimedRows.length > 0) {
+        quote = claimedRows[0] as QuoteRecord;
+      }
+    }
+
+    if (!quote) {
+      quote = await claimPendingQuote(
+        supabaseUrl,
+        supabaseServiceKey,
+        leadId,
+      );
+    }
+
+    if (quote) {
+      claimedLeadId = leadId;
+      claimedQuoteId = quote.id;
+
+      await patchLead(
+        supabaseUrl,
+        supabaseServiceKey,
+        leadId,
+        {
+          status: "quote processing",
+          service_id: quote.service_id || record.service_id || null,
+          quoted_price: quote.quoted_price || record.quoted_price || null,
+          quoted_service: quote.quoted_service || record.quoted_service || null,
+          quoted_currency: quote.quoted_currency || record.quoted_currency || null,
+          billing_basis: quote.billing_basis || record.billing_basis || null,
+          ai_summary: quote.ai_summary || record.ai_summary || null,
+        },
+        "",
+        "return=minimal",
+      );
+    } else {
+      const legacyRecord = await claimLegacyLeadQuoteJob(
+        supabaseUrl,
+        supabaseServiceKey,
+        leadId,
+      );
+
+      if (!legacyRecord) {
+        return jsonResponse({
+          success: true,
+          message: "Ignored: quote already claimed, already processed, or not pending.",
+        });
+      }
+
+      record = legacyRecord;
+      quote = quoteFromLead(legacyRecord);
+      claimedLeadId = legacyRecord.id;
+    }
 
     const email = String(record.email || "").trim().toLowerCase();
-    const price = normalizePrice(record.quoted_price);
-    const serviceId = String(record.service_id || "").trim();
-    const language = normalizeLanguage(record.language);
-    const quotedCurrency = normalizeCurrency(record.quoted_currency);
-    const billingBasis = normalizeBillingBasis(record.billing_basis);
+    const price = normalizePrice(quote.quoted_price);
+    const serviceId = String(quote.service_id || "").trim();
+    const language = normalizeLanguage(quote.language || record.language);
+    const quotedCurrency = normalizeCurrency(quote.quoted_currency);
+    const billingBasis = normalizeBillingBasis(quote.billing_basis);
 
     if (!EMAIL_REGEX.test(email) || email === "pendiente@rasika.cl") {
       throw new Error("Invalid or placeholder email.");
@@ -521,6 +749,7 @@ serve(async (req) => {
 
     const publicDesc =
       service.public_description ||
+      quote.ai_summary ||
       record.ai_summary ||
       service.ai_context_description ||
       "";
@@ -531,7 +760,11 @@ serve(async (req) => {
       (item) => !inclusions.includes(item),
     );
 
-    const trackingUrl = buildTrackMeetingUrl(supabaseUrl, record.id);
+    const trackingUrl = buildTrackMeetingUrl(
+      supabaseUrl,
+      record.id,
+      claimedQuoteId,
+    );
 
     const htmlBody = generateQuoteHTML({
       leadName: record.name || "Cliente",
@@ -568,6 +801,21 @@ serve(async (req) => {
       throw new Error(`Resend failed: ${await resendResponse.text()}`);
     }
 
+    if (claimedQuoteId) {
+      await patchQuote(
+        supabaseUrl,
+        supabaseServiceKey,
+        claimedQuoteId,
+        {
+          status: "quote sent",
+          quoted_service: canonicalServiceName,
+          sent_at: new Date().toISOString(),
+        },
+        "&status=eq.quote%20processing",
+        "return=minimal",
+      );
+    }
+
     await patchLead(
       supabaseUrl,
       supabaseServiceKey,
@@ -575,6 +823,11 @@ serve(async (req) => {
       {
         status: "quote sent",
         quoted_service: canonicalServiceName,
+        service_id: service.id,
+        quoted_price: price,
+        quoted_currency: quotedCurrency,
+        billing_basis: billingBasis,
+        ai_summary: quote.ai_summary || record.ai_summary || null,
       },
       "&status=eq.quote%20processing",
       "return=minimal",
@@ -583,6 +836,7 @@ serve(async (req) => {
     return jsonResponse({
       success: true,
       lead_id: record.id,
+      quote_id: claimedQuoteId,
       status: "quote sent",
       service_id: service.id,
       quoted_service: canonicalServiceName,
@@ -593,6 +847,21 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error("send-quote error:", error?.message || error);
+
+    if (claimedQuoteId && supabaseUrl && supabaseServiceKey) {
+      try {
+        await patchQuote(
+          supabaseUrl,
+          supabaseServiceKey,
+          claimedQuoteId,
+          { status: "quote failed" },
+          "&status=eq.quote%20processing",
+          "return=minimal",
+        );
+      } catch (patchError) {
+        console.error("Failed to mark quote as failed:", patchError);
+      }
+    }
 
     if (claimedLeadId && supabaseUrl && supabaseServiceKey) {
       try {

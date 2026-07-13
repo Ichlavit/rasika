@@ -26,6 +26,19 @@ type ServiceRecord = {
   pricing_tiers: any;
 };
 
+type QuoteRecord = {
+  id: string;
+  lead_id: string;
+  service_id: string | null;
+  status: string;
+  quoted_service: string | null;
+  quoted_price: number | string | null;
+  quoted_currency: string | null;
+  billing_basis: string | null;
+  ai_summary: string | null;
+  language: string | null;
+};
+
 function cleanText(value: string = '') {
   return String(value)
     .replace(/[*_`]/g, '')
@@ -267,6 +280,58 @@ async function fetchService(
   if (!data || !data.length) return null;
 
   return data[0] as ServiceRecord;
+}
+
+async function createQuote(
+  supabaseUrl: string,
+  serviceKey: string,
+  payload: Record<string, unknown>
+): Promise<QuoteRecord | null> {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/quotes`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: "return=representation",
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Quote insert failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return data?.[0] || null;
+}
+
+async function patchQuoteStatus(
+  supabaseUrl: string,
+  serviceKey: string,
+  quoteId: string,
+  status: string
+) {
+  const res = await fetch(
+    `${supabaseUrl}/rest/v1/quotes?id=eq.${encodeURIComponent(quoteId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ status }),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Quote status update failed: ${await res.text()}`);
+  }
 }
 
 serve(async (req) => {
@@ -538,6 +603,7 @@ if (
       parsed?.quote_request || {};
 
     let updatePayload: any = {};
+    let createdQuote: QuoteRecord | null = null;
 
     if (
       profileUpdate.name &&
@@ -740,6 +806,8 @@ if (
     !selectedProjectWithWrongBilling;
 
   if (canGenerateQuote) {
+    const quoteService = selectedService as ServiceRecord;
+
     updatePayload.status =
       'pending quote';
 
@@ -770,7 +838,26 @@ if (
     }
     
     updatePayload.quoted_service =
-      selectedService.service_name;
+      quoteService.service_name;
+
+    createdQuote = await createQuote(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        lead_id: leadId,
+        service_id: validatedServiceId,
+        status: "pending quote",
+        quoted_service: quoteService.service_name,
+        quoted_price: validatedPrice,
+        quoted_currency: validatedCurrency,
+        billing_basis: validatedBillingBasis,
+        ai_summary: updatePayload.ai_summary || null,
+        language:
+          updatePayload.language ||
+          existingLead.language ||
+          "es",
+      },
+    );
   } else {
     data._quote_rejected = {
       reason: selectedStandaloneVideoForInteractiveNeed
@@ -814,7 +901,7 @@ if (
       Object.keys(updatePayload).length > 0
     ) {
       try {
-        await fetch(
+        const leadUpdateResponse = await fetch(
           `${supabaseUrl}/rest/v1/leads?id=eq.${leadId}`,
           {
             method: 'PATCH',
@@ -829,8 +916,37 @@ if (
           }
         );
 
+        if (!leadUpdateResponse.ok) {
+          throw new Error(
+            `Lead update failed: ${await leadUpdateResponse.text()}`
+          );
+        }
+
         data._meta = updatePayload;
+        if (createdQuote) {
+          data._quote = {
+            id: createdQuote.id,
+            lead_id: createdQuote.lead_id,
+            status: createdQuote.status,
+          };
+        }
       } catch (dbErr) {
+        if (createdQuote?.id) {
+          try {
+            await patchQuoteStatus(
+              supabaseUrl,
+              supabaseServiceKey,
+              createdQuote.id,
+              "quote failed",
+            );
+          } catch (quoteErr) {
+            console.error(
+              'Quote cleanup error:',
+              quoteErr
+            );
+          }
+        }
+
         console.error(
           'DB Update Error:',
           dbErr
