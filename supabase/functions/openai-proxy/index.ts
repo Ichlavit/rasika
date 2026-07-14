@@ -46,6 +46,24 @@ function cleanText(value: string = '') {
     .trim();
 }
 
+function sanitizeUiAction(value: any) {
+  if (!value || typeof value !== "object") return null;
+
+  const type = String(value.type || "").trim();
+  const id = String(value.id || "").trim();
+
+  if (
+    !["open_demo", "navigate_to_page", "scroll_to_section"].includes(type) ||
+    !id ||
+    id.length > 120 ||
+    !/^[a-z0-9_/-]+$/i.test(id)
+  ) {
+    return null;
+  }
+
+  return { type, id };
+}
+
 function isPlaceholder(value: unknown) {
   const v = String(value || "").trim().toLowerCase();
 
@@ -601,6 +619,13 @@ if (
 
     const quoteRequest =
       parsed?.quote_request || {};
+
+    const uiAction =
+      sanitizeUiAction(parsed?.ui_action);
+
+    if (uiAction) {
+      data._ui_action = uiAction;
+    }
 
     let updatePayload: any = {};
     let createdQuote: QuoteRecord | null = null;

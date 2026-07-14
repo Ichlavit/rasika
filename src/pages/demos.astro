@@ -6,6 +6,101 @@ import SEO from '../components/SEO.astro';
 import { seoPages } from '../data/seo';
 
 const seo = seoPages.demos;
+
+type DemoCatalogItem = {
+    slug: string;
+    service_id: string;
+    service_content_id: string | null;
+    section_key: 'standalone_videos' | 'interactive_scorm';
+    sort_order: number;
+    category: 'video' | 'interactive';
+    demo_name: string;
+    format_type: string;
+    client_name: string | null;
+    project_year: string | null;
+    description: string;
+    source_url: string;
+    thumbnail_url: string;
+    media_type: 'video' | 'interactive';
+    custom_width: string | null;
+    tag_label: string;
+    card_title: string;
+    card_description: string;
+    icon_name: string;
+    cta_label: string;
+};
+
+const demoFields = [
+    'slug',
+    'service_id',
+    'service_content_id',
+    'section_key',
+    'sort_order',
+    'category',
+    'demo_name',
+    'format_type',
+    'client_name',
+    'project_year',
+    'description',
+    'source_url',
+    'thumbnail_url',
+    'media_type',
+    'custom_width',
+    'tag_label',
+    'card_title',
+    'card_description',
+    'icon_name',
+    'cta_label',
+].join(',');
+
+async function fetchDemoCatalog(): Promise<DemoCatalogItem[]> {
+    const supabaseUrl = (import.meta.env.SUPABASE_URL || import.meta.env.PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
+    const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
+
+    if (!supabaseUrl || !supabaseKey) {
+        console.warn('Missing Supabase env vars for demo catalog build.');
+        return [];
+    }
+
+    const response = await fetch(
+        `${supabaseUrl}/rest/v1/demo_catalog?select=${demoFields}&is_active=eq.true&order=sort_order.asc`,
+        {
+            headers: {
+                apikey: supabaseKey,
+                Authorization: `Bearer ${supabaseKey}`,
+            },
+        },
+    );
+
+    if (!response.ok) {
+        console.warn(`Could not fetch demo catalog: ${response.status}`);
+        return [];
+    }
+
+    return (await response.json()) as DemoCatalogItem[];
+}
+
+const demoCatalog = await fetchDemoCatalog();
+
+const sectionConfigs = [
+    {
+        key: 'standalone_videos',
+        sectionId: 'section-standalone-videos',
+        carouselId: 'carousel-1',
+        title: 'Videos Independientes',
+        description: 'Activos lineales modulares (Animaciones 2D, IA y grabaciones en estudio).',
+    },
+    {
+        key: 'interactive_scorm',
+        sectionId: 'section-interactive-scorm',
+        carouselId: 'carousel-2',
+        title: 'Experiencias Interactivas & SCORM',
+        description: 'Navegación interactiva, simuladores de software y módulos empaquetados para LMS tradicionales.',
+    },
+].map((section) => ({
+    ...section,
+    demos: demoCatalog.filter((demo) => demo.section_key === section.key),
+}));
 ---
 
 <!DOCTYPE html>
@@ -125,286 +220,61 @@ const seo = seoPages.demos;
     </header>
 
     <main class="max-w-7xl mx-auto px-6 pb-24 relative z-10">
-        
-        <!-- CATEGORY 1: Standalone Videos -->
-        <section>
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
-                <div>
-                    <h2 class="text-3xl font-bold text-white mb-2 tracking-tight flex items-center gap-3">
-                        Videos Independientes
-                    </h2>
-                    <p class="text-gray-400 font-medium">Activos lineales modulares (Animaciones 2D, IA y grabaciones en estudio).</p>
-                </div>
-                <div class="flex gap-3 shrink-0">
-                    <button onclick="scrollCarousel('left', 'carousel-1')" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all">
-                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                    </button>
-                    <button onclick="scrollCarousel('right', 'carousel-1')" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all">
-                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- CAROUSEL -->
-            <div id="carousel-1" class="flex overflow-x-auto snap-x snap-mandatory gap-8 pb-12 pt-4 px-4 -mx-4 no-scrollbar scroll-smooth">
-                
-                <div onclick="launchDemo('Video operacional para operarios en faenas mineras', '2D Motion Graphics (Flat Design)', 'AMSA', '2023', 'Videos explicativos utilizando Flat design moderno. Incluye: Storyboard a medida, animación 2D, locución, música de fondo y subtítulos.', '/videos/standalone/2D_motion_graphics.mp4', 'video', null, { serviceId: '083651d6-9f56-479f-9aec-36279119aeda', serviceName: '2D Motion Graphics (Flat Design)', demoName: 'Video operacional para operarios en faenas mineras' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                            <source src="/videos/standalone/2D_motion_graphics.mp4" type="video/mp4">
-                        </video>
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-                        </div>
+        {sectionConfigs.map((section, index) => (
+            <section id={section.sectionId} class:list={[index > 0 && 'mt-8', 'scroll-mt-28']}>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-white mb-2 tracking-tight flex items-center gap-3">
+                            {section.title}
+                        </h2>
+                        <p class="text-gray-400 font-medium">{section.description}</p>
                     </div>
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            Flat Design Moderno
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Video Operacional AMSA</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Animación 2D con diseño de storyboard a medida y elementos visuales dinámicos.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                    <div class="flex gap-3 shrink-0">
+                        <button type="button" data-carousel-control="left" data-carousel-target={section.carouselId} class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all" aria-label={`Desplazar ${section.title} a la izquierda`}>
+                            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+                        </button>
+                        <button type="button" data-carousel-control="right" data-carousel-target={section.carouselId} class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all" aria-label={`Desplazar ${section.title} a la derecha`}>
+                            <i data-lucide="chevron-right" class="w-5 h-5"></i>
                         </button>
                     </div>
                 </div>
 
-                <div onclick="launchDemo('Cápsula de video del curso Transformación Digital en el Estado', 'Cápsulas de Video (IA + Boards)', 'Clase Ejecutiva UC', '2024', 'Secuencias de video con IA combinadas con boards animados. Incluye: Generación de video con IA, transiciones en motion graphics, boards de texto e íconos.', '/videos/standalone/ai_plus_boards.mp4', 'video', null, { serviceId: '8010eada-20de-45b1-b1c4-e618a94cd8f1', serviceName: 'Cápsulas de Video (IA + Boards)', demoName: 'Cápsula de video del curso Transformación Digital en el Estado' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                            <source src="/videos/standalone/ai_plus_boards.mp4" type="video/mp4">
-                        </video>
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-                        </div>
-                    </div>
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            Cápsula de Video IA
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Clase Ejecutiva UC</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Secuencias de video con IA combinadas de forma fluida con gráficas y textos animados.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                    </div>
+                <div id={section.carouselId} class="flex overflow-x-auto snap-x snap-mandatory gap-8 pb-12 pt-4 px-4 -mx-4 no-scrollbar scroll-smooth">
+                    {section.demos.map((demo) => (
+                        <article
+                            id={`demo-${demo.slug}`}
+                            data-demo-card
+                            data-demo-slug={demo.slug}
+                            role="button"
+                            tabindex="0"
+                            class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]"
+                            aria-label={`Ver demo: ${demo.card_title}`}
+                        >
+                            <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
+                                <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
+                                    <source src={demo.thumbnail_url} type="video/mp4" />
+                                </video>
+                                <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
+                                <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
+                                    <i data-lucide={demo.icon_name || 'play'} class:list={[demo.icon_name === 'monitor-play' ? 'w-8 h-8 text-white' : demo.icon_name === 'mouse-pointer-2' ? 'w-8 h-8 text-white ml-0.5' : 'w-8 h-8 text-white ml-1']}></i>
+                                </div>
+                            </div>
+                            <div class="p-6 flex-1 flex flex-col relative z-10">
+                                <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
+                                    {demo.tag_label}
+                                </div>
+                                <h3 class="text-xl font-bold text-white mb-2 leading-tight">{demo.card_title}</h3>
+                                <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">{demo.card_description}</p>
+                                <button type="button" class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
+                                    {demo.cta_label || 'Ver Demo'} <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                        </article>
+                    ))}
                 </div>
-
-                <div onclick="launchDemo('Curso Estrategia Corporativa para Ejecutivos', 'Video con IA Ultra-Realista', 'Clase Ejecutiva UC', '2024', 'Videos en alta definición. Permite elementos de marca o adición de personajes, e incluye locución generada por IA y subtítulos opcionales.', '/videos/standalone/ai_ultrarealistic.mp4', 'video', null, { serviceId: '5e452688-9ad1-4857-ad71-11259886dbfa', serviceName: 'Video con IA Ultra-Realista', demoName: 'Curso Estrategia Corporativa para Ejecutivos' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                             <source src="/videos/standalone/ai_ultrarealistic.mp4" type="video/mp4">
-                        </video>
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-                        </div>
-                    </div>
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            Alta Definición IA
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Secuencia Clase Ejecutiva</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Generación de presentadores hiperrealistas mediante Inteligencia Artificial de vanguardia.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div onclick="launchDemo('Video de nuevas tecnologías de Glencore para inversionistas', 'Videos de Marketing de Alta Calidad', 'Glencore', '2023', 'Videos promocionales o explicativos premium. Incluye: Videos de stock en 4K de primer nivel, locutor humano profesional, licenciamiento de música y edición de alto nivel.', '/videos/standalone/premium_marketing_4K_stock.mp4', 'video', null, { serviceId: '515473fb-6e6e-434c-a4b8-c33678368c42', serviceName: 'Videos de Marketing de Alta Calidad', demoName: 'Video de nuevas tecnologías de Glencore para inversionistas' })" 
-     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-            <source src="/videos/standalone/premium_marketing_4K_stock.mp4" type="video/mp4">
-        </video>
-        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-        </div>
-    </div>
-    <div class="p-6 flex-1 flex flex-col relative z-10">
-        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-            Producción Premium 4K
-        </div>
-        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Video Promocional Glencore</h3>
-        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Pieza audiovisual de alta gama con material de stock 4K y locución profesional.</p>
-        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </button>
-    </div>
-</div>
-
-<div onclick="launchDemo('Video de cierre del curso Líderes por primera vez', 'Video Presentador (Estudio)', 'Cencosud', '2023', 'Presentador humano profesional grabado en estudio. Incluye: Tiempo de estudio, vestuario, edición de video, corrección de color, postproducción y chroma key.', '/videos/standalone/presenter_actor.mp4', 'video', null, { serviceId: '5594e6ab-917a-487a-8a1d-dca4bf12e185', serviceName: 'Video Presentador (Estudio)', demoName: 'Video de cierre del curso Líderes por primera vez' })" 
-     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-            <source src="/videos/standalone/presenter_actor.mp4" type="video/mp4">
-        </video>
-        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-        </div>
-    </div>
-    <div class="p-6 flex-1 flex flex-col relative z-10">
-        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-            Grabación en Estudio
-        </div>
-        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Cencosud Liderazgo</h3>
-        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Comunicación oficial y directa a través de un actor presentador profesional.</p>
-        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </button>
-    </div>
-</div>
-
-<div onclick="launchDemo('Líderes por primera vez', 'Video Role-Playing (Estudio)', 'Cencosud', '2024', 'Escenarios con múltiples actores grabados en estudio para demostrar habilidades blandas o procedimientos. Incluye: Hasta 2 actores, tiempo de estudio, edición y postproducción.', '/videos/standalone/roleplay_actors.mp4', 'video', null, { serviceId: '994f43f1-e367-4001-b1b8-b3433754a654', serviceName: 'Video Role-Playing (Estudio)', demoName: 'Líderes por primera vez' })" 
-     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-        <video autoplay muted loop playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-            <source src="/videos/standalone/roleplay_actors.mp4" type="video/mp4">
-        </video>
-        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-            <i data-lucide="play" class="w-8 h-8 text-white ml-1"></i>
-        </div>
-    </div>
-    <div class="p-6 flex-1 flex flex-col relative z-10">
-        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-            Role-Playing Estudio
-        </div>
-        <h3 class="text-xl font-bold text-white mb-2 leading-tight">Líderes por primera vez</h3>
-        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed">Entrenamiento de habilidades blandas usando múltiples actores y escenarios reales.</p>
-        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-            Ver Demo <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </button>
-    </div>
-</div>
-
-            </div>
-        </section>
-
-        <!-- CATEGORY 2: Interactive SCORM & HTML5 -->
-        <section class="mt-8">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
-                <div>
-                    <h2 class="text-3xl font-bold text-white mb-2 tracking-tight flex items-center gap-3" data-i18n="cat2-title">
-                        Experiencias Interactivas & SCORM
-                    </h2>
-                    <p class="text-gray-400 font-medium" data-i18n="cat2-desc">Navegación interactiva, simuladores de software y módulos empaquetados para LMS tradicionales.</p>
-                </div>
-                <div class="flex gap-3 shrink-0">
-                    <button onclick="scrollCarousel('left', 'carousel-2')" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all">
-                        <i data-lucide="chevron-left" class="w-5 h-5"></i>
-                    </button>
-                    <button onclick="scrollCarousel('right', 'carousel-2')" class="p-3 rounded-full bg-white/5 border border-white/10 hover:bg-rasika-accent/10 hover:border-rasika-accent hover:text-rasika-accent text-white transition-all">
-                        <i data-lucide="chevron-right" class="w-5 h-5"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- CAROUSEL 2 -->
-            <div id="carousel-2" class="flex overflow-x-auto snap-x snap-mandatory gap-8 pb-12 pt-4 px-4 -mx-4 no-scrollbar scroll-smooth">
-                
-                <!-- SCORM Card 1: Rise -->
-                <!-- The 7th parameter is 'interactive' to open an iframe -->
-                <div onclick="launchDemo('Curso de Transformación Digital en el Estado', 'SCORM/HTML en Rise', 'Genérico', '2024', 'Módulo responsivo de navegación libre con diseño modular.', '/courses/rise_template_SCORM/index.html', 'interactive', null, { serviceId: '4fb10ea3-8293-4890-9120-cd9984a9f2ba', serviceName: 'SCORM/HTML en Rise', demoName: 'Curso de Transformación Digital en el Estado' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        
-                        <video autoplay muted loop autoplay playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                            <source src="/videos/glimpses/tde_scorm.mp4" type="video/mp4">
-                        </video>
-                        
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="mouse-pointer-2" class="w-8 h-8 text-white ml-0.5"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            <span data-i18n="tag-inter-1">Articulate Rise</span>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight" data-i18n="card-title-2">SCORM/HTML en Rise</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed" data-i18n="card-desc-2">Módulo responsivo de navegación ágil y diseño fluido.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            <span data-i18n="btn-demo">Ver Demo</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- SCORM Card 2: Custom SCORM -->
-                <div onclick="launchDemo('Gobierno de Datos en Codelco', 'SCORM/HTML personalizado', 'Codelco', '2023', 'Experiencia gamificada a la medida para Codelco.', '/courses/custom_SCORM/index.html', 'interactive', '1024px', { serviceId: '8128db5d-c236-4f69-a15e-8b03a7d1358e', serviceName: 'SCORM/HTML personalizado', demoName: 'Gobierno de Datos en Codelco' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        
-                        <video autoplay muted loop autoplay playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                            <source src="/videos/glimpses/codelco_scorm.mp4" type="video/mp4">
-                        </video>
-                        
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="mouse-pointer-2" class="w-8 h-8 text-white ml-0.5"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            <span data-i18n="tag-inter-2">Desarrollo Custom</span>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight" data-i18n="card-title-3">SCORM/HTML personalizado</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed" data-i18n="card-desc-3">Experiencia interactiva programada a medida con elementos de gamificación.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            <span data-i18n="btn-demo">Ver Demo</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- SCORM Card 3: Software Simulator -->
-                <div onclick="launchDemo('Simulador de software de una plataforma ERP.', 'Simulación de Software (HTML/SCORM)', 'Tech', '2024', 'Práctica en entornos seguros simulando software real.', '/courses/software_simulator.html', 'interactive', '1024px', { serviceId: 'd67ed392-c635-419f-b35a-149babb2a4d2', serviceName: 'Simulación de Software (HTML/SCORM)', demoName: 'Simulador de software de una plataforma ERP.' })" 
-                     class="video-card snap-start shrink-0 w-[320px] sm:w-[380px] bg-rasika-surface/95 rounded-3xl ring-1 ring-inset ring-white/10 hover:ring-white/30 shadow-2xl transition-all duration-300 transform hover:-translate-y-2 cursor-pointer group flex flex-col relative overflow-hidden isolate [transform:translateZ(0)]">
-                    <div class="h-48 bg-[#0a0c0e] relative flex items-center justify-center rounded-t-[23px] overflow-hidden">
-                        
-                        <video autoplay muted loop autoplay playsinline preload="metadata" class="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:opacity-80 group-hover:scale-105 transition-all duration-700">
-                            <source src="/videos/glimpses/software_simulator.mp4" type="video/mp4">
-                        </video>
-                        
-                        <div class="absolute inset-0 bg-gradient-to-t from-rasika-surface via-transparent to-transparent pointer-events-none"></div>
-                        <div class="relative z-10 w-16 h-16 bg-black/40 rounded-full flex items-center justify-center group-hover:scale-110 group-hover:bg-rasika-accent/90 transition-all duration-300 border border-white/20 group-hover:border-transparent">
-                            <i data-lucide="monitor-play" class="w-8 h-8 text-white"></i>
-                        </div>
-                    </div>
-                    
-                    <div class="p-6 flex-1 flex flex-col relative z-10">
-                        <div class="text-[10px] font-extrabold text-rasika-accent mb-3 uppercase tracking-widest flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 rounded-full bg-rasika-accent animate-pulse"></span>
-                            <span data-i18n="tag-inter-3">Simulación Guiada</span>
-                        </div>
-                        <h3 class="text-xl font-bold text-white mb-2 leading-tight" data-i18n="card-title-4">Simulador de Software</h3>
-                        <p class="text-gray-400 text-sm mb-6 flex-1 leading-relaxed" data-i18n="card-desc-4">Práctica en entornos seguros con feedback inmediato emulando sistemas reales.</p>
-                        <button class="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold group-hover:bg-rasika-accent group-hover:border-transparent group-hover:text-[#0a0b0d] transition-all duration-300 flex justify-center items-center gap-2">
-                            <span data-i18n="btn-demo">Ver Demo</span> <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-        </section>
-
+            </section>
+        ))}
     </main>
 
     <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10 mt-12">
@@ -439,6 +309,10 @@ const seo = seoPages.demos;
         </div>
     </div>
 
+    <script define:vars={{ demoCatalog }}>
+        window.rasikaDemoCatalog = demoCatalog;
+    </script>
+
     <!-- SCRIPTS -->
     <script is:inline>
         document.addEventListener('DOMContentLoaded', () => {
@@ -448,6 +322,30 @@ const seo = seoPages.demos;
             const referredBy = urlParams.get('ref');
             if (referredBy && referredBy !== window.mentorLeadId) {
                 localStorage.setItem('rasika_referred_by', referredBy);
+            }
+
+            document.querySelectorAll('[data-carousel-control]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    scrollCarousel(button.getAttribute('data-carousel-control'), button.getAttribute('data-carousel-target'));
+                });
+            });
+
+            document.querySelectorAll('[data-demo-card]').forEach((card) => {
+                card.addEventListener('click', () => {
+                    window.openDemoBySlug(card.getAttribute('data-demo-slug'));
+                });
+
+                card.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        window.openDemoBySlug(card.getAttribute('data-demo-slug'));
+                    }
+                });
+            });
+
+            const requestedDemo = urlParams.get('demo');
+            if (requestedDemo) {
+                setTimeout(() => window.openDemoBySlug(requestedDemo), 250);
             }
         });
 
@@ -494,6 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Horizontal scrolling function for the carousels
         window.scrollCarousel = function(direction, id) {
             const carousel = document.getElementById(id);
+            if (!carousel) return;
             const scrollAmount = 400; // adjust as needed
             if(direction === 'left') {
                 carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
@@ -501,6 +400,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
             }
         }
+
+        function getDemoBySlug(slug) {
+            const safeSlug = String(slug || '').trim();
+            const catalog = Array.isArray(window.rasikaDemoCatalog) ? window.rasikaDemoCatalog : [];
+            return catalog.find((demo) => demo.slug === safeSlug) || null;
+        }
+
+        window.openDemoBySlug = function(slug) {
+            const demo = getDemoBySlug(slug);
+            if (!demo) return false;
+
+            const card = document.getElementById('demo-' + demo.slug);
+            if (card) {
+                card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+
+            window.launchDemo(
+                demo.demo_name,
+                demo.format_type,
+                demo.client_name || '',
+                demo.project_year || '',
+                demo.description || '',
+                demo.source_url,
+                demo.media_type,
+                demo.custom_width || null,
+                {
+                    serviceId: demo.service_id,
+                    serviceContentId: demo.service_content_id,
+                    serviceName: demo.format_type,
+                    demoName: demo.demo_name,
+                    demoSlug: demo.slug
+                }
+            );
+
+            return true;
+        };
+
+        window.rasikaUiActions = window.rasikaUiActions || {};
+        window.rasikaUiActions.openDemo = window.openDemoBySlug;
 
         // --- TRANSLATIONS DICTIONARY ---
         const translations = {
@@ -639,6 +577,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (window.setMentorCourse && serviceMeta && serviceMeta.serviceId) {
                 window.setMentorCourse({
                     serviceId: serviceMeta.serviceId,
+                    serviceContentId: serviceMeta.serviceContentId || null,
+                    demoSlug: serviceMeta.demoSlug || null,
                     label: serviceMeta.serviceName || formatType || courseName,
                     serviceName: serviceMeta.serviceName || formatType || courseName,
                     demoName: serviceMeta.demoName || courseName
