@@ -133,7 +133,7 @@ Schema obligatorio:
 Reglas del JSON:
 - assistant_response contiene el único texto visible para el usuario.
 - profile_update.name, company_name y email solo se completan si el usuario entrega explícitamente esos datos.
-- profile_update contiene solo datos nuevos o corregidos en el turno actual. Si un dato ya existe en el estado del cliente y no fue corregido en este turno, usa null.
+- profile_update contiene solo datos nuevos o correcciones explícitas del turno actual. Si un dato ya existe en el estado del cliente y el usuario no lo corrigió explícitamente, usa null.
 - profile_update.language debe ser "es" salvo que el usuario esté conversando en inglés.
 - quote_request.should_send debe ser false salvo que todos los requisitos de cotización estén completos.
 - quote_request.service_id debe ser un UUID exacto del catálogo recibido.
@@ -1860,20 +1860,46 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     return "";
 }
 
+function identityValueMatches(a, b) {
+    return normalizeForMatch(a) === normalizeForMatch(b);
+}
+
+function userSignalsIdentityCorrection(text) {
+    var normalized = normalizeForMatch(text);
+
+    return /\b(no soy|no es|no era|en realidad|realmente|corrijo|correccion|me equivoque|te equivocaste|quise decir|escribi mal|digite mal|nombre correcto|empresa correcta|correo correcto|perdon)\b/.test(normalized);
+}
+
+function shouldAcceptIdentityValue(existingValue, incomingValue, userText) {
+    var existing = cleanKnownValue(existingValue);
+    var incoming = cleanKnownValue(incomingValue);
+
+    if (!incoming) return false;
+    if (!existing) return true;
+    if (identityValueMatches(existing, incoming)) return false;
+
+    return userSignalsIdentityCorrection(userText);
+}
+
 function buildStageDirective(userText, passiveEmail) {
     var passiveName = extractNameFromText(userText);
     var passiveCompany = extractCompanyFromText(userText);
+    var knownNameBefore = cleanKnownValue(window.mentorUserName);
+    var knownCompanyBefore = cleanKnownValue(localStorage.getItem('mentorCompanyName'));
+    var identityCorrection = userSignalsIdentityCorrection(userText);
+    var passiveNameAccepted = shouldAcceptIdentityValue(knownNameBefore, passiveName, userText);
+    var passiveCompanyAccepted = shouldAcceptIdentityValue(knownCompanyBefore, passiveCompany, userText);
 
     // Passive local profile sync.
     // This prevents the next turn from still seeing name/company/email as unknown
     // when the user already gave the data but the model forgot to return profile_update.
-    if (passiveName) {
+    if (passiveNameAccepted) {
         window.mentorUserName = passiveName;
         localStorage.setItem('mentorUserName', passiveName);
     }
 
     if (
-        passiveCompany &&
+        passiveCompanyAccepted &&
         !/\b\d+\s*(min|minuto|minutos|hora|horas|hrs|h)\b/i.test(passiveCompany)
     ) {
         window.mentorCompanyKnown = true;
@@ -1887,10 +1913,10 @@ function buildStageDirective(userText, passiveEmail) {
         localStorage.setItem('mentorEmail', passiveEmail);
     }
 
-    var nameKnown = cleanKnownValue(window.mentorUserName) !== "";
-    var nameKnownNow = nameKnown || !!passiveName;
+    var nameKnown = knownNameBefore !== "";
+    var nameKnownNow = cleanKnownValue(window.mentorUserName) !== "" || passiveNameAccepted;
     var companyKnown = window.mentorCompanyKnown || cleanKnownValue(localStorage.getItem('mentorCompanyName')) !== "";
-    var companyKnownNow = companyKnown || !!passiveCompany;
+    var companyKnownNow = companyKnown || passiveCompanyAccepted;
     var emailKnown = window.mentorEmailKnown || cleanKnownValue(localStorage.getItem('mentorEmail')) !== "";
     var emailKnownNow = emailKnown || !!passiveEmail;
     var quoteRequested = window.mentorQuoteRequested;
@@ -1931,10 +1957,13 @@ function buildStageDirective(userText, passiveEmail) {
         "Servicio activo resuelto: " + (activeService ? (activeService.service_name + " (" + activeCategory + ")") : "no") + "\n" +
         "Nombre conocido antes de este turno: " + (nameKnown ? "sí" : "no") + "\n" +
         "Nombre detectado en este turno: " + (passiveName || "no") + "\n" +
+        "Nombre aceptado como nuevo/corrección: " + (passiveNameAccepted ? "sí" : "no") + "\n" +
         "Nombre utilizable ahora: " + (nameKnownNow ? "sí" : "no") + "\n" +
         "Empresa conocida antes de este turno: " + (companyKnown ? "sí" : "no") + "\n" +
         "Empresa detectada en este turno: " + (passiveCompany || "no") + "\n" +
+        "Empresa aceptada como nueva/corrección: " + (passiveCompanyAccepted ? "sí" : "no") + "\n" +
         "Empresa utilizable ahora: " + (companyKnownNow ? "sí" : "no") + "\n" +
+        "Usuario señaló corrección de identidad: " + (identityCorrection ? "sí" : "no") + "\n" +
         "Email conocido antes de este turno: " + (emailKnown ? "sí" : "no") + "\n" +
         "Email utilizable ahora: " + (emailKnownNow ? "sí" : "no") + "\n" +
         "Alcance preliminar detectado en historial: " + (scopeKnown ? "sí" : "no") + "\n" +
@@ -1968,10 +1997,11 @@ function buildStageDirective(userText, passiveEmail) {
             "REGLA DE AVANCE TRAS CONVERSACIÓN LARGA: si la conversación ya tiene 10 o más mensajes del usuario, y ya existen nombre, empresa y objetivo formativo razonablemente claro, evita seguir haciendo preguntas de detalle salvo que falte un dato crítico. Haz una suposición explícita y útil basada en lo conversado, entrega una estimación preliminar si el catálogo permite calcularla, y pregunta si quiere recibir el desglose formal para revisarlo luego con el equipo de Rasika.\n" +
             "Ejemplo de avance correcto: “Por lo que me cuentas, asumiría un SCORM de 20 minutos de interacción más 10 minutos de video, lo que cae en el paquete X por Y UF. Podemos pulirlo después con el equipo. ¿Quieres que te envíe este desglose preliminar?”\n" +
 
-            "Si se detectó nombre, empresa o email literal en este turno, cópialo en profile_update.\n" +
-            "Si el usuario dice “hablas con X”, “estás hablando con X”, “soy X”, “me llamo X”, “mi nombre es X”, “puedes llamarme X”, “me puedes llamar X”, “llámame X” o “X está bien”, eso cuenta como nombre explícito. Debes escribirlo en profile_update.name.\n" +
-            "Si el usuario dice “trabajo en X”, “soy de X”, “vengo de X”, “somos X”, “en X”, “para X”, “de la empresa X” o menciona una organización como cliente actual, eso cuenta como empresa explícita. Debes escribirlo en profile_update.company_name.\n" +
-            "Si el usuario entrega una corrección de nombre o empresa distinta a la conocida, acepta la corrección y úsala; no pidas confirmar un dato que el usuario acaba de escribir explícitamente.\n" +
+            "Si el nombre, empresa o email están desconocidos y el usuario entrega el dato literal en este turno, cópialo en profile_update.\n" +
+            "Si ya existe nombre, empresa o email y el usuario entrega un valor diferente, trátalo como corrección solo si el usuario lo enmarca como corrección, por ejemplo “no soy X”, “en realidad soy Y”, “corrijo”, “me equivoqué”, “quise decir”, “nombre correcto”, “empresa correcta” o equivalente. En ese caso escríbelo en profile_update.\n" +
+            "Si aparece un nombre o empresa diferente sin señal de corrección, no reemplaces la identidad conocida: usa profile_update null para ese campo y evita cambiar de nombre en el trato.\n" +
+            "Si el usuario dice “hablas con X”, “estás hablando con X”, “soy X”, “me llamo X”, “mi nombre es X”, “puedes llamarme X”, “me puedes llamar X”, “llámame X” o “X está bien”, eso cuenta como nombre explícito cuando el nombre aún era desconocido.\n" +
+            "Si el usuario dice “trabajo en X”, “soy de X”, “vengo de X”, “somos X”, “en X”, “para X”, “de la empresa X” o menciona una organización como cliente actual, eso cuenta como empresa explícita cuando la empresa aún era desconocida.\n" +
             "Si ya existe un nombre de pila o nombre corto, NO pidas nombre completo. Ese nombre es suficiente para rapport y cotización preliminar.\n" +
             "REGLA UI: si una acción de demo/página/sección requiere cambiar la ruta actual del visitante, pide confirmación primero y deja ui_action=null. Solo usa ui_action para cambiar de página si el usuario confirma explícitamente o pide directamente navegar/abrir/cargar esa vista. Si la acción no cambia de página, puedes ejecutarla normalmente si el usuario la pidió.\n" +
             "REGLA UI DE WORDING: cuando envíes ui_action, assistant_response debe decir que lo harás ahora, no preguntarlo. Si estás preguntando confirmación, ui_action debe ser null.\n" +
@@ -2438,6 +2468,12 @@ async function createAnonymousSession() {
 
     if (!input) return;
 
+    syncMentorStateFromLocalStorage();
+
+    if (!window.mentorLeadId) {
+        await createAnonymousSession();
+    }
+
     var val = input.value.trim();
 
     if (!val && !currentFileId && !currentImageFileId) return;
@@ -2498,11 +2534,40 @@ async function createAnonymousSession() {
     sendMessage();
 }
 
+    function resetMentorRuntimeSession() {
+    window.mentorLeadId = "";
+    window.mentorUserName = "Visitante Anónimo";
+    window.mentorCompanyKnown = false;
+    window.mentorEmailKnown = false;
+    window.mentorQuoteRequested = false;
+    window.mentorPendingUiAction = null;
+    window.mentorChatHistory = [];
+    mentorChatHydrated = false;
+
+    localStorage.removeItem('mentorLeadId');
+    localStorage.removeItem('mentorUserName');
+    localStorage.removeItem('mentorCompanyName');
+    localStorage.removeItem('mentorEmail');
+    localStorage.removeItem('mentorMessages');
+    localStorage.removeItem('mentorCompanyKnown');
+    localStorage.removeItem('mentorEmailKnown');
+    localStorage.removeItem('mentorQuoteRequested');
+    localStorage.removeItem('mentorPendingUiAction');
+
+    var msgBox = document.getElementById('mentor-messages');
+    if (msgBox) msgBox.innerHTML = "";
+}
+
     function syncMentorStateFromLocalStorage() {
     var storedLeadId = localStorage.getItem('mentorLeadId');
     var storedName = cleanKnownValue(localStorage.getItem('mentorUserName'));
     var storedCompany = cleanKnownValue(localStorage.getItem('mentorCompanyName'));
     var storedEmail = cleanKnownValue(localStorage.getItem('mentorEmail'));
+
+    if (!storedLeadId && window.mentorLeadId) {
+        resetMentorRuntimeSession();
+        return;
+    }
 
     if (storedLeadId) {
         window.mentorLeadId = storedLeadId;

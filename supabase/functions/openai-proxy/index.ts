@@ -81,15 +81,70 @@ function isPlaceholder(value: unknown) {
   );
 }
 
-function shouldUpdateKnownValue(existing: unknown, incoming: unknown) {
+function userSignalsIdentityCorrection(value: unknown) {
+  const t = normalizeLower(value);
+
+  return (
+    /\b(no soy|no es|no era|en realidad|realmente|corrijo|correccion|me equivoque|te equivocaste|quise decir|escribi mal|digite mal|nombre correcto|empresa correcta|correo correcto|perdon)\b/.test(t)
+  );
+}
+
+function valueAppearsInText(text: unknown, value: unknown) {
+  const needle = normalizeLower(cleanText(String(value || "")));
+
+  if (!needle) return false;
+
+  return normalizeLower(text).includes(needle);
+}
+
+function collectTextChunks(value: any, chunks: string[] = []) {
+  if (!value) return chunks;
+
+  if (typeof value === "string") {
+    chunks.push(value);
+    return chunks;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) collectTextChunks(item, chunks);
+    return chunks;
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.text === "string") chunks.push(value.text);
+    if (typeof value.content === "string") chunks.push(value.content);
+    if (Array.isArray(value.content)) collectTextChunks(value.content, chunks);
+    if (Array.isArray(value.input)) collectTextChunks(value.input, chunks);
+  }
+
+  return chunks;
+}
+
+function extractCurrentUserTextFromBody(body: any) {
+  if (!body || typeof body !== "object") return "";
+
+  const fullText = collectTextChunks(body.input || body).join("\n");
+  const match = fullText.match(
+    /Mensaje actual del usuario:\s*\n([\s\S]*?)\n\n=== ESTADO DIN[ÁA]MICO DEL TURNO ===/i,
+  );
+
+  return cleanText(match?.[1] || "");
+}
+
+function shouldUpdateKnownValue(
+  existing: unknown,
+  incoming: unknown,
+  currentUserText: unknown,
+) {
   const next = cleanText(String(incoming || ""));
 
   if (isPlaceholder(next)) return false;
+  if (!valueAppearsInText(currentUserText, next)) return false;
 
-  return (
-    isPlaceholder(existing) ||
-    normalizeLower(existing) !== normalizeLower(next)
-  );
+  if (isPlaceholder(existing)) return true;
+  if (normalizeLower(existing) === normalizeLower(next)) return false;
+
+  return userSignalsIdentityCorrection(currentUserText);
 }
 
 function normalizeLower(value: unknown) {
@@ -416,6 +471,7 @@ serve(async (req) => {
     }
 
     let body: any = undefined;
+    let currentUserText = "";
 
     if (
       req.method !== 'GET' &&
@@ -474,6 +530,8 @@ serve(async (req) => {
         body = req.body;
       }
     }
+
+    currentUserText = extractCurrentUserTextFromBody(body);
 
 // Hard cost-control limit: max 15 user messages per lead/session.
 // Extra 5 messages if triggers the Form after limit reached
@@ -641,13 +699,13 @@ if (
     let updatePayload: any = {};
     let createdQuote: QuoteRecord | null = null;
 
-    if (shouldUpdateKnownValue(existingLead.name, profileUpdate.name)) {
+    if (shouldUpdateKnownValue(existingLead.name, profileUpdate.name, currentUserText)) {
       updatePayload.name =
         cleanText(profileUpdate.name)
           .slice(0, 120);
     }
 
-    if (shouldUpdateKnownValue(existingLead.company_name, profileUpdate.company_name)) {
+    if (shouldUpdateKnownValue(existingLead.company_name, profileUpdate.company_name, currentUserText)) {
       updatePayload.company_name =
         cleanText(profileUpdate.company_name)
           .slice(0, 180);
@@ -656,10 +714,7 @@ if (
     if (
       profileUpdate.email &&
       EMAIL_REGEX.test(String(profileUpdate.email)) &&
-      (
-        isPlaceholder(existingLead.email) ||
-        normalizeLower(existingLead.email) !== normalizeLower(profileUpdate.email)
-      )
+      shouldUpdateKnownValue(existingLead.email, profileUpdate.email, currentUserText)
     ) {
       updatePayload.email =
         cleanText(profileUpdate.email)
