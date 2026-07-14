@@ -81,6 +81,17 @@ function isPlaceholder(value: unknown) {
   );
 }
 
+function shouldUpdateKnownValue(existing: unknown, incoming: unknown) {
+  const next = cleanText(String(incoming || ""));
+
+  if (isPlaceholder(next)) return false;
+
+  return (
+    isPlaceholder(existing) ||
+    normalizeLower(existing) !== normalizeLower(next)
+  );
+}
+
 function normalizeLower(value: unknown) {
   return String(value || "")
     .normalize("NFD")
@@ -630,19 +641,13 @@ if (
     let updatePayload: any = {};
     let createdQuote: QuoteRecord | null = null;
 
-    if (
-      profileUpdate.name &&
-      isPlaceholder(existingLead.name)
-    ) {
+    if (shouldUpdateKnownValue(existingLead.name, profileUpdate.name)) {
       updatePayload.name =
         cleanText(profileUpdate.name)
           .slice(0, 120);
     }
 
-    if (
-      profileUpdate.company_name &&
-      isPlaceholder(existingLead.company_name)
-    ) {
+    if (shouldUpdateKnownValue(existingLead.company_name, profileUpdate.company_name)) {
       updatePayload.company_name =
         cleanText(profileUpdate.company_name)
           .slice(0, 180);
@@ -651,7 +656,10 @@ if (
     if (
       profileUpdate.email &&
       EMAIL_REGEX.test(String(profileUpdate.email)) &&
-      isPlaceholder(existingLead.email)
+      (
+        isPlaceholder(existingLead.email) ||
+        normalizeLower(existingLead.email) !== normalizeLower(profileUpdate.email)
+      )
     ) {
       updatePayload.email =
         cleanText(profileUpdate.email)
