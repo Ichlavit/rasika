@@ -91,6 +91,42 @@ const seo = seoPages.blog;
         #reader-body .rasika-service-bridge ul { margin-bottom: 1rem !important; }
         #reader-body .rasika-service-bridge p:last-child { margin-bottom: 0; }
 
+        #reader-hero-bg {
+            overflow: hidden;
+            border-bottom: 0;
+            background-color: #141619;
+        }
+        #reader-hero-bg::after {
+            content: "";
+            position: absolute;
+            z-index: 3;
+            right: 0;
+            bottom: -1px;
+            left: 0;
+            height: 4px;
+            background: #141619;
+            pointer-events: none;
+        }
+        .reader-hero-scrim {
+            position: absolute;
+            z-index: 1;
+            inset: 0;
+            background: rgba(10, 12, 14, 0.45);
+            pointer-events: none;
+        }
+        .reader-hero-fade {
+            position: absolute;
+            z-index: 2;
+            inset: 0 0 -2px;
+            background: linear-gradient(to bottom, rgba(20, 22, 25, 0) 30%, rgba(20, 22, 25, 0.58) 78%, #141619 100%);
+            pointer-events: none;
+        }
+        .reader-hero-fallback {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(94, 166, 176, 0.2), transparent);
+        }
+
         /* --- RESPONSIVE IFRAME / VIDEO STYLING (Separated) --- */
         #reader-body iframe { 
             width: 100%; 
@@ -268,9 +304,9 @@ const seo = seoPages.blog;
             <div class="flex-1 overflow-y-auto no-scrollbar scroll-smooth relative" id="reader-scroll-area">
                 
                 <!-- Dynamic Hero Background -->
-                <div id="reader-hero-bg" class="w-full h-48 md:h-[24rem] bg-[#0f1114] relative border-b border-white/5 transition-all duration-500">
-                    <div class="absolute inset-0 bg-[#0a0c0e]/45"></div>
-                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#141619]/30 to-[#141619]"></div>
+                <div id="reader-hero-bg" class="w-full h-48 md:h-[24rem] relative transition-all duration-500">
+                    <div class="reader-hero-scrim"></div>
+                    <div class="reader-hero-fade"></div>
                 </div>
 
                 <div class="max-w-3xl mx-auto px-6 py-12 md:py-16 relative z-10">
@@ -562,10 +598,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 heroDiv.style.backgroundImage = `url('${article.cover_image}')`;
                 heroDiv.style.backgroundSize = 'cover';
                 heroDiv.style.backgroundPosition = 'center';
-                heroDiv.innerHTML = '<div class="absolute inset-0 bg-[#0a0c0e]/45"></div><div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#141619]/30 to-[#141619]"></div>';
+                heroDiv.innerHTML = '<div class="reader-hero-scrim"></div><div class="reader-hero-fade"></div>';
             } else {
                 heroDiv.style.backgroundImage = 'none';
-                heroDiv.innerHTML = '<div class="absolute inset-0 bg-[#0a0c0e]/45"></div><div class="absolute inset-0 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>';
+                heroDiv.innerHTML = '<div class="reader-hero-fallback"></div><div class="reader-hero-scrim"></div><div class="reader-hero-fade"></div>';
             }
             
             hasLiked = false;
