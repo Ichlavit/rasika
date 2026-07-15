@@ -14,7 +14,7 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_FEED_BYTES = 2_000_000;
 const MAX_ITEMS_PER_SOURCE = 5;
-const PROMPT_VERSION = "ai-radar-rss-v2-es";
+const PROMPT_VERSION = "ai-radar-rss-v3-es";
 const DEFAULT_MODEL = "gpt-5-mini";
 
 const RSS_SOURCES: Record<string, { feedHosts: string[]; articleHosts: string[] }> = {
@@ -547,6 +547,9 @@ async function evaluateCandidates(
           "Genera en español neutro de Latinoamérica solo los campos editoriales destinados al cliente: summary_es, why_it_matters_es, rasika_parallelism_es, suggested_headline_es, linkedin_copy_es y thumbnail_prompt_es.",
           "No es obligatorio comenzar el copy mencionando a la fuente. Si la mencionas, usa publisher_name exactamente como fue entregado: no lo abrevies, traduzcas ni reemplaces por un alias.",
           "summary_es debe ser una síntesis original y prudente de 70 a 120 palabras, no una traducción literal.",
+          "rasika_parallelism_es debe tender un puente operativo: nombra únicamente servicios incluidos en matched_services, explica cómo se aplican al tema y propone un primer entregable acotado o paso de implementación.",
+          "No menciones en rasika_parallelism_es servicios que no estén en matched_services. Si no existe una relación sólida con el catálogo, devuelve matched_services vacío, evita afirmaciones comerciales y reduce rasika_alignment_score.",
+          "Limita matched_services a tres coincidencias verificables y usa en rasika_parallelism_es el service_name exacto entregado en rasika_services.",
           "Si la evidencia RSS es insuficiente, baja evidence_score y confidence y deja una caveat explícita.",
           "Usa exclusivamente topic keys y service IDs presentes en el contexto. Mantén un titular sobrio y atractivo, sin sensacionalismo.",
           "Respeta los máximos: evidencia 25, autoridad 20, innovación 20, alineación Rasika 20, relevancia práctica 10, frescura 5, relevancia LatAm 5 y riesgo de hype 5.",

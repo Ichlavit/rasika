@@ -69,6 +69,19 @@ type Candidate = {
   review_notes: string | null;
 };
 
+type CandidateServiceMatch = {
+  match_score: number;
+  rationale: string;
+  service: {
+    id: string;
+    service_name: string;
+    category: string;
+    public_description: string | null;
+  } | null;
+};
+
+const RADAR_PUBLIC_CATEGORY = "Radar de tendencias en EdTech";
+
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -109,6 +122,38 @@ function slugify(value: unknown) {
 function asOptionalText(value: unknown, maxLength = 20_000) {
   const text = cleanText(value, maxLength);
   return text || null;
+}
+
+function serviceDestination(service: CandidateServiceMatch["service"]) {
+  return service?.category === "saas" ? "/lms/" : "/pricing/";
+}
+
+function buildRasikaServiceBridge(
+  parallelism: unknown,
+  rawMatches: unknown,
+) {
+  const matches = (Array.isArray(rawMatches) ? rawMatches : [])
+    .filter((match): match is CandidateServiceMatch => Boolean(match?.service?.service_name))
+    .slice(0, 3);
+  const introduction = cleanText(parallelism, 4000);
+  if (!introduction && !matches.length) return "";
+
+  const serviceItems = matches.map((match) => {
+    const service = match.service;
+    const destination = serviceDestination(service);
+    const rationale = cleanText(match.rationale, 2000) || cleanText(service?.public_description, 2000);
+    return `<li><strong><a href="${destination}">${escapeHTML(service?.service_name)}</a></strong>${rationale ? `: ${escapeHTML(rationale)}` : ""}</li>`;
+  }).join("");
+  const primaryService = matches[0]?.service || null;
+  const destination = serviceDestination(primaryService);
+  const ctaLabel = primaryService?.category === "saas"
+    ? "Conocer nuestros asistentes IA para LMS"
+    : "Revisar servicios y precios";
+  const serviceBlock = matches.length
+    ? `<div class="rasika-service-bridge"><h3>${matches.length === 1 ? "Servicio relacionado" : "Servicios relacionados"}</h3><ul>${serviceItems}</ul><p><a href="${destination}">${ctaLabel}</a></p></div>`
+    : "";
+
+  return `<h2>La mirada de Rasika</h2>${introduction ? textToParagraphs(introduction) : ""}${serviceBlock}`;
 }
 
 async function restRequest(
@@ -494,11 +539,18 @@ async function publishCandidate(
   let post = Array.isArray(existing) ? existing[0] || null : null;
 
   if (!post) {
-    const sourceRows = await restRequest(
-      supabaseUrl,
-      serviceRoleKey,
-      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization,publisher_name&limit=1`,
-    );
+    const [sourceRows, serviceMatches] = await Promise.all([
+      restRequest(
+        supabaseUrl,
+        serviceRoleKey,
+        `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization,publisher_name&limit=1`,
+      ),
+      restRequest(
+        supabaseUrl,
+        serviceRoleKey,
+        `ai_radar_candidate_services?candidate_id=eq.${encodeURIComponent(candidateId)}&select=match_score,rationale,service:services(id,service_name,category,public_description)&order=match_score.desc`,
+      ),
+    ]);
     const source = Array.isArray(sourceRows) ? sourceRows[0] || null : null;
     const title = cleanText(candidate.suggested_headline || candidate.source_title, 240);
     const summary = cleanText(candidate.editorial_summary, 8000);
@@ -509,9 +561,7 @@ async function publishCandidate(
       candidate.why_it_matters
         ? `<h2>Por que importa</h2>${textToParagraphs(candidate.why_it_matters)}`
         : "",
-      candidate.rasika_parallelism
-        ? `<h2>La mirada de Rasika</h2>${textToParagraphs(candidate.rasika_parallelism)}`
-        : "",
+      buildRasikaServiceBridge(candidate.rasika_parallelism, serviceMatches),
       `<p><strong>Fuente original:</strong> <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">${sourceLabel}</a></p>`,
     ].join("");
     const wordCount = summary.split(/\s+/).filter(Boolean).length;
@@ -523,7 +573,7 @@ async function publishCandidate(
         type: "agent",
         title,
         author: "Rasika AI Radar",
-        category: candidate.matched_topics?.[0] || "Radar IA",
+        category: RADAR_PUBLIC_CATEGORY,
         icon: "bot",
         read_time: `${Math.max(2, Math.ceil(wordCount / 200))} min read`,
         content_html: contentHTML,

@@ -64,7 +64,7 @@ const seo = seoPages.blog;
         #reader-body h1, #reader-body h2, #reader-body h3, #reader-body h4 {
             margin-top: 1.5em; 
             margin-bottom: 0.75em; 
-            letter-spacing: -0.025em; 
+            letter-spacing: 0;
             line-height: 1.3;
         }
         #reader-body p { margin-bottom: 1.5em; }
@@ -78,6 +78,18 @@ const seo = seoPages.blog;
         /* THE CYAN LINKS */
         #reader-body a { color: #5EA6B0 !important; text-decoration: underline !important; text-underline-offset: 4px; }
         #reader-body a:hover { color: #88d6e0 !important; transition: color 0.2s; }
+
+        #reader-body .rasika-service-bridge {
+            margin: 2rem 0 2.5rem;
+            padding: 1.25rem;
+            border: 1px solid rgba(94, 166, 176, 0.32);
+            border-left: 4px solid #5EA6B0;
+            border-radius: 0.5rem;
+            background: rgba(94, 166, 176, 0.08);
+        }
+        #reader-body .rasika-service-bridge h3 { margin-top: 0; }
+        #reader-body .rasika-service-bridge ul { margin-bottom: 1rem !important; }
+        #reader-body .rasika-service-bridge p:last-child { margin-bottom: 0; }
 
         /* --- RESPONSIVE IFRAME / VIDEO STYLING (Separated) --- */
         #reader-body iframe { 
@@ -201,8 +213,12 @@ const seo = seoPages.blog;
         <aside class="lg:col-span-4">
             <div class="sticky top-28 flex flex-col gap-6">
                 <div class="flex items-center justify-between border-b border-white/10 pb-4 mb-2">
-                    <h2 class="text-lg font-bold text-white flex items-center gap-2">
-                        <i data-lucide="radar" class="w-5 h-5 text-rasika-accent"></i> <span data-i18n="sect-ai">Radar IA (Tendencias)</span>
+                    <h2 class="text-lg font-bold text-white flex items-start gap-2">
+                        <i data-lucide="radar" class="w-5 h-5 mt-0.5 shrink-0 text-rasika-accent"></i>
+                        <span class="flex flex-col gap-0.5 leading-tight">
+                            <span data-i18n="sect-ai">Radar de tendencias en EdTech</span>
+                            <span class="text-xs font-medium text-gray-500" data-i18n="sect-ai-powered">(potenciado por IA)</span>
+                        </span>
                     </h2>
                     <span class="flex h-2 w-2 relative">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rasika-accent opacity-75"></span>
@@ -235,13 +251,15 @@ const seo = seoPages.blog;
 
     <div id="reader-modal" class="fixed inset-0 z-[200] hidden items-center justify-center opacity-0 transition-opacity duration-500">
         
-        <!-- FIX: SOFTER GLASS EFFECT BACKDROP -->
-        <div class="absolute inset-0 bg-[#0a0c0e]/70 backdrop-blur-sm transition-all" onclick="closeReader()"></div>
+        <div class="fixed inset-0 min-h-[100dvh] w-screen bg-[#0a0c0e]/80 backdrop-blur-sm transition-all" onclick="closeReader()"></div>
         
         <div class="relative w-full max-w-5xl h-[100dvh] md:h-[90vh] bg-[#141619] md:rounded-[2rem] shadow-2xl flex flex-col overflow-hidden ring-1 ring-white/10 transform scale-95 transition-transform duration-500" id="reader-container">
             
             <div class="flex justify-between items-center p-4 md:px-8 md:py-5 border-b border-white/5 bg-[#1E2226] shrink-0 z-20 relative">
-                <span class="text-sm font-bold text-gray-400 uppercase tracking-wider" id="reader-category">Insight</span>
+                <div class="flex min-w-0 flex-col gap-0.5" id="reader-category">
+                    <span class="text-sm font-bold text-gray-300" id="reader-category-label">Insight</span>
+                    <span class="hidden text-xs font-medium text-gray-500" id="reader-category-meta"></span>
+                </div>
                 <button onclick="closeReader()" class="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-colors">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
@@ -251,7 +269,8 @@ const seo = seoPages.blog;
                 
                 <!-- Dynamic Hero Background -->
                 <div id="reader-hero-bg" class="w-full h-48 md:h-[24rem] bg-[#0f1114] relative border-b border-white/5 transition-all duration-500">
-                    <div class="absolute inset-0 opacity-40 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>
+                    <div class="absolute inset-0 bg-[#0a0c0e]/45"></div>
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#141619]/30 to-[#141619]"></div>
                 </div>
 
                 <div class="max-w-3xl mx-auto px-6 py-12 md:py-16 relative z-10">
@@ -415,6 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             icon: post.icon || 'user',
                             date: dateString + ' • ' + readTime,
                             category: post.category || 'General',
+                            isRadar: post.type === 'agent',
                             views: post.views || 0,
                             likes: post.likes || 0,
                             body: post.content_html,
@@ -518,8 +538,23 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('reader-title').innerHTML = article.title;
             document.getElementById('reader-author').innerText = article.author;
             document.getElementById('reader-date').innerText = article.date;
-            document.getElementById('reader-category').innerText = article.category;
             document.getElementById('reader-body').innerHTML = article.body;
+
+            const categoryLabel = document.getElementById('reader-category-label');
+            const categoryMeta = document.getElementById('reader-category-meta');
+            if (article.isRadar) {
+                categoryLabel.innerText = currentLang === 'en'
+                    ? 'EdTech trends radar'
+                    : 'Radar de tendencias en EdTech';
+                categoryMeta.innerText = currentLang === 'en'
+                    ? '(powered by AI)'
+                    : '(potenciado por IA)';
+                categoryMeta.classList.remove('hidden');
+            } else {
+                categoryLabel.innerText = article.category;
+                categoryMeta.innerText = '';
+                categoryMeta.classList.add('hidden');
+            }
             
             // Hero Background Processing
             const heroDiv = document.getElementById('reader-hero-bg');
@@ -527,10 +562,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 heroDiv.style.backgroundImage = `url('${article.cover_image}')`;
                 heroDiv.style.backgroundSize = 'cover';
                 heroDiv.style.backgroundPosition = 'center';
-                heroDiv.innerHTML = '<div class="absolute inset-0 opacity-80 bg-gradient-to-b from-transparent via-[#141619]/60 to-[#141619]"></div>';
+                heroDiv.innerHTML = '<div class="absolute inset-0 bg-[#0a0c0e]/45"></div><div class="absolute inset-0 bg-gradient-to-b from-transparent via-[#141619]/30 to-[#141619]"></div>';
             } else {
                 heroDiv.style.backgroundImage = 'none';
-                heroDiv.innerHTML = '<div class="absolute inset-0 opacity-40 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>';
+                heroDiv.innerHTML = '<div class="absolute inset-0 bg-[#0a0c0e]/45"></div><div class="absolute inset-0 bg-gradient-to-br from-rasika-accent/20 to-transparent"></div>';
             }
             
             hasLiked = false;
@@ -732,7 +767,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 "blog-title": "E-Learning en la era de la <br/>\n<span class=\"text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]\">Simbiosis Digital</span>",
                 "blog-desc": "Una mezcla curada de artículos profundos elaborados por nuestros expertos y actualizaciones de mercado en tiempo real generadas por agentes de IA.",
                 "sect-human": "Artículos Destacados",
-                "sect-ai": "Radar IA (Tendencias)",
+                "sect-ai": "Radar de tendencias en EdTech",
+                "sect-ai-powered": "(potenciado por IA)",
                 "tag-lms": "Diseño Instruccional",
                 "tag-video": "Video Learning",
                 "agent-cta": "¿Quieres que nuestro agente analice el stack tecnológico de tu empresa?",
@@ -755,7 +791,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 "blog-title": "E-Learning in the era of <br/>\n<span class=\"text-transparent bg-clip-text bg-gradient-to-r from-rasika-accent to-[#a0e5ee]\">Digital Symbiosis</span>",
                 "blog-desc": "A curated blend of deep-dive articles crafted by our experts and real-time market updates generated by AI agents.",
                 "sect-human": "Featured Articles",
-                "sect-ai": "AI Radar (Trends)",
+                "sect-ai": "EdTech trends radar",
+                "sect-ai-powered": "(powered by AI)",
                 "tag-lms": "Instructional Design",
                 "tag-video": "Video Learning",
                 "agent-cta": "Want our agent to analyze your company's tech stack?",
@@ -795,6 +832,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(currentArticleId) {
                     const article = articles[currentArticleId];
                     document.getElementById('reader-views').innerText = article.views + (currentLang === 'en' ? ' views' : ' visualizaciones');
+                    if (article.isRadar) {
+                        document.getElementById('reader-category-label').innerText = currentLang === 'en'
+                            ? 'EdTech trends radar'
+                            : 'Radar de tendencias en EdTech';
+                        document.getElementById('reader-category-meta').innerText = currentLang === 'en'
+                            ? '(powered by AI)'
+                            : '(potenciado por IA)';
+                    }
                 }
                 
                 toggleBtn.innerText = translations[currentLang]["toggle-btn"];
