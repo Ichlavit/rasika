@@ -137,7 +137,7 @@ const seo = seoPages.admin;
         .ql-align-right iframe.ql-video, .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
     </style>
 </head>
-<body class="min-h-screen flex items-center justify-center p-6">
+<body class="min-h-screen flex items-start lg:items-center justify-center p-6">
 
     <div id="admin-config" style="display:none;" 
          data-url={supabaseUrl} 
@@ -161,14 +161,14 @@ const seo = seoPages.admin;
     </div>
 
     <!-- DASHBOARD SCREEN -->
-    <div id="dashboard-screen" class="w-full max-w-5xl hidden flex-col h-[90vh]">
+    <div id="dashboard-screen" class="w-full max-w-7xl hidden flex-col min-h-[calc(100vh-3rem)] lg:h-[90vh] lg:min-h-0">
         
-        <div class="flex justify-between items-center mb-4 bg-[#1E2226] p-4 rounded-xl ring-1 ring-white/10">
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 bg-[#1E2226] p-4 rounded-xl ring-1 ring-white/10">
             <div class="flex items-center gap-3">
                 <i data-lucide="layout-dashboard" class="w-6 h-6 text-[#5EA6B0]"></i>
-                <h1 class="text-xl font-bold">Editor de Artículos</h1>
+                <h1 id="dashboard-title" class="text-xl font-bold">Editor de Artículos</h1>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex flex-wrap items-center gap-4">
                 <input type="password" id="php-token" placeholder="Token Subida PHP" class="w-40 bg-[#141619] border border-white/10 rounded-lg px-3 py-1.5 outline-none text-white text-sm focus:border-[#5EA6B0]" title="La contraseña secreta de tu archivo upload.php">
                 <button onclick="logout()" class="text-sm text-gray-400 hover:text-white flex items-center gap-2">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
@@ -176,65 +176,176 @@ const seo = seoPages.admin;
             </div>
         </div>
 
-        <div class="flex items-center gap-4 mb-4">
-            <div class="flex-1 relative">
-                <select id="edit-selector" onchange="handleEditSelection(this.value)" class="w-full bg-[#1A1E22] border border-white/20 rounded-xl px-4 py-3 appearance-none outline-none text-white focus:border-[#5EA6B0] font-medium">
-                    <option value="">✨ Crear Nuevo Artículo...</option>
-                </select>
-                <i data-lucide="chevron-down" class="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
-            </div>
-            <button onclick="document.getElementById('edit-selector').value=''; handleEditSelection('');" class="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-colors">
-                Limpiar
+        <div class="flex items-center gap-1 mb-4 p-1 bg-[#141619] border border-white/10 rounded-lg w-fit" role="tablist" aria-label="Secciones del CMS">
+            <button id="admin-tab-articles" type="button" role="tab" aria-selected="true" onclick="setAdminView('articles')" class="px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="file-pen-line" class="w-4 h-4"></i> Artículos
+            </button>
+            <button id="admin-tab-radar" type="button" role="tab" aria-selected="false" onclick="setAdminView('radar')" class="px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="radar" class="w-4 h-4"></i> AI Radar
             </button>
         </div>
 
-        <div class="flex-1 bg-[#1E2226] rounded-2xl ring-1 ring-white/10 p-6 overflow-y-auto no-scrollbar relative">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Tipo de Contenido</label>
-                    <select id="post-type" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
-                        <option value="human">Human: Artículo Destacado</option>
-                        <option value="agent">AI: Radar / Tendencia</option>
+        <section id="articles-panel" class="flex-1 flex flex-col min-h-0" role="tabpanel">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="flex-1 relative">
+                    <select id="edit-selector" onchange="handleEditSelection(this.value)" class="w-full bg-[#1A1E22] border border-white/20 rounded-xl px-4 py-3 appearance-none outline-none text-white focus:border-[#5EA6B0] font-medium">
+                        <option value="">✨ Crear Nuevo Artículo...</option>
                     </select>
+                    <i data-lucide="chevron-down" class="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Título</label>
-                    <input type="text" id="post-title" placeholder="Ej: El fin del SCORM..." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Autor / Agente</label>
-                    <input type="text" id="post-author" placeholder="Ej: Ignacio G." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Categoría</label>
-                    <input type="text" id="post-category" placeholder="Ej: Diseño Instruccional" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase flex justify-between">
-                        <span>Ruta de la Imagen de Portada (Carpeta Public)</span>
-                        <button type="button" onclick="uploadCoverImage()" class="text-[#5EA6B0] hover:text-white flex items-center gap-1 normal-case"><i data-lucide="upload" class="w-3 h-3"></i> Subir Imagen</button>
-                    </label>
-                    <input type="text" id="post-cover" placeholder="/images/blog/mi-portada.jpg" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
-                </div>
+                <button onclick="document.getElementById('edit-selector').value=''; handleEditSelection('');" class="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-colors">
+                    Limpiar
+                </button>
             </div>
 
-            <div class="mb-6">
-                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Contenido del Artículo</label>
-                <div id="editor"></div>
+            <div class="flex-1 bg-[#1E2226] rounded-2xl ring-1 ring-white/10 p-6 overflow-y-auto no-scrollbar relative">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Tipo de Contenido</label>
+                        <select id="post-type" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                            <option value="human">Human: Artículo Destacado</option>
+                            <option value="agent">AI: Radar / Tendencia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Título</label>
+                        <input type="text" id="post-title" placeholder="Ej: El fin del SCORM..." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Autor / Agente</label>
+                        <input type="text" id="post-author" placeholder="Ej: Ignacio G." class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Categoría</label>
+                        <input type="text" id="post-category" placeholder="Ej: Diseño Instruccional" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase flex justify-between">
+                            <span>Ruta de la Imagen de Portada (Carpeta Public)</span>
+                            <button type="button" onclick="uploadCoverImage()" class="text-[#5EA6B0] hover:text-white flex items-center gap-1 normal-case"><i data-lucide="upload" class="w-3 h-3"></i> Subir Imagen</button>
+                        </label>
+                        <input type="text" id="post-cover" placeholder="/images/blog/mi-portada.jpg" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Contenido del Artículo</label>
+                    <div id="editor"></div>
+                </div>
+
+                <div class="flex flex-wrap justify-end gap-4 mt-6 pt-4 border-t border-white/10">
+                    <button onclick="saveDraft()" id="save-btn" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all flex items-center gap-2 text-gray-300">
+                        <i data-lucide="save" class="w-4 h-4"></i> Guardar Borrador
+                    </button>
+                    <button onclick="openPreview()" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all text-gray-300 flex items-center gap-2">
+                        <i data-lucide="eye" class="w-4 h-4"></i> Vista Previa
+                    </button>
+                    <button onclick="publishPost()" id="publish-btn" class="px-8 py-3 bg-[#5EA6B0] text-black font-bold rounded-xl hover:bg-[#88d6e0] transition-colors flex items-center gap-2">
+                        <i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section id="radar-panel" class="hidden flex-col lg:flex-1 lg:min-h-0" role="tabpanel">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+                <div class="relative sm:w-64">
+                    <select id="radar-status-filter" onchange="loadRadarQueue()" class="w-full bg-[#1A1E22] border border-white/20 rounded-lg px-4 py-2.5 appearance-none outline-none text-white focus:border-[#5EA6B0] text-sm font-medium">
+                        <option value="suggested">Sugeridos</option>
+                        <option value="needs_review">Requieren revisión</option>
+                        <option value="approved">Aprobados</option>
+                        <option value="rejected">Rechazados</option>
+                        <option value="published">Publicados</option>
+                        <option value="all">Todos</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                </div>
+                <button type="button" onclick="loadRadarQueue()" class="w-10 h-10 flex items-center justify-center border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/5" title="Actualizar cola">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+                <div id="radar-counts" class="text-xs text-gray-500 sm:ml-auto"></div>
             </div>
 
-            <div class="flex justify-end gap-4 mt-6 pt-4 border-t border-white/10">
-                <button onclick="saveDraft()" id="save-btn" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all flex items-center gap-2 text-gray-300">
-                    <i data-lucide="save" class="w-4 h-4"></i> Guardar Borrador
-                </button>
-                <button onclick="openPreview()" class="px-6 py-3 rounded-xl border border-white/10 hover:bg-white/5 font-bold transition-all text-gray-300 flex items-center gap-2">
-                    <i data-lucide="eye" class="w-4 h-4"></i> Vista Previa
-                </button>
-                <button onclick="publishPost()" id="publish-btn" class="px-8 py-3 bg-[#5EA6B0] text-black font-bold rounded-xl hover:bg-[#88d6e0] transition-colors flex items-center gap-2">
-                    <i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora
-                </button>
+            <div class="grid grid-cols-1 lg:grid-cols-12 lg:flex-1 lg:min-h-0 border border-white/10 rounded-xl overflow-visible lg:overflow-hidden bg-[#1E2226]">
+                <div class="lg:col-span-5 min-h-[18rem] max-h-[24rem] lg:max-h-none lg:min-h-0 border-b lg:border-b-0 lg:border-r border-white/10 flex flex-col">
+                    <div class="px-4 py-3 border-b border-white/10 text-xs font-bold text-gray-400 uppercase">Cola editorial</div>
+                    <div id="radar-queue" class="flex-1 overflow-y-auto no-scrollbar p-2"></div>
+                </div>
+
+                <div class="lg:col-span-7 lg:min-h-0 flex flex-col">
+                    <div id="radar-empty" class="flex-1 flex flex-col items-center justify-center text-center p-8 text-gray-500">
+                        <i data-lucide="radar" class="w-9 h-9 mb-3 text-[#5EA6B0]"></i>
+                        <p class="text-sm font-medium">Selecciona una sugerencia</p>
+                    </div>
+
+                    <div id="radar-detail" class="hidden lg:flex-1 overflow-visible lg:overflow-y-auto no-scrollbar p-5 md:p-6">
+                        <div class="flex flex-wrap items-start gap-3 mb-5">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span id="radar-detail-status" class="text-xs font-bold uppercase px-2 py-1 rounded bg-white/5 text-gray-300"></span>
+                                    <span id="radar-detail-threshold" class="text-xs font-bold"></span>
+                                </div>
+                                <a id="radar-detail-source-link" href="#" target="_blank" rel="noopener noreferrer" class="text-xs text-[#5EA6B0] hover:text-white inline-flex items-center gap-1">
+                                    <span id="radar-detail-source"></span><i data-lucide="external-link" class="w-3 h-3"></i>
+                                </a>
+                            </div>
+                            <div id="radar-detail-total" class="text-2xl font-bold text-white tabular-nums"></div>
+                        </div>
+
+                        <div id="radar-score-grid" class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6"></div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Titular sugerido</label>
+                                <input id="radar-headline" type="text" class="w-full bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Síntesis editorial</label>
+                                <textarea id="radar-summary" rows="6" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Por qué importa</label>
+                                <textarea id="radar-why" rows="3" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Paralelismo con Rasika</label>
+                                <textarea id="radar-parallelism" rows="3" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Borrador LinkedIn</label>
+                                <textarea id="radar-linkedin" rows="5" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Prompt de miniatura</label>
+                                <textarea id="radar-thumbnail-prompt" rows="3" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Notas de revisión</label>
+                                <textarea id="radar-review-notes" rows="3" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap justify-end gap-3 mt-6 pt-5 border-t border-white/10">
+                            <button id="radar-save-btn" type="button" onclick="saveRadarDraft()" class="px-4 py-2.5 border border-white/10 rounded-lg text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 flex items-center gap-2">
+                                <i data-lucide="save" class="w-4 h-4"></i> Guardar
+                            </button>
+                            <button id="radar-return-btn" type="button" onclick="reviewRadarCandidate('needs_review')" class="px-4 py-2.5 border border-amber-400/30 rounded-lg text-sm font-bold text-amber-300 hover:bg-amber-400/10 flex items-center gap-2">
+                                <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Revisar
+                            </button>
+                            <button id="radar-reject-btn" type="button" onclick="reviewRadarCandidate('rejected')" class="px-4 py-2.5 border border-red-400/30 rounded-lg text-sm font-bold text-red-300 hover:bg-red-400/10 flex items-center gap-2">
+                                <i data-lucide="x" class="w-4 h-4"></i> Rechazar
+                            </button>
+                            <button id="radar-approve-btn" type="button" onclick="reviewRadarCandidate('approved')" class="px-4 py-2.5 bg-[#5EA6B0] text-black rounded-lg text-sm font-bold hover:bg-[#88d6e0] flex items-center gap-2">
+                                <i data-lucide="check" class="w-4 h-4"></i> Aprobar
+                            </button>
+                            <button id="radar-publish-btn" type="button" onclick="publishRadarCandidate()" class="hidden px-4 py-2.5 bg-white text-black rounded-lg text-sm font-bold hover:bg-gray-200 flex items-center gap-2">
+                                <i data-lucide="send" class="w-4 h-4"></i> Publicar en Blog
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
+        </section>
     </div>
 
     <script is:inline>
@@ -245,6 +356,8 @@ const seo = seoPages.admin;
         const SUPA_KEY = config.getAttribute('data-key');
         
         let currentEditingId = null;
+        let currentRadarCandidate = null;
+        let radarQueueLoaded = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const token = sessionStorage.getItem('adminToken');
@@ -406,9 +519,318 @@ const seo = seoPages.admin;
 
         window.logout = function() {
             sessionStorage.removeItem('adminToken');
+            currentRadarCandidate = null;
+            radarQueueLoaded = false;
             document.getElementById('dashboard-screen').classList.replace('flex', 'hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('password').value = '';
+        }
+
+        function escapeAdminHTML(value) {
+            return String(value ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function radarStatusLabel(status) {
+            return {
+                discovered: 'Descubierto',
+                evaluating: 'Evaluando',
+                suggested: 'Sugerido',
+                needs_review: 'En revisión',
+                approved: 'Aprobado',
+                rejected: 'Rechazado',
+                published: 'Publicado',
+                archived: 'Archivado',
+                failed: 'Fallido'
+            }[status] || status || 'Sin estado';
+        }
+
+        function formatRadarDate(value) {
+            if (!value) return 'Fecha no disponible';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Fecha no disponible';
+            return new Intl.DateTimeFormat('es-CL', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }).format(date);
+        }
+
+        async function radarRequest(path = '', options = {}) {
+            const token = sessionStorage.getItem('adminToken');
+            if (!token || token.split('.').length !== 3) {
+                window.logout();
+                throw new Error('Tu sesión expiró. Ingresa nuevamente.');
+            }
+
+            const res = await fetch(`${SUPA_URL}/functions/v1/ai-radar-admin${path}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPA_KEY,
+                    'Authorization': `Bearer ${token}`,
+                    ...(options.headers || {})
+                }
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) window.logout();
+            if (!res.ok) throw new Error(data.error || `Error AI Radar (${res.status})`);
+            return data;
+        }
+
+        window.setAdminView = async function(view) {
+            const isRadar = view === 'radar';
+            const articlesPanel = document.getElementById('articles-panel');
+            const radarPanel = document.getElementById('radar-panel');
+            const articleTab = document.getElementById('admin-tab-articles');
+            const radarTab = document.getElementById('admin-tab-radar');
+
+            articlesPanel.classList.toggle('hidden', isRadar);
+            articlesPanel.classList.toggle('flex', !isRadar);
+            radarPanel.classList.toggle('hidden', !isRadar);
+            radarPanel.classList.toggle('flex', isRadar);
+            articleTab.setAttribute('aria-selected', String(!isRadar));
+            radarTab.setAttribute('aria-selected', String(isRadar));
+            articleTab.className = isRadar
+                ? 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors'
+                : 'px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors';
+            radarTab.className = isRadar
+                ? 'px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors'
+                : 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors';
+            document.getElementById('dashboard-title').textContent = isRadar ? 'AI Radar Editorial' : 'Editor de Artículos';
+
+            if (isRadar && !radarQueueLoaded) await window.loadRadarQueue();
+        }
+
+        function renderRadarCounts(counts) {
+            const order = ['suggested', 'needs_review', 'approved', 'published'];
+            document.getElementById('radar-counts').textContent = order
+                .map(status => `${radarStatusLabel(status)}: ${counts[status] || 0}`)
+                .join(' · ');
+        }
+
+        function renderRadarQueue(items) {
+            const queue = document.getElementById('radar-queue');
+            if (!items.length) {
+                queue.innerHTML = '<div class="h-full min-h-48 flex items-center justify-center text-sm text-gray-500 p-6 text-center">No hay sugerencias en este estado.</div>';
+                return;
+            }
+
+            queue.innerHTML = items.map(item => {
+                const source = item.source?.organization || item.source?.source_name || 'Fuente sin nombre';
+                const active = currentRadarCandidate?.id === item.id;
+                return `
+                    <button type="button" data-radar-id="${escapeAdminHTML(item.id)}" class="w-full text-left p-4 mb-1 rounded-lg border ${active ? 'border-[#5EA6B0] bg-[#5EA6B0]/10' : 'border-transparent hover:border-white/10 hover:bg-white/[0.03]'} transition-colors">
+                        <div class="flex items-start gap-3">
+                            <span class="w-11 h-11 shrink-0 rounded-md bg-[#141619] border border-white/10 flex items-center justify-center text-sm font-bold tabular-nums ${item.passes_research_threshold ? 'text-[#88d6e0]' : 'text-amber-300'}">${Number(item.score_total) || 0}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-bold text-white leading-snug">${escapeAdminHTML(item.suggested_headline || item.source_title)}</span>
+                                <span class="block mt-2 text-xs text-gray-500 truncate">${escapeAdminHTML(source)} · ${escapeAdminHTML(formatRadarDate(item.source_published_at || item.discovered_at))}</span>
+                            </span>
+                        </div>
+                    </button>`;
+            }).join('');
+
+            queue.querySelectorAll('[data-radar-id]').forEach(button => {
+                button.addEventListener('click', () => window.selectRadarCandidate(button.dataset.radarId));
+            });
+        }
+
+        window.loadRadarQueue = async function() {
+            const queue = document.getElementById('radar-queue');
+            queue.innerHTML = '<div class="h-full min-h-48 flex items-center justify-center text-gray-500"><i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i></div>';
+            lucide.createIcons();
+
+            try {
+                const status = document.getElementById('radar-status-filter').value;
+                const data = await radarRequest(`?view=queue&status=${encodeURIComponent(status)}&limit=100`);
+                radarQueueLoaded = true;
+                renderRadarCounts(data.counts || {});
+                renderRadarQueue(data.items || []);
+                lucide.createIcons();
+            } catch (error) {
+                console.error('AI Radar queue error', error);
+                queue.innerHTML = `<div class="p-6 text-sm text-red-300">${escapeAdminHTML(error.message)}</div>`;
+            }
+        }
+
+        function setRadarField(id, value) {
+            document.getElementById(id).value = value || '';
+        }
+
+        function updateRadarActions(candidate) {
+            const editable = ['suggested', 'needs_review', 'approved'].includes(candidate.status);
+            document.getElementById('radar-save-btn').classList.toggle('hidden', !editable);
+            document.getElementById('radar-return-btn').classList.toggle('hidden', !['suggested', 'approved', 'rejected', 'archived', 'failed'].includes(candidate.status));
+            document.getElementById('radar-reject-btn').classList.toggle('hidden', !['suggested', 'needs_review', 'approved'].includes(candidate.status));
+            document.getElementById('radar-approve-btn').classList.toggle('hidden', !['suggested', 'needs_review'].includes(candidate.status));
+            document.getElementById('radar-publish-btn').classList.toggle('hidden', candidate.status !== 'approved');
+        }
+
+        function renderRadarDetail(detail) {
+            const candidate = detail.candidate;
+            const source = detail.source || {};
+            currentRadarCandidate = candidate;
+            document.getElementById('radar-empty').classList.add('hidden');
+            document.getElementById('radar-detail').classList.remove('hidden');
+            document.getElementById('radar-detail-status').textContent = radarStatusLabel(candidate.status);
+            const threshold = document.getElementById('radar-detail-threshold');
+            threshold.textContent = candidate.passes_research_threshold ? 'Cumple umbral' : 'Bajo umbral';
+            threshold.className = `text-xs font-bold ${candidate.passes_research_threshold ? 'text-emerald-300' : 'text-amber-300'}`;
+            document.getElementById('radar-detail-total').textContent = `${candidate.score_total || 0}/100`;
+            document.getElementById('radar-detail-source').textContent = `${source.organization || source.source_name || 'Fuente'} · ${formatRadarDate(candidate.source_published_at)}`;
+            document.getElementById('radar-detail-source-link').href = candidate.canonical_url;
+
+            const scores = [
+                ['Evidencia', candidate.evidence_score, 25],
+                ['Autoridad', candidate.authority_score, 20],
+                ['Innovación', candidate.innovation_score, 20],
+                ['Rasika', candidate.rasika_alignment_score, 20],
+                ['Práctica', candidate.practical_relevance_score, 10],
+                ['Frescura', candidate.freshness_score, 5]
+            ];
+            document.getElementById('radar-score-grid').innerHTML = scores.map(([label, value, max]) => `
+                <div class="bg-[#141619] border border-white/10 rounded-md p-2 text-center">
+                    <div class="text-sm font-bold text-white tabular-nums">${Number(value) || 0}<span class="text-gray-600">/${max}</span></div>
+                    <div class="text-[10px] text-gray-500 mt-1">${label}</div>
+                </div>`).join('');
+
+            setRadarField('radar-headline', candidate.suggested_headline || candidate.source_title);
+            setRadarField('radar-summary', candidate.editorial_summary);
+            setRadarField('radar-why', candidate.why_it_matters);
+            setRadarField('radar-parallelism', candidate.rasika_parallelism);
+            setRadarField('radar-linkedin', candidate.linkedin_copy);
+            setRadarField('radar-thumbnail-prompt', candidate.thumbnail_prompt);
+            setRadarField('radar-review-notes', candidate.review_notes);
+            updateRadarActions(candidate);
+            lucide.createIcons();
+        }
+
+        window.selectRadarCandidate = async function(id) {
+            if (!/^[0-9a-f-]{36}$/i.test(id || '')) return;
+            document.getElementById('radar-empty').classList.remove('hidden');
+            document.getElementById('radar-empty').innerHTML = '<i data-lucide="loader-circle" class="w-6 h-6 animate-spin text-[#5EA6B0]"></i>';
+            document.getElementById('radar-detail').classList.add('hidden');
+            lucide.createIcons();
+
+            try {
+                const detail = await radarRequest(`?view=detail&id=${encodeURIComponent(id)}`);
+                renderRadarDetail(detail);
+                await window.loadRadarQueue();
+            } catch (error) {
+                console.error('AI Radar detail error', error);
+                document.getElementById('radar-empty').innerHTML = `<p class="text-sm text-red-300">${escapeAdminHTML(error.message)}</p>`;
+            }
+        }
+
+        function radarDraftPayload() {
+            return {
+                action: 'update_draft',
+                candidate_id: currentRadarCandidate.id,
+                suggested_headline: document.getElementById('radar-headline').value,
+                editorial_summary: document.getElementById('radar-summary').value,
+                why_it_matters: document.getElementById('radar-why').value,
+                rasika_parallelism: document.getElementById('radar-parallelism').value,
+                linkedin_copy: document.getElementById('radar-linkedin').value,
+                thumbnail_prompt: document.getElementById('radar-thumbnail-prompt').value,
+                notes: document.getElementById('radar-review-notes').value
+            };
+        }
+
+        window.saveRadarDraft = async function(silent = false) {
+            if (!currentRadarCandidate) return;
+            const button = document.getElementById('radar-save-btn');
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Guardando';
+            lucide.createIcons();
+
+            try {
+                const candidate = await radarRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify(radarDraftPayload())
+                });
+                currentRadarCandidate = candidate || currentRadarCandidate;
+                if (!silent) alert('Borrador editorial guardado.');
+                return true;
+            } catch (error) {
+                console.error('AI Radar save error', error);
+                alert(error.message);
+                return false;
+            } finally {
+                button.disabled = false;
+                button.innerHTML = original;
+                lucide.createIcons();
+            }
+        }
+
+        window.reviewRadarCandidate = async function(status) {
+            if (!currentRadarCandidate) return;
+            const notes = document.getElementById('radar-review-notes').value.trim();
+            if (status === 'approved' && !currentRadarCandidate.passes_research_threshold && !notes) {
+                return alert('Agrega una nota para justificar la aprobación bajo el umbral de investigación.');
+            }
+
+            if (['suggested', 'needs_review', 'approved'].includes(currentRadarCandidate.status)) {
+                const saved = await window.saveRadarDraft(true);
+                if (!saved) return;
+            }
+
+            try {
+                await radarRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'review',
+                        candidate_id: currentRadarCandidate.id,
+                        status,
+                        notes
+                    })
+                });
+                currentRadarCandidate = null;
+                document.getElementById('radar-detail').classList.add('hidden');
+                document.getElementById('radar-empty').classList.remove('hidden');
+                document.getElementById('radar-empty').innerHTML = '<i data-lucide="check-circle-2" class="w-8 h-8 mb-3 text-[#5EA6B0]"></i><p class="text-sm text-gray-400">Revisión registrada.</p>';
+                await window.loadRadarQueue();
+            } catch (error) {
+                console.error('AI Radar review error', error);
+                alert(error.message);
+            }
+        }
+
+        window.publishRadarCandidate = async function() {
+            if (!currentRadarCandidate || currentRadarCandidate.status !== 'approved') return;
+            const confirmed = window.confirm('¿Publicar esta síntesis aprobada en el Blog? Esta acción crea una entrada visible.');
+            if (!confirmed) return;
+
+            const button = document.getElementById('radar-publish-btn');
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Publicando';
+            lucide.createIcons();
+
+            try {
+                const result = await radarRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'publish',
+                        candidate_id: currentRadarCandidate.id,
+                        notes: document.getElementById('radar-review-notes').value
+                    })
+                });
+                await loadArticlesList();
+                window.location.href = result.blog_url || '/blog/';
+            } catch (error) {
+                console.error('AI Radar publish error', error);
+                alert(error.message);
+            } finally {
+                button.disabled = false;
+                button.innerHTML = original;
+                lucide.createIcons();
+            }
         }
 
         async function loadArticlesList() {
