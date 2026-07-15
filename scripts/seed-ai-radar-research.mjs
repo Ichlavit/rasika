@@ -9,9 +9,22 @@ const SEED_FILE = path.join(ROOT, "supabase", "seed", "ai-radar-research.json");
 const SOURCE_OVERRIDES = {
   "SRC-13": {
     feed_or_api_url: "https://moodle.com/feed/",
+    publisher_name: "Moodle",
     note:
       "Operational correction 2026-07-15: /news/feed/ returned a closed-comments 403; the verified publication feed is /feed/.",
   },
+  "SRC-24": { publisher_name: "EdSurge" },
+  "SRC-27": { publisher_name: "Khan Academy" },
+  "SRC-30": { publisher_name: "Training Industry" },
+  "SRC-31": { publisher_name: "Chief Learning Officer" },
+  "SRC-32": { publisher_name: "eLearning Industry" },
+  "SRC-37": { publisher_name: "Work-Learning Research" },
+  "SRC-38": {
+    publisher_name:
+      "Observatorio del Instituto para el Futuro de la Educación, Tecnológico de Monterrey",
+  },
+  "SRC-39": { publisher_name: "OpenAI" },
+  "SRC-40": { publisher_name: "The Josh Bersin Company" },
 };
 
 function readEnv() {
@@ -106,6 +119,8 @@ function buildPayloads(research) {
         source_key: clean(row.source_id),
         source_name: clean(row.source_name),
         organization: clean(row.organization),
+        publisher_name:
+          override?.publisher_name || clean(row.organization) || clean(row.source_name),
         homepage_url: clean(row.homepage_url),
         feed_or_api_url: override?.feed_or_api_url || clean(row.feed_or_api_url),
         source_section_url: clean(row.source_section_url),

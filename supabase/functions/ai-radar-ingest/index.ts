@@ -14,15 +14,41 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_FEED_BYTES = 2_000_000;
 const MAX_ITEMS_PER_SOURCE = 5;
-const PROMPT_VERSION = "ai-radar-rss-v1-es";
+const PROMPT_VERSION = "ai-radar-rss-v2-es";
 const DEFAULT_MODEL = "gpt-5-mini";
 
-const PILOT_SOURCES: Record<string, { feedHosts: string[]; articleHosts: string[] }> = {
+const RSS_SOURCES: Record<string, { feedHosts: string[]; articleHosts: string[] }> = {
   "SRC-13": { feedHosts: ["moodle.com"], articleHosts: ["moodle.com"] },
+  "SRC-24": { feedHosts: ["edsurge.com"], articleHosts: ["edsurge.com"] },
+  "SRC-27": {
+    feedHosts: ["blog.khanacademy.org"],
+    articleHosts: ["blog.khanacademy.org"],
+  },
+  "SRC-30": {
+    feedHosts: ["trainingindustry.com"],
+    articleHosts: ["trainingindustry.com"],
+  },
+  "SRC-31": {
+    feedHosts: ["chieflearningofficer.com"],
+    articleHosts: ["chieflearningofficer.com"],
+  },
+  "SRC-32": {
+    feedHosts: ["elearningindustry.com"],
+    articleHosts: ["elearningindustry.com"],
+  },
+  "SRC-37": {
+    feedHosts: ["worklearning.com"],
+    articleHosts: ["worklearning.com"],
+  },
   "SRC-38": {
     feedHosts: ["observatorio.tec.mx"],
     articleHosts: ["observatorio.tec.mx"],
   },
+  "SRC-39": {
+    feedHosts: ["edunewsletter.openai.com"],
+    articleHosts: ["edunewsletter.openai.com"],
+  },
+  "SRC-40": { feedHosts: ["joshbersin.com"], articleHosts: ["joshbersin.com"] },
 };
 
 type AuthUser = { id: string; email?: string };
@@ -32,6 +58,7 @@ type RadarSource = {
   source_key: string;
   source_name: string;
   organization: string;
+  publisher_name: string;
   feed_or_api_url: string;
   trust_tier: string;
   authority_reason: string | null;
@@ -186,9 +213,9 @@ async function sha256(value: string) {
 }
 
 async function fetchSourceFeed(source: RadarSource, maxItems: number) {
-  const config = PILOT_SOURCES[source.source_key];
+  const config = RSS_SOURCES[source.source_key];
   if (!config || !hostAllowed(source.feed_or_api_url, config.feedHosts)) {
-    throw new Error("Source feed URL is outside the pilot allowlist");
+    throw new Error("Source feed URL is outside the RSS allowlist");
   }
 
   const headers: Record<string, string> = {
@@ -215,14 +242,14 @@ async function fetchSourceFeed(source: RadarSource, maxItems: number) {
     return { items: [] as RadarFeedItem[], notModified: true, etag: source.etag, lastModified: source.last_modified };
   }
   if (!response.ok) throw new Error(`Feed returned HTTP ${response.status}`);
-  if (!hostAllowed(response.url, config.feedHosts)) throw new Error("Feed redirected outside the pilot allowlist");
+  if (!hostAllowed(response.url, config.feedHosts)) throw new Error("Feed redirected outside the RSS allowlist");
 
   const announcedLength = Number(response.headers.get("content-length") || 0);
-  if (announcedLength > MAX_FEED_BYTES) throw new Error("Feed exceeds the 2 MB pilot limit");
+  if (announcedLength > MAX_FEED_BYTES) throw new Error("Feed exceeds the 2 MB RSS limit");
 
   const xml = await response.text();
   if (new TextEncoder().encode(xml).byteLength > MAX_FEED_BYTES) {
-    throw new Error("Feed exceeds the 2 MB pilot limit");
+    throw new Error("Feed exceeds the 2 MB RSS limit");
   }
 
   const seen = new Set<string>();
@@ -260,8 +287,13 @@ async function patchSource(
 }
 
 function inferSourceLanguage(source: RadarSource) {
-  if (source.source_key === "SRC-38") return "es";
-  if (source.source_key === "SRC-13") return "en";
+  const languages = (source.languages || []).map((language) => cleanText(language, 40).toLowerCase());
+  if (languages.some((language) => language === "es" || language.includes("spanish") || language.includes("español"))) {
+    return "es";
+  }
+  if (languages.some((language) => language === "en" || language.includes("english") || language.includes("inglés"))) {
+    return "en";
+  }
   return cleanText(source.languages?.[0], 20) || null;
 }
 
@@ -476,6 +508,7 @@ async function evaluateCandidates(
       source_key: candidate.source.source_key,
       source_name: candidate.source.source_name,
       organization: candidate.source.organization,
+      publisher_name: candidate.source.publisher_name,
       trust_tier: candidate.source.trust_tier,
       authority_reason: candidate.source.authority_reason,
       source_language: inferSourceLanguage(candidate.source),
@@ -512,6 +545,7 @@ async function evaluateCandidates(
           "Evalúa únicamente la evidencia visible en los metadatos RSS. No inventes cifras, resultados, autores ni conclusiones ausentes.",
           "Conserva el título y extracto originales fuera de tu salida; no los traduzcas para uso interno.",
           "Genera en español neutro de Latinoamérica solo los campos editoriales destinados al cliente: summary_es, why_it_matters_es, rasika_parallelism_es, suggested_headline_es, linkedin_copy_es y thumbnail_prompt_es.",
+          "No es obligatorio comenzar el copy mencionando a la fuente. Si la mencionas, usa publisher_name exactamente como fue entregado: no lo abrevies, traduzcas ni reemplaces por un alias.",
           "summary_es debe ser una síntesis original y prudente de 70 a 120 palabras, no una traducción literal.",
           "Si la evidencia RSS es insuficiente, baja evidence_score y confidence y deja una caveat explícita.",
           "Usa exclusivamente topic keys y service IDs presentes en el contexto. Mantén un titular sobrio y atractivo, sin sensacionalismo.",
@@ -603,6 +637,7 @@ async function applyEvaluation(
         risk_flags: cleanStringArray(evaluation.risk_flags, 12, 300),
         evaluation: {
           source_basis: "rss_metadata_only",
+          publisher_name: candidate.source.publisher_name,
           original_language_preserved: true,
           client_facing_language: "es",
           openai_response_id: responseId,
@@ -644,7 +679,7 @@ async function applyEvaluation(
       action: status === "rejected" ? "reject" : "suggest",
       from_status: "evaluating",
       to_status: status,
-      notes: "Evaluación automatizada del piloto RSS; requiere revisión humana antes de publicar.",
+      notes: "Evaluación automatizada del catálogo RSS; requiere revisión humana antes de publicar.",
       snapshot: { score_total: total, prompt_version: PROMPT_VERSION },
     }),
   });
@@ -687,11 +722,11 @@ Deno.serve(async (request) => {
     const sourceRows = await restRequest(
       supabaseUrl,
       serviceRoleKey,
-      "ai_radar_sources?is_enabled=eq.true&content_format=eq.RSS&select=id,source_key,source_name,organization,feed_or_api_url,trust_tier,authority_reason,relevant_topics,languages,etag,last_modified,consecutive_failures&order=source_key.asc",
+      "ai_radar_sources?is_enabled=eq.true&content_format=eq.RSS&select=id,source_key,source_name,organization,publisher_name,feed_or_api_url,trust_tier,authority_reason,relevant_topics,languages,etag,last_modified,consecutive_failures&order=source_key.asc",
     );
     const sources = (Array.isArray(sourceRows) ? sourceRows : [])
-      .filter((source) => PILOT_SOURCES[source.source_key]) as RadarSource[];
-    if (!sources.length) throw new Response("Enable at least one pilot RSS source", { status: 409 });
+      .filter((source) => RSS_SOURCES[source.source_key]) as RadarSource[];
+    if (!sources.length) throw new Response("Enable at least one supported RSS source", { status: 409 });
 
     const runRows = await restRequest(supabaseUrl, serviceRoleKey, "ai_radar_runs", {
       method: "POST",
@@ -702,7 +737,7 @@ Deno.serve(async (request) => {
         requested_by: user.id,
         started_at: new Date().toISOString(),
         sources_considered: sources.length,
-        metadata: { pilot: "rss", max_items_per_source: maxItems },
+        metadata: { source_pool: "verified_rss", max_items_per_source: maxItems },
       }),
     });
     const runId = Array.isArray(runRows) ? runRows[0]?.id : null;
@@ -953,7 +988,7 @@ Deno.serve(async (request) => {
           candidates_failed: candidatesFailed,
           error_summary: errors.length ? errors.join(" | ").slice(0, 8000) : null,
           metadata: {
-            pilot: "rss",
+            source_pool: "verified_rss",
             model,
             prompt_version: PROMPT_VERSION,
             client_facing_language: "es",

@@ -8,7 +8,18 @@ const corsHeaders = {
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const PILOT_SOURCE_KEYS = new Set(["SRC-13", "SRC-38"]);
+const RSS_SOURCE_KEYS = new Set([
+  "SRC-13",
+  "SRC-24",
+  "SRC-27",
+  "SRC-30",
+  "SRC-31",
+  "SRC-32",
+  "SRC-37",
+  "SRC-38",
+  "SRC-39",
+  "SRC-40",
+]);
 
 const REVIEW_STATUSES = new Set([
   "discovered",
@@ -231,7 +242,7 @@ async function loadQueue(
     "thumbnail_url",
     "matched_topics",
     "reviewed_at",
-    "source:ai_radar_sources(source_key,source_name,organization,trust_tier,active_recommendation)",
+    "source:ai_radar_sources(source_key,source_name,organization,publisher_name,trust_tier,active_recommendation)",
   ].join(",");
 
   const [items, statuses] = await Promise.all([
@@ -261,7 +272,7 @@ async function loadCandidateDetail(
     restRequest(
       supabaseUrl,
       serviceRoleKey,
-      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=id,source_key,source_name,organization,trust_tier,active_recommendation,authority_reason&limit=1`,
+      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=id,source_key,source_name,organization,publisher_name,trust_tier,active_recommendation,authority_reason&limit=1`,
     ),
     restRequest(
       supabaseUrl,
@@ -312,11 +323,11 @@ async function loadSourceItems(
   const sources = await restRequest(
     supabaseUrl,
     serviceRoleKey,
-    `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}&select=id,source_key,source_name,organization,feed_or_api_url&limit=1`,
+    `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}&select=id,source_key,source_name,organization,publisher_name,feed_or_api_url&limit=1`,
   );
   const source = Array.isArray(sources) ? sources[0] || null : null;
-  if (!source || !PILOT_SOURCE_KEYS.has(source.source_key)) {
-    throw new Response("Source is not part of the RSS pilot", { status: 403 });
+  if (!source || !RSS_SOURCE_KEYS.has(source.source_key)) {
+    throw new Response("Source is not part of the supported RSS catalog", { status: 403 });
   }
 
   const items = await restRequest(
@@ -343,8 +354,8 @@ async function setSourceEnabled(
     `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}&select=id,source_key,content_format&limit=1`,
   );
   const source = Array.isArray(sources) ? sources[0] || null : null;
-  if (!source || !PILOT_SOURCE_KEYS.has(source.source_key) || source.content_format !== "RSS") {
-    throw new Response("Source is not part of the RSS pilot", { status: 403 });
+  if (!source || !RSS_SOURCE_KEYS.has(source.source_key) || source.content_format !== "RSS") {
+    throw new Response("Source is not part of the supported RSS catalog", { status: 403 });
   }
 
   const rows = await restRequest(
@@ -486,7 +497,7 @@ async function publishCandidate(
     const sourceRows = await restRequest(
       supabaseUrl,
       serviceRoleKey,
-      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization&limit=1`,
+      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization,publisher_name&limit=1`,
     );
     const source = Array.isArray(sourceRows) ? sourceRows[0] || null : null;
     const title = cleanText(candidate.suggested_headline || candidate.source_title, 240);
@@ -519,7 +530,7 @@ async function publishCandidate(
         cover_image: candidate.thumbnail_url || null,
         slug,
         excerpt: summary.slice(0, 280),
-        source_name: source?.organization || source?.source_name || candidate.source_title,
+        source_name: source?.publisher_name || source?.organization || source?.source_name || candidate.source_title,
         source_url: candidate.canonical_url,
         source_published_at: candidate.source_published_at,
         published_at: new Date().toISOString(),
@@ -591,7 +602,7 @@ serve(async (request) => {
           await restRequest(
             supabaseUrl,
             serviceRoleKey,
-            "ai_radar_sources?select=id,source_key,source_name,organization,trust_tier,content_format,feed_or_api_url,active_recommendation,is_enabled,health_status,last_polled_at,last_success_at,last_error,last_item_count,consecutive_failures,updated_at&order=active_recommendation.asc,trust_tier.asc,source_name.asc",
+            "ai_radar_sources?select=id,source_key,source_name,organization,publisher_name,trust_tier,content_format,feed_or_api_url,active_recommendation,is_enabled,health_status,last_polled_at,last_success_at,last_error,last_item_count,consecutive_failures,updated_at&order=active_recommendation.asc,trust_tier.asc,source_name.asc",
           ),
         );
       }

@@ -25,6 +25,7 @@ supabase/.temp/
 .deno-cache/
 .tools/
 deno.lock
+.playwright-cli/
 
 # macOS-specific files
 .DS_Store

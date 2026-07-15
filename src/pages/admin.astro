@@ -253,17 +253,20 @@ const seo = seoPages.admin;
 
         <section id="radar-panel" class="hidden flex-col lg:flex-1 lg:min-h-0" role="tabpanel">
             <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
-                <div class="relative sm:w-64">
-                    <select id="radar-status-filter" onchange="loadRadarQueue()" class="w-full bg-[#1A1E22] border border-white/20 rounded-lg px-4 py-2.5 appearance-none outline-none text-white focus:border-[#5EA6B0] text-sm font-medium">
-                        <option value="suggested">Sugeridos</option>
-                        <option value="needs_review">Requieren revisión</option>
-                        <option value="approved">Aprobados</option>
-                        <option value="rejected">Rechazados</option>
-                        <option value="failed">Fallidos</option>
-                        <option value="published">Publicados</option>
-                        <option value="all">Todos</option>
-                    </select>
-                    <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                <div id="radar-status-control" class="relative sm:w-64">
+                    <button id="radar-status-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" class="w-full h-10 bg-[#1A1E22] border border-white/20 rounded-lg px-4 text-left text-white focus:border-[#5EA6B0] focus:outline-none text-sm font-medium flex items-center justify-between gap-3">
+                        <span id="radar-status-label">Sugeridos</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4 shrink-0 text-gray-500"></i>
+                    </button>
+                    <div id="radar-status-menu" role="listbox" aria-label="Estado editorial" class="hidden absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-lg border border-white/15 bg-[#1A1E22] shadow-2xl shadow-black/50 p-1">
+                        <button type="button" role="option" aria-selected="true" data-radar-status="suggested" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium bg-[#5EA6B0] text-black">Sugeridos</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="needs_review" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Requieren revisión</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="approved" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Aprobados</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="rejected" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Rechazados</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="failed" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Fallidos</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="published" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Publicados</button>
+                        <button type="button" role="option" aria-selected="false" data-radar-status="all" class="w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white">Todos</button>
+                    </div>
                 </div>
                 <button type="button" onclick="loadRadarQueue()" class="w-10 h-10 flex items-center justify-center border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/5" title="Actualizar cola">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
@@ -282,10 +285,10 @@ const seo = seoPages.admin;
 
             <div id="radar-sources-panel" class="hidden mb-4 border-y border-white/10 bg-[#181b1e]">
                 <div class="flex items-center justify-between gap-4 px-4 py-3 border-b border-white/10">
-                    <h2 class="text-xs font-bold text-gray-400 uppercase">Fuentes piloto</h2>
+                    <h2 class="text-xs font-bold text-gray-400 uppercase">Fuentes RSS</h2>
                     <span id="radar-last-run" class="text-xs text-gray-500"></span>
                 </div>
-                <div id="radar-source-list" class="divide-y divide-white/10"></div>
+                <div id="radar-source-list" class="max-h-[50vh] overflow-y-auto divide-y divide-white/10"></div>
                 <div id="radar-runs" class="border-t border-white/10 px-4 py-3 text-xs text-gray-500"></div>
             </div>
 
@@ -346,6 +349,15 @@ const seo = seoPages.admin;
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Prompt de miniatura</label>
                                 <textarea id="radar-thumbnail-prompt" rows="3" class="w-full resize-y bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-gray-200 focus:border-[#5EA6B0]"></textarea>
+                                <div id="radar-thumbnail-preview" class="hidden mt-3 aspect-[3/2] overflow-hidden rounded-lg border border-white/10 bg-[#141619]">
+                                    <img id="radar-thumbnail-image" src="" alt="Miniatura editorial generada" class="h-full w-full object-cover">
+                                </div>
+                                <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                                    <span id="radar-thumbnail-status" class="text-xs text-gray-500" role="status" aria-live="polite"></span>
+                                    <button id="radar-thumbnail-btn" type="button" onclick="generateRadarThumbnail()" class="hidden px-3 py-2 border border-[#5EA6B0]/40 rounded-lg text-xs font-bold text-[#88d6e0] hover:bg-[#5EA6B0]/10 items-center gap-2">
+                                        <i data-lucide="image-plus" class="w-4 h-4"></i> Generar miniatura
+                                    </button>
+                                </div>
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Notas de revisión</label>
@@ -389,8 +401,10 @@ const seo = seoPages.admin;
         let radarSourcesLoaded = false;
         let openRadarSourceId = null;
         let radarSourceCatalog = [];
+        let radarStatusFilter = 'suggested';
 
         document.addEventListener('DOMContentLoaded', async () => {
+            initializeRadarStatusControl();
             const token = sessionStorage.getItem('adminToken');
             if (token && token !== 'undefined' && token.split('.').length === 3) {
                 document.getElementById('login-screen').classList.add('hidden');
@@ -583,6 +597,96 @@ const seo = seoPages.admin;
             }[status] || status || 'Sin estado';
         }
 
+        function radarStatusFilterLabel(status) {
+            return {
+                suggested: 'Sugeridos',
+                needs_review: 'Requieren revisión',
+                approved: 'Aprobados',
+                rejected: 'Rechazados',
+                failed: 'Fallidos',
+                published: 'Publicados',
+                all: 'Todos'
+            }[status] || 'Sugeridos';
+        }
+
+        function radarPublisher(source) {
+            return source?.publisher_name || source?.organization || source?.source_name || 'Fuente sin nombre';
+        }
+
+        function closeRadarStatusMenu({ focusTrigger = false } = {}) {
+            const trigger = document.getElementById('radar-status-trigger');
+            const menu = document.getElementById('radar-status-menu');
+            menu.classList.add('hidden');
+            trigger.setAttribute('aria-expanded', 'false');
+            if (focusTrigger) trigger.focus();
+        }
+
+        function openRadarStatusMenu({ focusSelected = false } = {}) {
+            const trigger = document.getElementById('radar-status-trigger');
+            const menu = document.getElementById('radar-status-menu');
+            menu.classList.remove('hidden');
+            trigger.setAttribute('aria-expanded', 'true');
+            if (focusSelected) {
+                menu.querySelector(`[data-radar-status="${radarStatusFilter}"]`)?.focus();
+            }
+        }
+
+        function setRadarStatusFilter(status, { reload = true } = {}) {
+            const menu = document.getElementById('radar-status-menu');
+            const option = menu.querySelector(`[data-radar-status="${status}"]`);
+            if (!option) return;
+            radarStatusFilter = status;
+            document.getElementById('radar-status-label').textContent = radarStatusFilterLabel(status);
+            menu.querySelectorAll('[data-radar-status]').forEach(button => {
+                const selected = button.dataset.radarStatus === status;
+                button.setAttribute('aria-selected', String(selected));
+                button.className = selected
+                    ? 'w-full rounded-md px-3 py-2 text-left text-sm font-medium bg-[#5EA6B0] text-black'
+                    : 'w-full rounded-md px-3 py-2 text-left text-sm font-medium text-gray-300 hover:bg-white/5 hover:text-white';
+            });
+            closeRadarStatusMenu();
+            if (reload) window.loadRadarQueue();
+        }
+
+        function initializeRadarStatusControl() {
+            const control = document.getElementById('radar-status-control');
+            const trigger = document.getElementById('radar-status-trigger');
+            const menu = document.getElementById('radar-status-menu');
+            const options = [...menu.querySelectorAll('[data-radar-status]')];
+
+            trigger.addEventListener('click', () => {
+                const isOpen = !menu.classList.contains('hidden');
+                if (isOpen) closeRadarStatusMenu();
+                else openRadarStatusMenu();
+            });
+            trigger.addEventListener('keydown', event => {
+                if (!['Enter', ' ', 'ArrowDown', 'ArrowUp'].includes(event.key)) return;
+                event.preventDefault();
+                openRadarStatusMenu({ focusSelected: true });
+            });
+            options.forEach((option, index) => {
+                option.addEventListener('click', () => setRadarStatusFilter(option.dataset.radarStatus));
+                option.addEventListener('keydown', event => {
+                    if (event.key === 'Escape') {
+                        event.preventDefault();
+                        closeRadarStatusMenu({ focusTrigger: true });
+                        return;
+                    }
+                    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const nextIndex = event.key === 'Home'
+                        ? 0
+                        : event.key === 'End'
+                        ? options.length - 1
+                        : (index + (event.key === 'ArrowDown' ? 1 : -1) + options.length) % options.length;
+                    options[nextIndex].focus();
+                });
+            });
+            document.addEventListener('click', event => {
+                if (!control.contains(event.target)) closeRadarStatusMenu();
+            });
+        }
+
         function formatRadarDate(value) {
             if (!value) return 'Fecha no disponible';
             const date = new Date(value);
@@ -613,6 +717,27 @@ const seo = seoPages.admin;
             const data = await res.json().catch(() => ({}));
             if (res.status === 401) window.logout();
             if (!res.ok) throw new Error(data.error || `Error AI Radar (${res.status})`);
+            return data;
+        }
+
+        async function radarThumbnailRequest(candidateId) {
+            const token = sessionStorage.getItem('adminToken');
+            if (!token || token.split('.').length !== 3) {
+                window.logout();
+                throw new Error('Tu sesión expiró. Ingresa nuevamente.');
+            }
+            const res = await fetch(`${SUPA_URL}/functions/v1/ai-radar-thumbnail`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPA_KEY,
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ candidate_id: candidateId })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 401) window.logout();
+            if (!res.ok) throw new Error(data.error || `Error de miniatura (${res.status})`);
             return data;
         }
 
@@ -649,16 +774,15 @@ const seo = seoPages.admin;
         }
 
         function renderRadarSources(sources) {
-            const pilotKeys = new Set(['SRC-13', 'SRC-38']);
             radarSourceCatalog = Array.isArray(sources) ? sources : [];
-            const pilotSources = radarSourceCatalog.filter(source => pilotKeys.has(source.source_key));
+            const rssSources = radarSourceCatalog.filter(source => source.content_format === 'RSS');
             const list = document.getElementById('radar-source-list');
-            if (!pilotSources.length) {
-                list.innerHTML = '<div class="px-4 py-4 text-sm text-gray-500">No hay fuentes piloto configuradas.</div>';
+            if (!rssSources.length) {
+                list.innerHTML = '<div class="px-4 py-4 text-sm text-gray-500">No hay fuentes RSS configuradas.</div>';
                 return;
             }
 
-            list.innerHTML = pilotSources.map(source => {
+            list.innerHTML = rssSources.map(source => {
                 const healthClass = source.health_status === 'healthy'
                     ? 'text-emerald-300'
                     : source.health_status === 'degraded'
@@ -670,10 +794,10 @@ const seo = seoPages.admin;
                 return `
                     <div>
                         <div class="flex items-center gap-3 px-4 py-3">
-                            <input type="checkbox" data-radar-source-toggle="${escapeAdminHTML(source.id)}" aria-label="Activar ${escapeAdminHTML(source.organization || source.source_name)}" ${source.is_enabled ? 'checked' : ''} class="w-4 h-4 shrink-0 accent-[#5EA6B0]">
+                            <input type="checkbox" data-radar-source-toggle="${escapeAdminHTML(source.id)}" aria-label="Activar ${escapeAdminHTML(radarPublisher(source))}" ${source.is_enabled ? 'checked' : ''} class="w-4 h-4 shrink-0 accent-[#5EA6B0]">
                             <button type="button" data-radar-source-open="${escapeAdminHTML(source.id)}" aria-expanded="${isOpen}" class="min-w-0 flex-1 text-left flex items-center gap-3 hover:text-[#88d6e0]">
                                 <span class="min-w-0 flex-1">
-                                    <span class="block text-sm font-bold text-white">${escapeAdminHTML(source.organization || source.source_name)}</span>
+                                    <span class="block text-sm font-bold text-white">${escapeAdminHTML(radarPublisher(source))}</span>
                                     <span class="block text-xs text-gray-500 truncate">${escapeAdminHTML(source.feed_or_api_url || '')}</span>
                                 </span>
                                 <span class="hidden sm:block text-right text-xs">
@@ -815,7 +939,7 @@ const seo = seoPages.admin;
                         'apikey': SUPA_KEY,
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ max_items_per_source: 5 })
+                    body: JSON.stringify({ max_items_per_source: 3 })
                 });
                 const data = await response.json().catch(() => ({}));
                 if (response.status === 401) window.logout();
@@ -874,7 +998,7 @@ const seo = seoPages.admin;
             }
 
             queue.innerHTML = items.map(item => {
-                const source = item.source?.organization || item.source?.source_name || 'Fuente sin nombre';
+                const source = radarPublisher(item.source);
                 const active = currentRadarCandidate?.id === item.id;
                 return `
                     <button type="button" data-radar-id="${escapeAdminHTML(item.id)}" class="w-full text-left p-4 mb-1 rounded-lg border ${active ? 'border-[#5EA6B0] bg-[#5EA6B0]/10' : 'border-transparent hover:border-white/10 hover:bg-white/[0.03]'} transition-colors">
@@ -900,8 +1024,7 @@ const seo = seoPages.admin;
             lucide.createIcons();
 
             try {
-                const status = document.getElementById('radar-status-filter').value;
-                const data = await radarRequest(`?view=queue&status=${encodeURIComponent(status)}&limit=100`);
+                const data = await radarRequest(`?view=queue&status=${encodeURIComponent(radarStatusFilter)}&limit=100`);
                 radarQueueLoaded = true;
                 renderRadarCounts(data.counts || {});
                 renderRadarQueue(data.items || []);
@@ -916,6 +1039,45 @@ const seo = seoPages.admin;
             document.getElementById(id).value = value || '';
         }
 
+        function renderRadarThumbnail(candidate) {
+            const preview = document.getElementById('radar-thumbnail-preview');
+            const image = document.getElementById('radar-thumbnail-image');
+            const status = document.getElementById('radar-thumbnail-status');
+            const button = document.getElementById('radar-thumbnail-btn');
+            const hasImage = Boolean(candidate.thumbnail_url);
+            const canGenerate = candidate.status === 'approved';
+            const isGenerating = candidate.thumbnail_status === 'generating';
+
+            preview.classList.toggle('hidden', !hasImage);
+            image.src = hasImage ? candidate.thumbnail_url : '';
+            button.classList.toggle('hidden', !canGenerate);
+            button.classList.toggle('flex', canGenerate);
+            button.disabled = isGenerating;
+            button.innerHTML = isGenerating
+                ? '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Generando'
+                : `<i data-lucide="${hasImage ? 'refresh-cw' : 'image-plus'}" class="w-4 h-4"></i> ${hasImage ? 'Regenerar miniatura' : 'Generar miniatura'}`;
+
+            if (isGenerating) {
+                status.textContent = 'Generando imagen editorial…';
+                status.className = 'text-xs text-[#88d6e0]';
+            } else if (candidate.thumbnail_status === 'ready') {
+                const details = [candidate.thumbnail_model, formatRadarTimestamp(candidate.thumbnail_generated_at)]
+                    .filter(Boolean)
+                    .join(' · ');
+                status.textContent = details ? `Miniatura lista · ${details}` : 'Miniatura lista';
+                status.className = 'text-xs text-emerald-300';
+            } else if (candidate.thumbnail_status === 'failed') {
+                status.textContent = candidate.thumbnail_error || 'La generación falló. Puedes reintentar.';
+                status.className = 'text-xs text-red-300';
+            } else if (candidate.status === 'approved') {
+                status.textContent = 'Pendiente de generación.';
+                status.className = 'text-xs text-amber-300';
+            } else {
+                status.textContent = 'La miniatura se genera después de aprobar.';
+                status.className = 'text-xs text-gray-500';
+            }
+        }
+
         function updateRadarActions(candidate) {
             const editable = ['suggested', 'needs_review', 'approved'].includes(candidate.status);
             document.getElementById('radar-save-btn').classList.toggle('hidden', !editable);
@@ -923,6 +1085,7 @@ const seo = seoPages.admin;
             document.getElementById('radar-reject-btn').classList.toggle('hidden', !['suggested', 'needs_review', 'approved'].includes(candidate.status));
             document.getElementById('radar-approve-btn').classList.toggle('hidden', !['suggested', 'needs_review'].includes(candidate.status));
             document.getElementById('radar-publish-btn').classList.toggle('hidden', candidate.status !== 'approved');
+            document.getElementById('radar-publish-btn').disabled = candidate.thumbnail_status === 'generating';
         }
 
         function renderRadarDetail(detail) {
@@ -936,7 +1099,7 @@ const seo = seoPages.admin;
             threshold.textContent = candidate.passes_research_threshold ? 'Cumple umbral' : 'Bajo umbral';
             threshold.className = `text-xs font-bold ${candidate.passes_research_threshold ? 'text-emerald-300' : 'text-amber-300'}`;
             document.getElementById('radar-detail-total').textContent = `${candidate.score_total || 0}/100`;
-            document.getElementById('radar-detail-source').textContent = `${source.organization || source.source_name || 'Fuente'} · ${formatRadarDate(candidate.source_published_at)}`;
+            document.getElementById('radar-detail-source').textContent = `${radarPublisher(source)} · ${formatRadarDate(candidate.source_published_at)}`;
             document.getElementById('radar-detail-source-link').href = candidate.canonical_url;
             document.getElementById('radar-source-title').textContent = candidate.source_title || '';
             document.getElementById('radar-source-excerpt').textContent = candidate.source_excerpt || 'Sin extracto disponible en el feed.';
@@ -962,6 +1125,7 @@ const seo = seoPages.admin;
             setRadarField('radar-linkedin', candidate.linkedin_copy);
             setRadarField('radar-thumbnail-prompt', candidate.thumbnail_prompt);
             setRadarField('radar-review-notes', candidate.review_notes);
+            renderRadarThumbnail(candidate);
             updateRadarActions(candidate);
             lucide.createIcons();
         }
@@ -1024,6 +1188,45 @@ const seo = seoPages.admin;
             }
         }
 
+        window.generateRadarThumbnail = async function(skipSave = false) {
+            if (!currentRadarCandidate || currentRadarCandidate.status !== 'approved') return false;
+            if (!skipSave) {
+                const saved = await window.saveRadarDraft(true);
+                if (!saved) return false;
+            }
+
+            currentRadarCandidate = {
+                ...currentRadarCandidate,
+                thumbnail_status: 'generating',
+                thumbnail_error: null
+            };
+            renderRadarThumbnail(currentRadarCandidate);
+            updateRadarActions(currentRadarCandidate);
+            lucide.createIcons();
+
+            try {
+                const result = await radarThumbnailRequest(currentRadarCandidate.id);
+                currentRadarCandidate = result.candidate || currentRadarCandidate;
+                renderRadarThumbnail(currentRadarCandidate);
+                updateRadarActions(currentRadarCandidate);
+                await window.loadRadarQueue();
+                return true;
+            } catch (error) {
+                console.error('AI Radar thumbnail error', error);
+                currentRadarCandidate = {
+                    ...currentRadarCandidate,
+                    thumbnail_status: 'failed',
+                    thumbnail_error: error.message
+                };
+                renderRadarThumbnail(currentRadarCandidate);
+                updateRadarActions(currentRadarCandidate);
+                alert(`El artículo quedó aprobado, pero la miniatura no pudo generarse: ${error.message}`);
+                return false;
+            } finally {
+                lucide.createIcons();
+            }
+        }
+
         window.reviewRadarCandidate = async function(status) {
             if (!currentRadarCandidate) return;
             const notes = document.getElementById('radar-review-notes').value.trim();
@@ -1037,7 +1240,7 @@ const seo = seoPages.admin;
             }
 
             try {
-                await radarRequest('', {
+                const reviewed = await radarRequest('', {
                     method: 'POST',
                     body: JSON.stringify({
                         action: 'review',
@@ -1046,6 +1249,15 @@ const seo = seoPages.admin;
                         notes
                     })
                 });
+                if (status === 'approved') {
+                    currentRadarCandidate = reviewed;
+                    document.getElementById('radar-detail-status').textContent = radarStatusLabel(reviewed.status);
+                    renderRadarThumbnail(reviewed);
+                    updateRadarActions(reviewed);
+                    lucide.createIcons();
+                    await window.generateRadarThumbnail(true);
+                    return;
+                }
                 currentRadarCandidate = null;
                 document.getElementById('radar-detail').classList.add('hidden');
                 document.getElementById('radar-empty').classList.remove('hidden');
