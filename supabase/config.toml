@@ -36,3 +36,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/ai-radar-admin/deno.json"
 entrypoint = "./functions/ai-radar-admin/index.ts"
+
+[functions.ai-radar-ingest]
+enabled = true
+verify_jwt = true
+import_map = "./functions/ai-radar-ingest/deno.json"
+entrypoint = "./functions/ai-radar-ingest/index.ts"

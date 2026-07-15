@@ -8,6 +8,7 @@ const corsHeaders = {
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const PILOT_SOURCE_KEYS = new Set(["SRC-13", "SRC-38"]);
 
 const REVIEW_STATUSES = new Set([
   "discovered",
@@ -288,6 +289,54 @@ async function loadCandidateDetail(
   };
 }
 
+async function loadRecentRuns(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  return await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    "ai_radar_runs?select=id,trigger_kind,status,started_at,finished_at,sources_considered,sources_succeeded,candidates_discovered,candidates_created,candidates_deduplicated,candidates_failed,error_summary,metadata,created_at&order=created_at.desc&limit=10",
+  );
+}
+
+async function setSourceEnabled(
+  body: Record<string, unknown>,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  const sourceId = cleanText(body.source_id, 80);
+  if (!UUID_REGEX.test(sourceId) || typeof body.enabled !== "boolean") {
+    throw new Response("Invalid source settings", { status: 400 });
+  }
+
+  const sources = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}&select=id,source_key,content_format&limit=1`,
+  );
+  const source = Array.isArray(sources) ? sources[0] || null : null;
+  if (!source || !PILOT_SOURCE_KEYS.has(source.source_key) || source.content_format !== "RSS") {
+    throw new Response("Source is not part of the RSS pilot", { status: 403 });
+  }
+
+  const rows = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=representation" },
+      body: JSON.stringify({
+        is_enabled: body.enabled,
+        health_status: body.enabled ? "unverified" : "paused",
+        next_poll_at: null,
+      }),
+    },
+  );
+  return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function reviewCandidate(
   body: Record<string, unknown>,
   user: AuthUser,
@@ -515,9 +564,12 @@ serve(async (request) => {
           await restRequest(
             supabaseUrl,
             serviceRoleKey,
-            "ai_radar_sources?select=id,source_key,source_name,organization,trust_tier,content_format,active_recommendation,is_enabled,health_status,last_success_at,next_poll_at&order=active_recommendation.asc,trust_tier.asc,source_name.asc",
+            "ai_radar_sources?select=id,source_key,source_name,organization,trust_tier,content_format,feed_or_api_url,active_recommendation,is_enabled,health_status,last_polled_at,last_success_at,last_error,last_item_count,consecutive_failures,updated_at&order=active_recommendation.asc,trust_tier.asc,source_name.asc",
           ),
         );
+      }
+      if (view === "runs") {
+        return jsonResponse(await loadRecentRuns(supabaseUrl, serviceRoleKey));
       }
       return jsonResponse({ error: "Unknown view" }, 400);
     }
@@ -533,6 +585,9 @@ serve(async (request) => {
       }
       if (action === "publish") {
         return jsonResponse(await publishCandidate(body, user, supabaseUrl, serviceRoleKey));
+      }
+      if (action === "set_source_enabled") {
+        return jsonResponse(await setSourceEnabled(body, supabaseUrl, serviceRoleKey));
       }
       return jsonResponse({ error: "Unknown action" }, 400);
     }

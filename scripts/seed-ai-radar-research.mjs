@@ -6,6 +6,13 @@ import path from "node:path";
 const ROOT = process.cwd();
 const ENV_FILES = [".env", ".env.local"];
 const SEED_FILE = path.join(ROOT, "supabase", "seed", "ai-radar-research.json");
+const SOURCE_OVERRIDES = {
+  "SRC-13": {
+    feed_or_api_url: "https://moodle.com/feed/",
+    note:
+      "Operational correction 2026-07-15: /news/feed/ returned a closed-comments 403; the verified publication feed is /feed/.",
+  },
+};
 
 function readEnv() {
   const env = { ...process.env };
@@ -93,40 +100,43 @@ function buildPayloads(research) {
   const sheets = research.sheets;
 
   return {
-    ai_radar_sources: sheets.Sources.map((row) => ({
-      source_key: clean(row.source_id),
-      source_name: clean(row.source_name),
-      organization: clean(row.organization),
-      homepage_url: clean(row.homepage_url),
-      feed_or_api_url: clean(row.feed_or_api_url),
-      source_section_url: clean(row.source_section_url),
-      source_type: clean(row.source_type),
-      content_format: clean(row.content_format),
-      languages: splitList(row.language),
-      region: clean(row.region),
-      authority_reason: clean(row.authority_reason),
-      trust_tier: clean(row.trust_tier),
-      evidence_position: clean(row.primary_or_secondary),
-      editorial_independence: clean(row.editorial_independence),
-      relevant_topics: splitList(row.relevant_topics),
-      excluded_topics: splitList(row.excluded_topics),
-      update_frequency: clean(row.update_frequency),
-      access_method: clean(row.access_method),
-      authentication_required: parseBoolean(row.authentication_required),
-      paywall_status: clean(row.paywall_status),
-      robots_url: clean(row.robots_url),
-      robots_or_terms_notes: clean(row.robots_or_terms_notes),
-      rate_limit_notes: clean(row.rate_limit_notes),
-      publication_date_available: parseBoolean(row.publication_date_available),
-      author_available: clean(row.author_available),
-      canonical_url_available: clean(row.canonical_url_available),
-      full_text_available: clean(row.full_text_available),
-      recommended_poll_interval: clean(row.recommended_poll_interval),
-      poll_interval_minutes: parsePollMinutes(row.recommended_poll_interval),
-      active_recommendation: clean(row.active_recommendation),
-      research_notes: clean(row.research_notes),
-      verified_at: clean(row.verified_at),
-    })),
+    ai_radar_sources: sheets.Sources.map((row) => {
+      const override = SOURCE_OVERRIDES[row.source_id];
+      return {
+        source_key: clean(row.source_id),
+        source_name: clean(row.source_name),
+        organization: clean(row.organization),
+        homepage_url: clean(row.homepage_url),
+        feed_or_api_url: override?.feed_or_api_url || clean(row.feed_or_api_url),
+        source_section_url: clean(row.source_section_url),
+        source_type: clean(row.source_type),
+        content_format: clean(row.content_format),
+        languages: splitList(row.language),
+        region: clean(row.region),
+        authority_reason: clean(row.authority_reason),
+        trust_tier: clean(row.trust_tier),
+        evidence_position: clean(row.primary_or_secondary),
+        editorial_independence: clean(row.editorial_independence),
+        relevant_topics: splitList(row.relevant_topics),
+        excluded_topics: splitList(row.excluded_topics),
+        update_frequency: clean(row.update_frequency),
+        access_method: clean(row.access_method),
+        authentication_required: parseBoolean(row.authentication_required),
+        paywall_status: clean(row.paywall_status),
+        robots_url: clean(row.robots_url),
+        robots_or_terms_notes: clean(row.robots_or_terms_notes),
+        rate_limit_notes: clean(row.rate_limit_notes),
+        publication_date_available: parseBoolean(row.publication_date_available),
+        author_available: clean(row.author_available),
+        canonical_url_available: clean(row.canonical_url_available),
+        full_text_available: clean(row.full_text_available),
+        recommended_poll_interval: clean(row.recommended_poll_interval),
+        poll_interval_minutes: parsePollMinutes(row.recommended_poll_interval),
+        active_recommendation: clean(row.active_recommendation),
+        research_notes: [clean(row.research_notes), override?.note].filter(Boolean).join(" ") || null,
+        verified_at: clean(row.verified_at),
+      };
+    }),
     ai_radar_rubric: sheets.Rubric.map((row) => ({
       criterion_key: slugify(row.criterion),
       criterion_name: clean(row.criterion),

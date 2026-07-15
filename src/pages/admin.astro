@@ -248,7 +248,7 @@ const seo = seoPages.admin;
         </section>
 
         <section id="radar-panel" class="hidden flex-col lg:flex-1 lg:min-h-0" role="tabpanel">
-            <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 mb-4">
                 <div class="relative sm:w-64">
                     <select id="radar-status-filter" onchange="loadRadarQueue()" class="w-full bg-[#1A1E22] border border-white/20 rounded-lg px-4 py-2.5 appearance-none outline-none text-white focus:border-[#5EA6B0] text-sm font-medium">
                         <option value="suggested">Sugeridos</option>
@@ -263,7 +263,25 @@ const seo = seoPages.admin;
                 <button type="button" onclick="loadRadarQueue()" class="w-10 h-10 flex items-center justify-center border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/5" title="Actualizar cola">
                     <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                 </button>
-                <div id="radar-counts" class="text-xs text-gray-500 sm:ml-auto"></div>
+                <button id="radar-sources-btn" type="button" onclick="toggleRadarSources()" aria-expanded="false" class="h-10 px-3 border border-white/10 rounded-lg text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 flex items-center gap-2">
+                    <i data-lucide="list-filter" class="w-4 h-4"></i> Fuentes
+                </button>
+                <button id="radar-run-btn" type="button" onclick="runRadarIngestion()" class="h-10 px-4 bg-[#5EA6B0] text-black rounded-lg text-sm font-bold hover:bg-[#88d6e0] flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar fuentes
+                </button>
+                <div class="sm:ml-auto min-w-0 text-right">
+                    <div id="radar-counts" class="text-xs text-gray-500"></div>
+                    <div id="radar-run-result" class="text-xs text-gray-500 mt-1" role="status" aria-live="polite"></div>
+                </div>
+            </div>
+
+            <div id="radar-sources-panel" class="hidden mb-4 border-y border-white/10 bg-[#181b1e]">
+                <div class="flex items-center justify-between gap-4 px-4 py-3 border-b border-white/10">
+                    <h2 class="text-xs font-bold text-gray-400 uppercase">Fuentes piloto</h2>
+                    <span id="radar-last-run" class="text-xs text-gray-500"></span>
+                </div>
+                <div id="radar-source-list" class="divide-y divide-white/10"></div>
+                <div id="radar-runs" class="border-t border-white/10 px-4 py-3 text-xs text-gray-500"></div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 lg:flex-1 lg:min-h-0 border border-white/10 rounded-xl overflow-visible lg:overflow-hidden bg-[#1E2226]">
@@ -295,6 +313,11 @@ const seo = seoPages.admin;
                         <div id="radar-score-grid" class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6"></div>
 
                         <div class="space-y-4">
+                            <div class="border-y border-white/10 py-4">
+                                <div class="text-xs font-bold text-gray-400 mb-2 uppercase">Evidencia RSS original</div>
+                                <div id="radar-source-title" class="text-sm font-bold text-white leading-snug"></div>
+                                <div id="radar-source-excerpt" class="mt-2 text-sm text-gray-400 leading-relaxed whitespace-pre-wrap"></div>
+                            </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Titular sugerido</label>
                                 <input id="radar-headline" type="text" class="w-full bg-[#141619] border border-white/10 rounded-lg px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
@@ -358,6 +381,7 @@ const seo = seoPages.admin;
         let currentEditingId = null;
         let currentRadarCandidate = null;
         let radarQueueLoaded = false;
+        let radarSourcesLoaded = false;
 
         document.addEventListener('DOMContentLoaded', async () => {
             const token = sessionStorage.getItem('adminToken');
@@ -521,6 +545,7 @@ const seo = seoPages.admin;
             sessionStorage.removeItem('adminToken');
             currentRadarCandidate = null;
             radarQueueLoaded = false;
+            radarSourcesLoaded = false;
             document.getElementById('dashboard-screen').classList.replace('flex', 'hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('password').value = '';
@@ -582,6 +607,161 @@ const seo = seoPages.admin;
             return data;
         }
 
+        function formatRadarTimestamp(value) {
+            if (!value) return 'Sin ejecución';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Sin ejecución';
+            return new Intl.DateTimeFormat('es-CL', {
+                day: '2-digit',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
+        function radarRunStatusLabel(status) {
+            return {
+                queued: 'En cola',
+                running: 'En curso',
+                succeeded: 'Completada',
+                partial: 'Parcial',
+                failed: 'Fallida',
+                cancelled: 'Cancelada'
+            }[status] || status || 'Sin estado';
+        }
+
+        function renderRadarSources(sources) {
+            const pilotKeys = new Set(['SRC-13', 'SRC-38']);
+            const pilotSources = (sources || []).filter(source => pilotKeys.has(source.source_key));
+            const list = document.getElementById('radar-source-list');
+            if (!pilotSources.length) {
+                list.innerHTML = '<div class="px-4 py-4 text-sm text-gray-500">No hay fuentes piloto configuradas.</div>';
+                return;
+            }
+
+            list.innerHTML = pilotSources.map(source => {
+                const healthClass = source.health_status === 'healthy'
+                    ? 'text-emerald-300'
+                    : source.health_status === 'degraded'
+                    ? 'text-red-300'
+                    : source.health_status === 'paused'
+                    ? 'text-gray-500'
+                    : 'text-amber-300';
+                return `
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3">
+                        <label class="flex items-center gap-3 min-w-0 sm:flex-1 cursor-pointer">
+                            <input type="checkbox" data-radar-source-id="${escapeAdminHTML(source.id)}" ${source.is_enabled ? 'checked' : ''} class="w-4 h-4 accent-[#5EA6B0]">
+                            <span class="min-w-0">
+                                <span class="block text-sm font-bold text-white">${escapeAdminHTML(source.organization || source.source_name)}</span>
+                                <span class="block text-xs text-gray-500 truncate">${escapeAdminHTML(source.feed_or_api_url || '')}</span>
+                            </span>
+                        </label>
+                        <div class="sm:text-right text-xs">
+                            <div class="${healthClass}">${escapeAdminHTML(source.health_status || 'unverified')} · ${Number(source.last_item_count) || 0} ítems</div>
+                            <div class="text-gray-500 mt-1">${escapeAdminHTML(formatRadarTimestamp(source.last_success_at || source.last_polled_at))}</div>
+                            ${source.last_error ? `<div class="text-red-300 mt-1 max-w-md sm:ml-auto">${escapeAdminHTML(source.last_error)}</div>` : ''}
+                        </div>
+                    </div>`;
+            }).join('');
+
+            list.querySelectorAll('[data-radar-source-id]').forEach(input => {
+                input.addEventListener('change', () => window.setRadarSourceEnabled(input.dataset.radarSourceId, input.checked, input));
+            });
+        }
+
+        function renderRadarRuns(runs) {
+            const runList = Array.isArray(runs) ? runs : [];
+            const latest = runList[0];
+            document.getElementById('radar-last-run').textContent = latest
+                ? `Última: ${radarRunStatusLabel(latest.status)} · ${formatRadarTimestamp(latest.finished_at || latest.created_at)}`
+                : 'Sin ejecuciones';
+            document.getElementById('radar-runs').innerHTML = latest
+                ? `<span class="text-gray-400">Última ejecución</span> · ${Number(latest.sources_succeeded) || 0}/${Number(latest.sources_considered) || 0} fuentes · ${Number(latest.candidates_created) || 0} nuevos · ${Number(latest.candidates_deduplicated) || 0} repetidos${latest.error_summary ? ` · <span class="text-red-300">${escapeAdminHTML(latest.error_summary)}</span>` : ''}`
+                : 'Aún no hay ejecuciones registradas.';
+        }
+
+        window.loadRadarSources = async function() {
+            const list = document.getElementById('radar-source-list');
+            list.innerHTML = '<div class="px-4 py-4 text-gray-500"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></div>';
+            lucide.createIcons();
+            try {
+                const [sources, runs] = await Promise.all([
+                    radarRequest('?view=sources'),
+                    radarRequest('?view=runs')
+                ]);
+                radarSourcesLoaded = true;
+                renderRadarSources(sources);
+                renderRadarRuns(runs);
+            } catch (error) {
+                console.error('AI Radar sources error', error);
+                list.innerHTML = `<div class="px-4 py-4 text-sm text-red-300">${escapeAdminHTML(error.message)}</div>`;
+            }
+            lucide.createIcons();
+        }
+
+        window.toggleRadarSources = async function() {
+            const panel = document.getElementById('radar-sources-panel');
+            const button = document.getElementById('radar-sources-btn');
+            const opening = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !opening);
+            button.setAttribute('aria-expanded', String(opening));
+            if (opening && !radarSourcesLoaded) await window.loadRadarSources();
+        }
+
+        window.setRadarSourceEnabled = async function(sourceId, enabled, input) {
+            input.disabled = true;
+            try {
+                await radarRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'set_source_enabled', source_id: sourceId, enabled })
+                });
+                await window.loadRadarSources();
+            } catch (error) {
+                console.error('AI Radar source update error', error);
+                input.checked = !enabled;
+                alert(error.message);
+            } finally {
+                input.disabled = false;
+            }
+        }
+
+        window.runRadarIngestion = async function() {
+            const token = sessionStorage.getItem('adminToken');
+            if (!token || token.split('.').length !== 3) return window.logout();
+            const button = document.getElementById('radar-run-btn');
+            const result = document.getElementById('radar-run-result');
+            const original = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Analizando';
+            result.textContent = 'Leyendo RSS y evaluando novedades…';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch(`${SUPA_URL}/functions/v1/ai-radar-ingest`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'apikey': SUPA_KEY,
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ max_items_per_source: 5 })
+                });
+                const data = await response.json().catch(() => ({}));
+                if (response.status === 401) window.logout();
+                if (!response.ok) throw new Error(data.error || `Error de ingesta (${response.status})`);
+                result.textContent = `${radarRunStatusLabel(data.status)} · ${Number(data.candidates_created) || 0} nuevos · ${Number(data.candidates_deduplicated) || 0} repetidos`;
+                radarSourcesLoaded = false;
+                await Promise.all([window.loadRadarQueue(), window.loadRadarSources()]);
+            } catch (error) {
+                console.error('AI Radar ingestion error', error);
+                result.textContent = error.message;
+            } finally {
+                button.disabled = false;
+                button.innerHTML = original;
+                lucide.createIcons();
+            }
+        }
+
         window.setAdminView = async function(view) {
             const isRadar = view === 'radar';
             const articlesPanel = document.getElementById('articles-panel');
@@ -628,7 +808,8 @@ const seo = seoPages.admin;
                         <div class="flex items-start gap-3">
                             <span class="w-11 h-11 shrink-0 rounded-md bg-[#141619] border border-white/10 flex items-center justify-center text-sm font-bold tabular-nums ${item.passes_research_threshold ? 'text-[#88d6e0]' : 'text-amber-300'}">${Number(item.score_total) || 0}</span>
                             <span class="min-w-0 flex-1">
-                                <span class="block text-sm font-bold text-white leading-snug">${escapeAdminHTML(item.suggested_headline || item.source_title)}</span>
+                                <span class="block text-sm font-bold text-white leading-snug">${escapeAdminHTML(item.source_title)}</span>
+                                ${item.suggested_headline && item.suggested_headline !== item.source_title ? `<span class="block mt-1 text-xs text-gray-400 leading-snug">${escapeAdminHTML(item.suggested_headline)}</span>` : ''}
                                 <span class="block mt-2 text-xs text-gray-500 truncate">${escapeAdminHTML(source)} · ${escapeAdminHTML(formatRadarDate(item.source_published_at || item.discovered_at))}</span>
                             </span>
                         </div>
@@ -684,6 +865,8 @@ const seo = seoPages.admin;
             document.getElementById('radar-detail-total').textContent = `${candidate.score_total || 0}/100`;
             document.getElementById('radar-detail-source').textContent = `${source.organization || source.source_name || 'Fuente'} · ${formatRadarDate(candidate.source_published_at)}`;
             document.getElementById('radar-detail-source-link').href = candidate.canonical_url;
+            document.getElementById('radar-source-title').textContent = candidate.source_title || '';
+            document.getElementById('radar-source-excerpt').textContent = candidate.source_excerpt || 'Sin extracto disponible en el feed.';
 
             const scores = [
                 ['Evidencia', candidate.evidence_score, 25],
