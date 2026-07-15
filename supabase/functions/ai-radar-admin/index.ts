@@ -300,6 +300,33 @@ async function loadRecentRuns(
   );
 }
 
+async function loadSourceItems(
+  sourceId: string,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  if (!UUID_REGEX.test(sourceId)) {
+    throw new Response("Invalid source id", { status: 400 });
+  }
+
+  const sources = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_sources?id=eq.${encodeURIComponent(sourceId)}&select=id,source_key,source_name,organization,feed_or_api_url&limit=1`,
+  );
+  const source = Array.isArray(sources) ? sources[0] || null : null;
+  if (!source || !PILOT_SOURCE_KEYS.has(source.source_key)) {
+    throw new Response("Source is not part of the RSS pilot", { status: 403 });
+  }
+
+  const items = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_candidates?source_id=eq.${encodeURIComponent(sourceId)}&select=id,canonical_url,source_title,source_excerpt,source_author,source_published_at,discovered_at,status,score_total,suggested_headline,failure_reason&order=source_published_at.desc.nullslast,discovered_at.desc&limit=50`,
+  );
+  return { source, items: Array.isArray(items) ? items : [] };
+}
+
 async function setSourceEnabled(
   body: Record<string, unknown>,
   supabaseUrl: string,
@@ -570,6 +597,15 @@ serve(async (request) => {
       }
       if (view === "runs") {
         return jsonResponse(await loadRecentRuns(supabaseUrl, serviceRoleKey));
+      }
+      if (view === "source_items") {
+        return jsonResponse(
+          await loadSourceItems(
+            cleanText(requestUrl.searchParams.get("source_id"), 80),
+            supabaseUrl,
+            serviceRoleKey,
+          ),
+        );
       }
       return jsonResponse({ error: "Unknown view" }, 400);
     }

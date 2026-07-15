@@ -135,9 +135,13 @@ const seo = seoPages.admin;
         .ql-align-left iframe.ql-video, .ql-align-left img { width: 50%; margin: 2rem auto 2rem 0; }
         .ql-align-center iframe.ql-video, .ql-align-center img { width: 75%; margin: 2rem auto; }
         .ql-align-right iframe.ql-video, .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
+
+        @media (min-width: 1024px) {
+            #dashboard-screen.radar-layout { height: 90vh; min-height: 0; }
+        }
     </style>
 </head>
-<body class="min-h-screen flex items-start lg:items-center justify-center p-6">
+<body class="min-h-screen flex items-start justify-center p-6">
 
     <div id="admin-config" style="display:none;" 
          data-url={supabaseUrl} 
@@ -161,7 +165,7 @@ const seo = seoPages.admin;
     </div>
 
     <!-- DASHBOARD SCREEN -->
-    <div id="dashboard-screen" class="w-full max-w-7xl hidden flex-col min-h-[calc(100vh-3rem)] lg:h-[90vh] lg:min-h-0">
+    <div id="dashboard-screen" class="w-full max-w-7xl hidden flex-col min-h-[calc(100vh-3rem)]">
         
         <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4 bg-[#1E2226] p-4 rounded-xl ring-1 ring-white/10">
             <div class="flex items-center gap-3">
@@ -198,7 +202,7 @@ const seo = seoPages.admin;
                 </button>
             </div>
 
-            <div class="flex-1 bg-[#1E2226] rounded-2xl ring-1 ring-white/10 p-6 overflow-y-auto no-scrollbar relative">
+            <div class="bg-[#1E2226] rounded-2xl ring-1 ring-white/10 p-6 relative">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                         <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Tipo de Contenido</label>
@@ -255,6 +259,7 @@ const seo = seoPages.admin;
                         <option value="needs_review">Requieren revisión</option>
                         <option value="approved">Aprobados</option>
                         <option value="rejected">Rechazados</option>
+                        <option value="failed">Fallidos</option>
                         <option value="published">Publicados</option>
                         <option value="all">Todos</option>
                     </select>
@@ -382,6 +387,8 @@ const seo = seoPages.admin;
         let currentRadarCandidate = null;
         let radarQueueLoaded = false;
         let radarSourcesLoaded = false;
+        let openRadarSourceId = null;
+        let radarSourceCatalog = [];
 
         document.addEventListener('DOMContentLoaded', async () => {
             const token = sessionStorage.getItem('adminToken');
@@ -546,6 +553,8 @@ const seo = seoPages.admin;
             currentRadarCandidate = null;
             radarQueueLoaded = false;
             radarSourcesLoaded = false;
+            openRadarSourceId = null;
+            radarSourceCatalog = [];
             document.getElementById('dashboard-screen').classList.replace('flex', 'hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('password').value = '';
@@ -630,9 +639,19 @@ const seo = seoPages.admin;
             }[status] || status || 'Sin estado';
         }
 
+        function radarSourceHealthLabel(status) {
+            return {
+                unverified: 'Sin verificar',
+                healthy: 'Saludable',
+                degraded: 'Con errores',
+                paused: 'Pausada'
+            }[status] || status || 'Sin verificar';
+        }
+
         function renderRadarSources(sources) {
             const pilotKeys = new Set(['SRC-13', 'SRC-38']);
-            const pilotSources = (sources || []).filter(source => pilotKeys.has(source.source_key));
+            radarSourceCatalog = Array.isArray(sources) ? sources : [];
+            const pilotSources = radarSourceCatalog.filter(source => pilotKeys.has(source.source_key));
             const list = document.getElementById('radar-source-list');
             if (!pilotSources.length) {
                 list.innerHTML = '<div class="px-4 py-4 text-sm text-gray-500">No hay fuentes piloto configuradas.</div>';
@@ -647,26 +666,77 @@ const seo = seoPages.admin;
                     : source.health_status === 'paused'
                     ? 'text-gray-500'
                     : 'text-amber-300';
+                const isOpen = openRadarSourceId === source.id;
                 return `
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3">
-                        <label class="flex items-center gap-3 min-w-0 sm:flex-1 cursor-pointer">
-                            <input type="checkbox" data-radar-source-id="${escapeAdminHTML(source.id)}" ${source.is_enabled ? 'checked' : ''} class="w-4 h-4 accent-[#5EA6B0]">
-                            <span class="min-w-0">
-                                <span class="block text-sm font-bold text-white">${escapeAdminHTML(source.organization || source.source_name)}</span>
-                                <span class="block text-xs text-gray-500 truncate">${escapeAdminHTML(source.feed_or_api_url || '')}</span>
-                            </span>
-                        </label>
-                        <div class="sm:text-right text-xs">
-                            <div class="${healthClass}">${escapeAdminHTML(source.health_status || 'unverified')} · ${Number(source.last_item_count) || 0} ítems</div>
-                            <div class="text-gray-500 mt-1">${escapeAdminHTML(formatRadarTimestamp(source.last_success_at || source.last_polled_at))}</div>
-                            ${source.last_error ? `<div class="text-red-300 mt-1 max-w-md sm:ml-auto">${escapeAdminHTML(source.last_error)}</div>` : ''}
+                    <div>
+                        <div class="flex items-center gap-3 px-4 py-3">
+                            <input type="checkbox" data-radar-source-toggle="${escapeAdminHTML(source.id)}" aria-label="Activar ${escapeAdminHTML(source.organization || source.source_name)}" ${source.is_enabled ? 'checked' : ''} class="w-4 h-4 shrink-0 accent-[#5EA6B0]">
+                            <button type="button" data-radar-source-open="${escapeAdminHTML(source.id)}" aria-expanded="${isOpen}" class="min-w-0 flex-1 text-left flex items-center gap-3 hover:text-[#88d6e0]">
+                                <span class="min-w-0 flex-1">
+                                    <span class="block text-sm font-bold text-white">${escapeAdminHTML(source.organization || source.source_name)}</span>
+                                    <span class="block text-xs text-gray-500 truncate">${escapeAdminHTML(source.feed_or_api_url || '')}</span>
+                                </span>
+                                <span class="hidden sm:block text-right text-xs">
+                                    <span class="block ${healthClass}">${escapeAdminHTML(radarSourceHealthLabel(source.health_status))} · ${Number(source.last_item_count) || 0} ítems</span>
+                                    <span class="block text-gray-500 mt-1">${escapeAdminHTML(formatRadarTimestamp(source.last_success_at || source.last_polled_at))}</span>
+                                </span>
+                                <i data-lucide="chevron-${isOpen ? 'up' : 'down'}" class="w-4 h-4 shrink-0 text-gray-500"></i>
+                            </button>
                         </div>
+                        ${source.last_error ? `<div class="px-11 pb-3 text-xs text-red-300">${escapeAdminHTML(source.last_error)}</div>` : ''}
+                        <div id="radar-source-items-${escapeAdminHTML(source.id)}" data-radar-source-items class="${isOpen ? '' : 'hidden'} max-h-80 overflow-y-auto border-t border-white/10 bg-[#141619]"></div>
                     </div>`;
             }).join('');
 
-            list.querySelectorAll('[data-radar-source-id]').forEach(input => {
-                input.addEventListener('change', () => window.setRadarSourceEnabled(input.dataset.radarSourceId, input.checked, input));
+            list.querySelectorAll('[data-radar-source-toggle]').forEach(input => {
+                input.addEventListener('change', () => window.setRadarSourceEnabled(input.dataset.radarSourceToggle, input.checked, input));
             });
+            list.querySelectorAll('[data-radar-source-open]').forEach(button => {
+                button.addEventListener('click', () => window.openRadarSource(button.dataset.radarSourceOpen));
+            });
+        }
+
+        function renderRadarSourceItems(container, items) {
+            if (!items.length) {
+                container.innerHTML = '<div class="px-11 py-4 text-sm text-gray-500">Esta fuente aún no tiene artículos ingeridos.</div>';
+                return;
+            }
+            container.innerHTML = items.map(item => `
+                <button type="button" data-radar-source-candidate="${escapeAdminHTML(item.id)}" class="w-full text-left px-11 py-3 border-b border-white/10 last:border-b-0 hover:bg-white/[0.04]">
+                    <span class="flex items-start gap-3">
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm font-bold text-white leading-snug">${escapeAdminHTML(item.source_title)}</span>
+                            <span class="block mt-1 text-xs text-gray-500 line-clamp-2">${escapeAdminHTML(item.source_excerpt || 'Sin extracto disponible en el feed.')}</span>
+                        </span>
+                        <span class="shrink-0 text-right text-xs text-gray-500">
+                            <span class="block">${escapeAdminHTML(radarStatusLabel(item.status))}</span>
+                            <span class="block mt-1">${escapeAdminHTML(formatRadarDate(item.source_published_at || item.discovered_at))}</span>
+                        </span>
+                    </span>
+                </button>`).join('');
+            container.querySelectorAll('[data-radar-source-candidate]').forEach(button => {
+                button.addEventListener('click', () => window.selectRadarCandidate(button.dataset.radarSourceCandidate));
+            });
+        }
+
+        window.openRadarSource = async function(sourceId) {
+            const previousId = openRadarSourceId;
+            openRadarSourceId = previousId === sourceId ? null : sourceId;
+            renderRadarSources(radarSourceCatalog);
+            lucide.createIcons();
+            if (!openRadarSourceId) return;
+
+            const container = document.getElementById(`radar-source-items-${sourceId}`);
+            container.classList.remove('hidden');
+            container.innerHTML = '<div class="px-11 py-4 text-gray-500"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></div>';
+            lucide.createIcons();
+            try {
+                const data = await radarRequest(`?view=source_items&source_id=${encodeURIComponent(sourceId)}`);
+                renderRadarSourceItems(container, data.items || []);
+            } catch (error) {
+                console.error('AI Radar source items error', error);
+                container.innerHTML = `<div class="px-11 py-4 text-sm text-red-300">${escapeAdminHTML(error.message)}</div>`;
+            }
         }
 
         function renderRadarRuns(runs) {
@@ -676,7 +746,7 @@ const seo = seoPages.admin;
                 ? `Última: ${radarRunStatusLabel(latest.status)} · ${formatRadarTimestamp(latest.finished_at || latest.created_at)}`
                 : 'Sin ejecuciones';
             document.getElementById('radar-runs').innerHTML = latest
-                ? `<span class="text-gray-400">Última ejecución</span> · ${Number(latest.sources_succeeded) || 0}/${Number(latest.sources_considered) || 0} fuentes · ${Number(latest.candidates_created) || 0} nuevos · ${Number(latest.candidates_deduplicated) || 0} repetidos${latest.error_summary ? ` · <span class="text-red-300">${escapeAdminHTML(latest.error_summary)}</span>` : ''}`
+                ? `<span class="text-gray-400">Última ejecución</span> · ${Number(latest.sources_succeeded) || 0}/${Number(latest.sources_considered) || 0} fuentes · ${Number(latest.candidates_created) || 0} nuevos · ${Number(latest.metadata?.candidates_retried) || 0} reintentos · ${Number(latest.candidates_deduplicated) || 0} repetidos${latest.error_summary ? ` · <span class="text-red-300">${escapeAdminHTML(latest.error_summary)}</span>` : ''}`
                 : 'Aún no hay ejecuciones registradas.';
         }
 
@@ -690,6 +760,7 @@ const seo = seoPages.admin;
                     radarRequest('?view=runs')
                 ]);
                 radarSourcesLoaded = true;
+                openRadarSourceId = null;
                 renderRadarSources(sources);
                 renderRadarRuns(runs);
             } catch (error) {
@@ -749,7 +820,7 @@ const seo = seoPages.admin;
                 const data = await response.json().catch(() => ({}));
                 if (response.status === 401) window.logout();
                 if (!response.ok) throw new Error(data.error || `Error de ingesta (${response.status})`);
-                result.textContent = `${radarRunStatusLabel(data.status)} · ${Number(data.candidates_created) || 0} nuevos · ${Number(data.candidates_deduplicated) || 0} repetidos`;
+                result.textContent = `${radarRunStatusLabel(data.status)} · ${Number(data.candidates_created) || 0} nuevos · ${Number(data.candidates_retried) || 0} reintentos · ${Number(data.candidates_deduplicated) || 0} repetidos`;
                 radarSourcesLoaded = false;
                 await Promise.all([window.loadRadarQueue(), window.loadRadarSources()]);
             } catch (error) {
@@ -766,6 +837,7 @@ const seo = seoPages.admin;
             const isRadar = view === 'radar';
             const articlesPanel = document.getElementById('articles-panel');
             const radarPanel = document.getElementById('radar-panel');
+            const dashboard = document.getElementById('dashboard-screen');
             const articleTab = document.getElementById('admin-tab-articles');
             const radarTab = document.getElementById('admin-tab-radar');
 
@@ -773,6 +845,7 @@ const seo = seoPages.admin;
             articlesPanel.classList.toggle('flex', !isRadar);
             radarPanel.classList.toggle('hidden', !isRadar);
             radarPanel.classList.toggle('flex', isRadar);
+            dashboard.classList.toggle('radar-layout', isRadar);
             articleTab.setAttribute('aria-selected', String(!isRadar));
             radarTab.setAttribute('aria-selected', String(isRadar));
             articleTab.className = isRadar

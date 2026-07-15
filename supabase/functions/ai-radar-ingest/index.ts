@@ -46,6 +46,7 @@ type CandidateForEvaluation = {
   id: string;
   source: RadarSource;
   item: RadarFeedItem & { url: string };
+  attemptCount: number;
 };
 
 type MatchedService = {
@@ -274,20 +275,34 @@ async function createOrTouchCandidate(
   const existing = await restRequest(
     supabaseUrl,
     serviceRoleKey,
-    `ai_radar_candidates?canonical_url=eq.${encodeURIComponent(item.url)}&select=id&limit=1`,
+    `ai_radar_candidates?canonical_url=eq.${encodeURIComponent(item.url)}&select=id,status,attempt_count&limit=1`,
   );
   if (Array.isArray(existing) && existing.length) {
+    const row = existing[0];
+    const retry = row.status === "failed";
+    const attemptCount = retry ? Number(row.attempt_count || 0) + 1 : Number(row.attempt_count || 0);
     await restRequest(
       supabaseUrl,
       serviceRoleKey,
-      `ai_radar_candidates?id=eq.${encodeURIComponent(existing[0].id)}`,
+      `ai_radar_candidates?id=eq.${encodeURIComponent(row.id)}`,
       {
         method: "PATCH",
         headers: { Prefer: "return=minimal" },
-        body: JSON.stringify({ last_seen_at: new Date().toISOString() }),
+        body: JSON.stringify({
+          last_seen_at: new Date().toISOString(),
+          ...(retry
+            ? {
+              run_id: runId,
+              status: "evaluating",
+              attempt_count: attemptCount,
+              failure_reason: null,
+              next_attempt_at: null,
+            }
+            : {}),
+        }),
       },
     );
-    return { created: false, id: existing[0].id as string };
+    return { created: false, retry, id: row.id as string, attemptCount };
   }
 
   const contentHash = await sha256(`${source.source_key}\n${item.url}\n${item.title}\n${item.excerpt || ""}`);
@@ -305,10 +320,60 @@ async function createOrTouchCandidate(
       source_excerpt: item.excerpt ? cleanText(item.excerpt, 5000) : null,
       content_hash: contentHash,
       status: "evaluating",
+      attempt_count: 1,
     }),
   });
   if (!Array.isArray(inserted) || !inserted[0]?.id) throw new Error("Candidate insert returned no id");
-  return { created: true, id: inserted[0].id as string };
+  return { created: true, retry: false, id: inserted[0].id as string, attemptCount: 1 };
+}
+
+async function loadFailedCandidatesForRetry(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  runId: string,
+  source: RadarSource,
+  limit: number,
+) {
+  const rows = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_candidates?source_id=eq.${encodeURIComponent(source.id)}&status=eq.failed&select=id,canonical_url,source_title,source_author,source_published_at,source_excerpt,attempt_count&order=source_published_at.desc.nullslast&limit=${limit}`,
+  );
+  const candidates: CandidateForEvaluation[] = [];
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const attemptCount = Number(row.attempt_count || 0) + 1;
+    await restRequest(
+      supabaseUrl,
+      serviceRoleKey,
+      `ai_radar_candidates?id=eq.${encodeURIComponent(row.id)}&status=eq.failed`,
+      {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          run_id: runId,
+          status: "evaluating",
+          attempt_count: attemptCount,
+          failure_reason: null,
+          next_attempt_at: null,
+          last_seen_at: new Date().toISOString(),
+        }),
+      },
+    );
+    candidates.push({
+      id: row.id,
+      source,
+      attemptCount,
+      item: {
+        title: row.source_title,
+        url: row.canonical_url,
+        author: row.source_author || null,
+        publishedAt: row.source_published_at || null,
+        excerpt: row.source_excerpt || null,
+        guid: null,
+      },
+    });
+  }
+  return candidates;
 }
 
 function evaluationSchema() {
@@ -426,7 +491,7 @@ async function evaluateCandidates(
   };
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const timeout = setTimeout(() => controller.abort(), 100_000);
   let response: Response;
   try {
     response = await fetch("https://api.openai.com/v1/responses", {
@@ -439,6 +504,7 @@ async function evaluateCandidates(
       body: JSON.stringify({
         model,
         store: false,
+        reasoning: { effort: "low" },
         max_output_tokens: Math.min(12_000, Math.max(3000, candidates.length * 1200)),
         instructions: [
           "Actúa como editor senior de inteligencia EdTech para Rasika.",
@@ -544,7 +610,7 @@ async function applyEvaluation(
         },
         model_name: model,
         prompt_version: PROMPT_VERSION,
-        attempt_count: 1,
+        attempt_count: candidate.attemptCount,
         next_attempt_at: null,
         failure_reason: null,
       }),
@@ -646,6 +712,7 @@ Deno.serve(async (request) => {
     let sourcesSucceeded = 0;
     let candidatesDiscovered = 0;
     let candidatesCreated = 0;
+    let candidatesRetried = 0;
     let candidatesDeduplicated = 0;
     let candidatesFailed = 0;
     const sourceResults: Array<Record<string, unknown>> = [];
@@ -661,6 +728,7 @@ Deno.serve(async (request) => {
           status: feed.notModified ? "not_modified" : "healthy",
           items: feed.items.length,
           created: 0,
+          retried: 0,
           deduplicated: 0,
         };
 
@@ -675,12 +743,37 @@ Deno.serve(async (request) => {
           if (result.created) {
             candidatesCreated += 1;
             sourceResult.created = Number(sourceResult.created) + 1;
-            newCandidates.push({ id: result.id, source, item: item as RadarFeedItem & { url: string } });
+            newCandidates.push({
+              id: result.id,
+              source,
+              item: item as RadarFeedItem & { url: string },
+              attemptCount: result.attemptCount,
+            });
+          } else if (result.retry) {
+            candidatesRetried += 1;
+            sourceResult.retried = Number(sourceResult.retried) + 1;
+            newCandidates.push({
+              id: result.id,
+              source,
+              item: item as RadarFeedItem & { url: string },
+              attemptCount: result.attemptCount,
+            });
           } else {
             candidatesDeduplicated += 1;
             sourceResult.deduplicated = Number(sourceResult.deduplicated) + 1;
           }
         }
+
+        const retryCandidates = await loadFailedCandidatesForRetry(
+          supabaseUrl,
+          serviceRoleKey,
+          runId,
+          source,
+          maxItems,
+        );
+        candidatesRetried += retryCandidates.length;
+        sourceResult.retried = Number(sourceResult.retried) + retryCandidates.length;
+        newCandidates.push(...retryCandidates);
 
         await patchSource(supabaseUrl, serviceRoleKey, source.id, {
           health_status: "healthy",
@@ -726,28 +819,57 @@ Deno.serve(async (request) => {
             description: cleanText(service.public_description || service.ai_context_description, 800),
           })),
         };
-        const evaluated = await evaluateCandidates(newCandidates, context, openAiKey, model);
-        const evaluationMap = new Map<number, Evaluation>(
-          evaluated.evaluations.map((evaluation) => [Number(evaluation.candidate_index), evaluation]),
-        );
         const validContext = {
           topicKeys: new Set(context.taxonomy.map((topic) => String(topic.topic_key))),
           serviceIds: new Set(context.services.map((service) => String(service.id))),
         };
+        const candidateBatches: CandidateForEvaluation[][] = [];
+        for (let index = 0; index < newCandidates.length; index += MAX_ITEMS_PER_SOURCE) {
+          candidateBatches.push(newCandidates.slice(index, index + MAX_ITEMS_PER_SOURCE));
+        }
+        const batchResults = await Promise.allSettled(
+          candidateBatches.map((batch) => evaluateCandidates(batch, context, openAiKey, model)),
+        );
+        const evaluatedByCandidate = new Map<string, { evaluation: Evaluation; responseId: string | null }>();
+        const batchErrorByCandidate = new Map<string, string>();
+        const batchErrors: string[] = [];
 
-        for (let index = 0; index < newCandidates.length; index += 1) {
-          const candidate = newCandidates[index];
-          const evaluation = evaluationMap.get(index);
-          if (!evaluation) {
+        batchResults.forEach((result, batchIndex) => {
+          const batch = candidateBatches[batchIndex];
+          if (result.status === "rejected") {
+            const message = errorMessage(result.reason);
+            batchErrors.push(message);
+            batch.forEach((candidate) => batchErrorByCandidate.set(candidate.id, message));
+            return;
+          }
+          result.value.evaluations.forEach((evaluation) => {
+            const candidate = batch[Number(evaluation.candidate_index)];
+            if (candidate) {
+              evaluatedByCandidate.set(candidate.id, {
+                evaluation,
+                responseId: result.value.responseId,
+              });
+            }
+          });
+        });
+        if (batchErrors.length) analysisError = [...new Set(batchErrors)].join(" | ").slice(0, 4000);
+
+        for (const candidate of newCandidates) {
+          const evaluated = evaluatedByCandidate.get(candidate.id);
+          if (!evaluated) {
             candidatesFailed += 1;
             await restRequest(
               supabaseUrl,
               serviceRoleKey,
-              `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}`,
+              `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}&status=eq.evaluating`,
               {
                 method: "PATCH",
                 headers: { Prefer: "return=minimal" },
-                body: JSON.stringify({ status: "failed", failure_reason: "Evaluation missing from model output", attempt_count: 1 }),
+                body: JSON.stringify({
+                  status: "failed",
+                  failure_reason: batchErrorByCandidate.get(candidate.id) || "Evaluation missing from model output",
+                  attempt_count: candidate.attemptCount,
+                }),
               },
             );
             continue;
@@ -755,7 +877,7 @@ Deno.serve(async (request) => {
           try {
             const status = await applyEvaluation(
               candidate,
-              evaluation,
+              evaluated.evaluation,
               validContext,
               evaluated.responseId,
               supabaseUrl,
@@ -768,11 +890,15 @@ Deno.serve(async (request) => {
             await restRequest(
               supabaseUrl,
               serviceRoleKey,
-              `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}`,
+              `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}&status=eq.evaluating`,
               {
                 method: "PATCH",
                 headers: { Prefer: "return=minimal" },
-                body: JSON.stringify({ status: "failed", failure_reason: errorMessage(error), attempt_count: 1 }),
+                body: JSON.stringify({
+                  status: "failed",
+                  failure_reason: errorMessage(error),
+                  attempt_count: candidate.attemptCount,
+                }),
               },
             );
           }
@@ -784,18 +910,23 @@ Deno.serve(async (request) => {
           await restRequest(
             supabaseUrl,
             serviceRoleKey,
-            `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}`,
+            `ai_radar_candidates?id=eq.${encodeURIComponent(candidate.id)}&status=eq.evaluating`,
             {
               method: "PATCH",
               headers: { Prefer: "return=minimal" },
-              body: JSON.stringify({ status: "failed", failure_reason: analysisError, attempt_count: 1 }),
+              body: JSON.stringify({
+                status: "failed",
+                failure_reason: analysisError,
+                attempt_count: candidate.attemptCount,
+              }),
             },
           );
         }
       }
     }
 
-    const runStatus = sourcesSucceeded === 0 || (candidatesCreated > 0 && candidatesFailed >= candidatesCreated)
+    const evaluationWorkload = candidatesCreated + candidatesRetried;
+    const runStatus = sourcesSucceeded === 0 || (evaluationWorkload > 0 && candidatesFailed >= evaluationWorkload)
       ? "failed"
       : sourcesSucceeded < sources.length || candidatesFailed > 0
       ? "partial"
@@ -826,6 +957,7 @@ Deno.serve(async (request) => {
             model,
             prompt_version: PROMPT_VERSION,
             client_facing_language: "es",
+            candidates_retried: candidatesRetried,
             source_results: sourceResults,
             candidate_statuses: statusCounts,
           },
@@ -841,6 +973,7 @@ Deno.serve(async (request) => {
       sources_succeeded: sourcesSucceeded,
       candidates_discovered: candidatesDiscovered,
       candidates_created: candidatesCreated,
+      candidates_retried: candidatesRetried,
       candidates_deduplicated: candidatesDeduplicated,
       candidates_failed: candidatesFailed,
       candidate_statuses: statusCounts,
