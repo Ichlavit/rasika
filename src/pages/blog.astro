@@ -848,8 +848,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const isEn = document.documentElement.lang === 'en';
                 window.mentorCustomGreetingHTML = isEn 
-                    ? `I have **"${title}"** as context. We can examine its evidence, connect it to your learning challenge, and explore what Rasika could contribute. What learning problem would you like to address?`
-                    : `Tengo **"${title}"** como contexto. Podemos revisar su evidencia, conectarlo con tu desafío y explorar qué podría aportar Rasika. ¿Qué problema de aprendizaje quieres abordar?`;
+                    ? `I see you were reading our article **"${title}"**. Would you like to talk through how those ideas could apply in your organization?`
+                    : `Veo que leíste nuestro artículo **"${title}"**. ¿Te gustaría conversar sobre cómo llevar esas ideas a la realidad de tu empresa?`;
                 window.mentorCustomGreetingText = window.mentorCustomGreetingHTML.replace(/<[^>]*>?/gm, '');
                 
                 closeReader();

@@ -480,7 +480,7 @@ const seo: SeoPage = {
               <span class="coursementor-avatar-static" role="img" aria-label="CourseMentor"></span>
               <div>
                 <h2 id="article-mentor-title">¿Cómo se conecta esto con tu desafío?</h2>
-                <p>Conversa sobre la evidencia del artículo, tu realidad de aprendizaje y las soluciones que Rasika podría aportar.</p>
+                <p>Conversa sobre las ideas del artículo y cómo podrían aplicarse a un desafío real de tu organización.</p>
               </div>
               <button id="article-mentor-button" type="button">Explorar con CourseMentor</button>
             </section>
@@ -545,7 +545,7 @@ const seo: SeoPage = {
 
       document.getElementById("article-mentor-button")?.addEventListener("click", () => {
         setArticleContext();
-        window.mentorCustomGreetingHTML = `Tengo **"${articleTitle}"** como contexto. Podemos revisar su evidencia, conectarlo con tu desafío y explorar qué podría aportar Rasika. ¿Qué problema de aprendizaje quieres abordar?`;
+        window.mentorCustomGreetingHTML = `Veo que leíste nuestro artículo **"${articleTitle}"**. ¿Te gustaría conversar sobre cómo llevar esas ideas a la realidad de tu empresa?`;
         window.mentorCustomGreetingText = window.mentorCustomGreetingHTML;
         document.getElementById("mentor-fab")?.click();
       });

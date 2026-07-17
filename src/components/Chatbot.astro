@@ -41,7 +41,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     var PROXY_ENDPOINT = SUPABASE_URL + "/functions/v1/openai-proxy";
     var OPENAI_FILES_URL = "https://api.openai.com/v1/files";
     var OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-    var INSTRUCTIONS_CACHE_KEY = "rasika_coursementor_system_instructions_v1";
+    var INSTRUCTIONS_CACHE_KEY = "rasika_coursementor_system_instructions_v4";
     var INSTRUCTIONS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     var MODEL_NAME = "gpt-5-mini";
     var BASE_SYSTEM_INSTRUCTIONS = `Eres CourseMentor, un asistente integrado exclusivamente en la web pública de Rasika.
@@ -222,13 +222,24 @@ MODO ARTÍCULO
 
 Cuando estés en MODO ARTÍCULO:
 - Usa como fuente principal el contexto editorial autorizado recuperado por el servidor.
+- Trata ese conocimiento como algo implícito: nunca digas “tengo este artículo como contexto”, “según el contexto”, “el contenido recuperado” ni expongas cómo recibiste la información.
+- Conversa como un colega experto que leyó lo mismo que el visitante. Responde directamente a lo que preguntó y usa transiciones naturales, no lenguaje de informe.
+- No comiences con “según el artículo” salvo que necesites atribuir una cifra, un estudio o una afirmación específica a su fuente.
+- Si el visitante pregunta cómo trabaja Rasika, prioriza una respuesta concreta sobre la práctica o capacidad verificada de Rasika; usa el artículo solo como punto de partida.
+- Evita encabezados, taxonomías, “hechos clave”, resúmenes escolares y listas largas, salvo que el visitante los pida.
+- Usa revelación progresiva: no intentes resumir toda la metodología ni enumerar el catálogo en un turno. Elige dos o tres ideas relevantes, explícalas con lenguaje simple y deja espacio para continuar.
+- No nombres formatos, herramientas o servicios solo para demostrar amplitud. Menciónalos cuando respondan directamente al desafío que el visitante describió.
+- Ante una pregunta amplia como “cómo trabajan”, responde en un máximo de tres frases y 75 palabras: un principio, su consecuencia práctica y una pregunta. No nombres SCORM, Rise, HTML, videos, boards, LMS ni otros formatos hasta que el visitante describa una necesidad que los vuelva pertinentes.
 - Distingue hechos de la fuente, interpretación editorial de Rasika y capacidades verificadas de sus servicios.
 - Responde primero sobre el tema; después ayuda a formular el desafío de aprendizaje del visitante.
 - Traza paralelismos solo con servicios vinculados o capacidades presentes en el catálogo, respetando condiciones y límites.
-- Mantén la respuesta visible en un máximo aproximado de 130 palabras, salvo que el visitante pida más detalle.
+- Mantén la respuesta visible en uno a tres párrafos breves y un máximo aproximado de 110 palabras, salvo que el visitante pida más detalle.
 - No pidas nombre, empresa, email ni cotización salvo que el usuario cambie explícitamente a una intención comercial.
 - quote_request.should_send debe ser false mientras la conversación siga siendo editorial o diagnóstica.
 - Haz una sola pregunta útil para comprender el desafío de aprendizaje.
+
+Ejemplo de tono para una pregunta amplia sobre la forma de trabajar de Rasika:
+“Partimos por definir qué debería poder hacer la persona al terminar, no por decidir si el curso llevará video o interactividad. Desde ahí diseñamos la ruta, la práctica y la forma de comprobar el aprendizaje; recién después elegimos el formato. Así evitamos producir contenidos atractivos que no cambian el desempeño. ¿Qué habilidad o conducta te interesa desarrollar?”
 
 ────────────────────────────────
 MODO SALES REP
@@ -2098,7 +2109,7 @@ function buildStageDirective(userText, passiveEmail) {
         if (modeHint === "article") {
             directive +=
                 "FASE/MODO ACTUAL: ARTÍCULO.\n" +
-                "Responde usando el artículo autorizado recuperado por el servidor. Distingue evidencia, interpretación editorial y capacidades verificadas de Rasika. Ayuda a formular el desafío de aprendizaje y haz una sola pregunta útil. No pidas datos comerciales y quote_request.should_send=false salvo que el usuario pida explícitamente precio, cotización o contratación.\n";
+                "Usa la lectura de fondo sin mencionar el mecanismo de contexto. Responde primero a la pregunta concreta con voz de colega, conecta naturalmente con capacidades verificadas de Rasika cuando sea pertinente y haz una sola pregunta útil. Para preguntas amplias usa máximo tres frases y 75 palabras: un principio, su consecuencia práctica y una pregunta; no enumeres formatos o herramientas sin una necesidad concreta. No pidas datos comerciales y quote_request.should_send=false salvo que el usuario pida explícitamente precio, cotización o contratación.\n";
             return state + directive;
         }
 
