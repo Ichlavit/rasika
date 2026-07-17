@@ -54,6 +54,9 @@ Actúas como asesor comercial consultivo de Rasika. Tu misión no es vender ráp
 2. MODO TUTOR
 Actúas como tutor breve y claro sobre el contenido del demo que el visitante está revisando. Tu misión es ayudar al usuario a entender el contenido del demo, no vender.
 
+3. MODO ARTÍCULO
+Actúas como interlocutor sobre el artículo del blog que el visitante está leyendo. Tu misión es explicar su evidencia, ayudar a aterrizarla en un desafío real de aprendizaje y trazar paralelismos operativos con capacidades verificadas de Rasika, sin convertir la conversación en una venta prematura.
+
 Decide el modo en cada turno según la intención del usuario.
 
 ────────────────────────────────
@@ -190,6 +193,8 @@ DETECCIÓN DE MODO
 
 Usa MODO TUTOR cuando el usuario pregunte por el contenido del demo actual: “¿Qué significa esto?”, “Explícame esta parte”, “No entendí”, “Dame un ejemplo”, “¿De qué trata este módulo?”, “¿Cómo aplico esto?”, o preguntas sobre una unidad, concepto, caso, evaluación o contenido mostrado en el demo.
 
+Usa MODO ARTÍCULO cuando exista un artículo activo y el usuario pregunte por sus ideas, evidencia, implicancias, aplicación, relación con un desafío de aprendizaje o conexión con servicios de Rasika. Mantén este modo mientras no pida explícitamente precio, cotización, contratación o implementación comercial.
+
 Usa MODO SALES REP cuando el usuario pregunte por precio, cotización, implementación, servicios, SCORM, LMS, videos, simuladores, plazos, producción, adaptar un demo, agendar, contratar, CourseMentor como producto, este chatbot/asistente, tutor IA para cursos, integración en LMS, asistentes conversacionales para alumnos, o precios/implementación de CourseMentor.
 
 Si hay ambigüedad, responde en el modo más probable y haz una sola pregunta para aclarar. No cotices hasta tener suficiente contexto.
@@ -210,6 +215,20 @@ Cuando estés en MODO TUTOR:
 - Si el usuario pivota hacia precio, implementación o contratación, cambia a MODO SALES REP.
 
 Estructura recomendada: rapport breve, idea clave, ejemplo concreto y una pregunta de foco.
+
+────────────────────────────────
+MODO ARTÍCULO
+────────────────────────────────
+
+Cuando estés en MODO ARTÍCULO:
+- Usa como fuente principal el contexto editorial autorizado recuperado por el servidor.
+- Distingue hechos de la fuente, interpretación editorial de Rasika y capacidades verificadas de sus servicios.
+- Responde primero sobre el tema; después ayuda a formular el desafío de aprendizaje del visitante.
+- Traza paralelismos solo con servicios vinculados o capacidades presentes en el catálogo, respetando condiciones y límites.
+- Mantén la respuesta visible en un máximo aproximado de 130 palabras, salvo que el visitante pida más detalle.
+- No pidas nombre, empresa, email ni cotización salvo que el usuario cambie explícitamente a una intención comercial.
+- quote_request.should_send debe ser false mientras la conversación siga siendo editorial o diagnóstica.
+- Haz una sola pregunta útil para comprender el desafío de aprendizaje.
 
 ────────────────────────────────
 MODO SALES REP
@@ -818,6 +837,7 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     var currentQuote = "";
     var currentRAGContext = "";
     var requestInFlight = false;
+    var ARTICLE_CONTEXT_STORAGE_KEY = "rasika_mentor_article_context";
 
     window.mentorChatHistory = [];
     window.mentorServicesCatalog = "Cargando catálogo...";
@@ -832,6 +852,9 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
         window.mentorRequestInFlight || false;
     window.mentorQuoteRequested = localStorage.getItem('mentorQuoteRequested') === 'true';
     window.mentorPendingUiAction = safeJsonParse(localStorage.getItem('mentorPendingUiAction') || 'null', null);
+    window.mentorArticleContext = sanitizeArticleContext(
+        safeJsonParse(localStorage.getItem(ARTICLE_CONTEXT_STORAGE_KEY) || 'null', null)
+    );
     if (!window.mentorLeadId && window.mentorQuoteRequested) {
         window.mentorQuoteRequested = false;
         localStorage.removeItem('mentorQuoteRequested');
@@ -901,6 +924,38 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
             return fallback;
         }
     }
+
+    function sanitizeArticleContext(value) {
+        if (!value || typeof value !== 'object') return null;
+
+        var id = String(value.id || '').trim();
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
+            return null;
+        }
+
+        return {
+            id: id,
+            title: String(value.title || 'Artículo del blog').trim().slice(0, 240),
+            isRadar: value.isRadar === true
+        };
+    }
+
+    function getActiveArticleContext() {
+        return sanitizeArticleContext(window.mentorArticleContext);
+    }
+
+    window.setMentorArticleContext = function (value) {
+        var next = sanitizeArticleContext(value);
+        window.mentorArticleContext = next;
+
+        if (next) {
+            localStorage.setItem(ARTICLE_CONTEXT_STORAGE_KEY, JSON.stringify(next));
+        } else {
+            localStorage.removeItem(ARTICLE_CONTEXT_STORAGE_KEY);
+        }
+
+        return next;
+    };
 
     function getStoredMessages() {
         return safeJsonParse(localStorage.getItem('rasika_chat_messages') || '[]', []);
@@ -1941,7 +1996,12 @@ function buildStageDirective(userText, passiveEmail) {
 
     var tutorIntent = detectTutorIntent(userText);
     var salesIntent = detectSalesIntent(userText);
-    var modeHint = tutorIntent && !salesIntent ? "tutor" : "sales";
+    var activeArticle = getActiveArticleContext();
+    var modeHint = activeArticle && !quoteIntent
+        ? "article"
+        : tutorIntent && !salesIntent
+            ? "tutor"
+            : "sales";
     var activeService = resolveActiveService();
     var activeCategory = activeService && activeService.category ? activeService.category : "desconocida";
     var linearVideoContext = (activeCategory === 'video') || mentionsLinearVideo(userText);
@@ -2035,6 +2095,13 @@ function buildStageDirective(userText, passiveEmail) {
             return state + directive;
         }
 
+        if (modeHint === "article") {
+            directive +=
+                "FASE/MODO ACTUAL: ARTÍCULO.\n" +
+                "Responde usando el artículo autorizado recuperado por el servidor. Distingue evidencia, interpretación editorial y capacidades verificadas de Rasika. Ayuda a formular el desafío de aprendizaje y haz una sola pregunta útil. No pidas datos comerciales y quote_request.should_send=false salvo que el usuario pida explícitamente precio, cotización o contratación.\n";
+            return state + directive;
+        }
+
         if (quoteRequested && !quoteIntent) {
     directive +=
         "FASE ACTUAL: POST_COTIZACION.\n" +
@@ -2118,7 +2185,12 @@ if (quoteRequested && quoteIntent) {
         var activeService = resolveActiveService();
         var tutorIntent = detectTutorIntent(userText);
         var salesIntent = detectSalesIntent(userText);
-        var modeHint = tutorIntent && !salesIntent ? "tutor" : "sales";
+        var activeArticle = getActiveArticleContext();
+        var modeHint = activeArticle && !userAskedForQuote(userText)
+            ? "article"
+            : tutorIntent && !salesIntent
+                ? "tutor"
+                : "sales";
 
         var context =
             "=== BASE DE CONOCIMIENTO DINÁMICA ===\n" +
@@ -2128,6 +2200,7 @@ if (quoteRequested && quoteIntent) {
             "Ruta actual del visitante: " + normalizePathname(window.location.pathname) + "\n" +
             "Acción UI pendiente de confirmación: " + (window.mentorPendingUiAction ? JSON.stringify(window.mentorPendingUiAction) : "no") + "\n" +
             "Etiqueta visible de página/demo: " + (window.mentorActiveCourse || "Catálogo General") + "\n" +
+            "Artículo activo: " + (activeArticle ? activeArticle.title : "ninguno") + "\n" +
             "Servicio activo canónico: " + (activeService ? (activeService.service_name + " | ID: " + activeService.id + " | CATEGORIA: " + (activeService.category || "")) : "no resuelto") + "\n" +
             "Modo sugerido para este turno: " + modeHint + "\n" +
             "Regla: si Servicio activo canónico = no resuelto, no infieras servicio/categoría desde la etiqueta visible. Usa solo el catálogo y lo que el usuario diga.\n\n" +
@@ -2143,6 +2216,9 @@ if (quoteRequested && quoteIntent) {
                 "--- CONTENIDO DEL DEMO ACTUAL PARA MODO TUTOR ---\n" +
                 currentRAGContext +
                 "\n--- FIN CONTENIDO DEL DEMO ACTUAL ---\n\n";
+        } else if (modeHint === "article") {
+            context +=
+                "El texto completo y los servicios vinculados del artículo serán agregados por el proxy desde Supabase. No inventes contenido si ese bloque no está disponible.\n\n";
         } else {
             context +=
                 "Nota: en modo sales no incluyas ni uses contenido extenso del demo actual; usa catálogo, precios y lo dicho por el usuario.\n\n";
@@ -2250,10 +2326,13 @@ async function createAnonymousSession() {
 
     var formSubmitted = localStorage.getItem('mentorFormRequestSubmitted') === 'true';
     var knownNameForGreeting = cleanKnownValue(window.mentorUserName);
+    var customGreetingHTML = String(window.mentorCustomGreetingHTML || '').trim();
 
     var greetingHTML = "";
 
-    if (formSubmitted && knownNameForGreeting) {
+    if (customGreetingHTML) {
+        greetingHTML = customGreetingHTML;
+    } else if (formSubmitted && knownNameForGreeting) {
         greetingHTML =
             "¡Hola, " + knownNameForGreeting + "! Gracias por tu solicitud. Para ayudarte mejor, voy a precisar contigo el objetivo formativo y el alcance.";
     } else if (isGreetingSpecific) {
@@ -2292,11 +2371,18 @@ async function createAnonymousSession() {
             !formSubmitted &&
             lastHistory.indexOf(currentContext) === -1;
 
-        if (!hasPriorConversation && (shouldShowFormGreeting || shouldShowDemoGreeting)) {
+        var shouldShowCustomGreeting =
+            !!customGreetingHTML &&
+            lastHistory.indexOf(greetingText.substring(0, 40)) === -1;
+
+        if (shouldShowCustomGreeting || (!hasPriorConversation && (shouldShowFormGreeting || shouldShowDemoGreeting))) {
             addMsg(greetingHTML, false, false);
             window.mentorChatHistory.push("CourseMentor: " + greetingText);
             saveChatMessage('assistant', greetingText);
         }
+
+        window.mentorCustomGreetingHTML = '';
+        window.mentorCustomGreetingText = '';
 
         if (formSubmitted) {
             localStorage.removeItem('mentorFormRequestSubmitted');
@@ -2305,10 +2391,13 @@ async function createAnonymousSession() {
         return;
     }
 
-    if (!hasPriorConversation) {
+    if (!hasPriorConversation || customGreetingHTML) {
         addMsg(greetingHTML, false, false);
         window.mentorChatHistory.push("CourseMentor: " + greetingText);
     }
+
+    window.mentorCustomGreetingHTML = '';
+    window.mentorCustomGreetingText = '';
 
     if (formSubmitted) {
         localStorage.removeItem('mentorFormRequestSubmitted');
@@ -2345,7 +2434,7 @@ async function createAnonymousSession() {
             if (data && data.length > 0 && data[0].id) {
                 window.mentorLeadId = data[0].id;
                 localStorage.setItem('mentorLeadId', window.mentorLeadId);
-                if (!hasPriorConversation) saveChatMessage('assistant', greetingText);
+                if (!hasPriorConversation || customGreetingHTML) saveChatMessage('assistant', greetingText);
             }
         } catch (e) {
             console.warn("Lead creation failed:", e);
@@ -2599,6 +2688,11 @@ async function createAnonymousSession() {
         xhr.setRequestHeader("OpenAI-Beta", "assistants=v2");
         xhr.setRequestHeader("x-lead-id", window.mentorLeadId || "");
         xhr.setRequestHeader("x-client-event-id", crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+
+        var activeArticle = getActiveArticleContext();
+        if (activeArticle) {
+            xhr.setRequestHeader("x-article-id", activeArticle.id);
+        }
 
         var recentHistory = window.mentorChatHistory.slice(-8).join("\n");
 

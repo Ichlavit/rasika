@@ -163,6 +163,13 @@ const seo = seoPages.blog;
         .ai-border { position: relative; border-radius: 1rem; background: #1E2226; z-index: 1; }
         .ai-border::before { content: ""; position: absolute; inset: -1.5px; border-radius: 1.1rem; background: linear-gradient(45deg, rgba(94,166,176,0.1), rgba(94,166,176,0.5), rgba(94,166,176,0.1)); z-index: -1; opacity: 0.5; transition: opacity 0.3s; }
         .ai-border:hover::before { opacity: 1; }
+
+        .coursementor-avatar-static {
+            background-image: url('/images/svg/avatar_animated.svg');
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+        }
     </style>
 </head>
 <body class="tech-bg text-gray-200 font-sans min-h-screen relative overflow-x-hidden selection:bg-rasika-accent selection:text-[#0a0b0d]">
@@ -267,9 +274,10 @@ const seo = seoPages.blog;
                 </div>
 
                 <div class="p-5 rounded-2xl bg-gradient-to-br from-rasika-accent/10 to-transparent border border-rasika-accent/20 mt-4 text-center">
-                    <i data-lucide="bot" class="w-8 h-8 text-rasika-accent mx-auto mb-3"></i>
-                    <p class="text-sm text-gray-300 font-medium mb-4" data-i18n="agent-cta">¿Quieres que nuestro agente analice el stack tecnológico de tu empresa?</p>
-                    <button onclick="askBotAboutTech()" class="px-4 py-2 w-full bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-lg text-sm font-bold transition-all">Hablar con IA</button>
+                    <span role="img" aria-label="CourseMentor" class="coursementor-avatar-static mx-auto mb-3 block h-12 w-12 rounded-full border border-rasika-accent/40 bg-[#141619]"></span>
+                    <h3 class="text-base font-bold text-white mb-2" data-i18n="agent-cta-title">¿Qué desafío de aprendizaje quieres resolver?</h3>
+                    <p class="text-sm text-gray-400 font-medium mb-4" data-i18n="agent-cta">Conversa sobre una tendencia del blog y explora cómo Rasika podría llevarla a la práctica.</p>
+                    <button onclick="askBotAboutTech()" class="px-4 py-2 w-full bg-white/10 hover:bg-rasika-accent hover:text-[#0a0b0d] border border-white/20 hover:border-transparent rounded-lg text-sm font-bold transition-all" data-i18n="agent-cta-button">Conversar con CourseMentor</button>
                 </div>
             </div>
         </aside>
@@ -381,11 +389,11 @@ const seo = seoPages.blog;
                     </div>
 
                     <div class="mt-8 p-8 rounded-2xl bg-gradient-to-br from-rasika-accent/10 to-transparent border border-rasika-accent/20 text-center">
-                        <i data-lucide="message-square-text" class="w-8 h-8 text-rasika-accent mx-auto mb-4"></i>
-                        <h3 class="text-xl font-bold text-white mb-2" data-i18n="reader-cta-title">¿Profundizamos en este tema?</h3>
-                        <p class="text-gray-400 text-sm mb-6" data-i18n="reader-cta-desc">CourseMentor ha procesado este artículo. Pregúntale cómo aplica a la realidad de tu empresa.</p>
+                        <span role="img" aria-label="CourseMentor" class="coursementor-avatar-static mx-auto mb-4 block h-14 w-14 rounded-full border border-rasika-accent/40 bg-[#141619]"></span>
+                        <h3 class="text-xl font-bold text-white mb-2" data-i18n="reader-cta-title">¿Cómo se conecta esto con tu desafío?</h3>
+                        <p class="text-gray-400 text-sm mb-6" data-i18n="reader-cta-desc">CourseMentor puede conversar sobre este artículo, comprender tu desafío de aprendizaje y relacionarlo con soluciones concretas de Rasika.</p>
                         <button onclick="askBotAboutArticle()" class="px-6 py-3 bg-rasika-accent hover:bg-[#88d6e0] text-[#0a0b0d] rounded-full font-bold transition-all inline-flex items-center gap-2">
-                            Discutir con CourseMentor <i data-lucide="sparkles" class="w-4 h-4"></i>
+                            <span data-i18n="reader-cta-button">Explorar con CourseMentor</span> <i data-lucide="message-circle" class="w-4 h-4"></i>
                         </button>
                     </div>
                 </div>
@@ -467,7 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         articles[post.id] = {
                             title: post.title,
                             author: post.author,
-                            icon: post.icon || 'user',
+                            icon: post.type === 'agent' ? 'radar' : (post.icon || 'user'),
                             date: dateString + ' • ' + readTime,
                             category: post.category || 'General',
                             isRadar: post.type === 'agent',
@@ -515,7 +523,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             aiContainer.innerHTML += `
                                 <div class="ai-border p-5 group cursor-pointer mb-4" onclick="openReader('${post.id}')">
                                     <div class="flex items-center gap-2 mb-3">
-                                        <i data-lucide="sparkles" class="w-4 h-4 text-rasika-accent"></i>
+                                        <i data-lucide="radar" class="w-4 h-4 text-rasika-accent"></i>
                                         <span class="text-xs font-bold text-rasika-accent tracking-widest uppercase">${post.author || 'Rasika Agent'}</span>
                                         <span class="text-xs text-gray-500 ml-auto">Nuevo</span>
                                     </div>
@@ -571,6 +579,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!article) return;
             currentArticleId = id;
 
+            if (window.setMentorArticleContext) {
+                window.setMentorArticleContext({
+                    id: id,
+                    title: article.title,
+                    isRadar: article.isRadar
+                });
+            }
+
             document.getElementById('reader-title').innerHTML = article.title;
             document.getElementById('reader-author').innerText = article.author;
             document.getElementById('reader-date').innerText = article.date;
@@ -613,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const iconEl = document.getElementById('reader-author-icon');
             iconEl.setAttribute('data-lucide', article.icon);
-            if(article.icon === 'bot') {
+            if(article.isRadar) {
                 iconEl.classList.add('text-rasika-accent');
             } else {
                 iconEl.classList.remove('text-rasika-accent');
@@ -766,13 +782,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         window.askBotAboutArticle = function() {
-            const title = articles[currentArticleId]?.title || "este artículo";
+            const article = articles[currentArticleId];
+            const title = article?.title || "este artículo";
             const fab = document.getElementById('mentor-fab');
             if (fab) {
+                if (window.setMentorArticleContext && currentArticleId && article) {
+                    window.setMentorArticleContext({
+                        id: currentArticleId,
+                        title: title,
+                        isRadar: article.isRadar
+                    });
+                }
+
                 const isEn = document.documentElement.lang === 'en';
                 window.mentorCustomGreetingHTML = isEn 
-                    ? `I see you just read **"${title}"**. Would you like to know how these concepts apply to your specific LMS architecture?`
-                    : `Veo que acabas de leer **"${title}"**. ¿Te gustaría saber cómo aplicar estos conceptos en la arquitectura de tu empresa?`;
+                    ? `I have **"${title}"** as context. We can examine its evidence, connect it to your learning challenge, and explore what Rasika could contribute. What learning problem would you like to address?`
+                    : `Tengo **"${title}"** como contexto. Podemos revisar su evidencia, conectarlo con tu desafío y explorar qué podría aportar Rasika. ¿Qué problema de aprendizaje quieres abordar?`;
+                window.mentorCustomGreetingText = window.mentorCustomGreetingHTML.replace(/<[^>]*>?/gm, '');
                 
                 closeReader();
                 setTimeout(() => fab.click(), 400); 
@@ -784,8 +810,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (fab) {
                 const isEn = document.documentElement.lang === 'en';
                 window.mentorCustomGreetingHTML = isEn 
-                    ? "Hi! I am Rasika's Technical Agent. What LMS or platform are you currently using to train your team?"
-                    : "¡Hola! Soy el Agente Técnico de Rasika. ¿Qué LMS o plataforma utilizan actualmente para entrenar a su equipo?";
+                    ? "We can discuss a topic from the blog and bring it into your organization’s reality. What learning challenge are you facing today?"
+                    : "Podemos conversar sobre un tema del blog y bajarlo a la realidad de tu organización. ¿Qué desafío de aprendizaje estás enfrentando hoy?";
+                window.mentorCustomGreetingText = window.mentorCustomGreetingHTML.replace(/<[^>]*>?/gm, '');
                 fab.click();
             }
         }
@@ -807,9 +834,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 "sect-ai-powered": "(potenciado por IA)",
                 "tag-lms": "Diseño Instruccional",
                 "tag-video": "Video Learning",
-                "agent-cta": "¿Quieres que nuestro agente analice el stack tecnológico de tu empresa?",
-                "reader-cta-title": "¿Profundizamos en este tema?",
-                "reader-cta-desc": "CourseMentor ha procesado este artículo. Pregúntale cómo aplica a la realidad de tu empresa.",
+                "agent-cta-title": "¿Qué desafío de aprendizaje quieres resolver?",
+                "agent-cta": "Conversa sobre una tendencia del blog y explora cómo Rasika podría llevarla a la práctica.",
+                "agent-cta-button": "Conversar con CourseMentor",
+                "reader-cta-title": "¿Cómo se conecta esto con tu desafío?",
+                "reader-cta-desc": "CourseMentor puede conversar sobre este artículo, comprender tu desafío de aprendizaje y relacionarlo con soluciones concretas de Rasika.",
+                "reader-cta-button": "Explorar con CourseMentor",
                 "newsletter-title": "Suscríbete a nuestro newsletter",
                 "newsletter-desc": "Recibe las últimas tendencias en EdTech e IA directamente en tu correo.",
                 "newsletter-btn": "Suscribir",
@@ -831,9 +861,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 "sect-ai-powered": "(powered by AI)",
                 "tag-lms": "Instructional Design",
                 "tag-video": "Video Learning",
-                "agent-cta": "Want our agent to analyze your company's tech stack?",
-                "reader-cta-title": "Want to dive deeper?",
-                "reader-cta-desc": "CourseMentor has processed this article. Ask how these concepts apply to your business.",
+                "agent-cta-title": "What learning challenge would you like to solve?",
+                "agent-cta": "Discuss a blog trend and explore how Rasika could put it into practice.",
+                "agent-cta-button": "Talk with CourseMentor",
+                "reader-cta-title": "How does this connect to your challenge?",
+                "reader-cta-desc": "CourseMentor can discuss this article, understand your learning challenge, and relate it to concrete Rasika solutions.",
+                "reader-cta-button": "Explore with CourseMentor",
                 "newsletter-title": "Subscribe to our newsletter",
                 "newsletter-desc": "Get the latest EdTech and AI trends delivered directly to your inbox.",
                 "newsletter-btn": "Subscribe",
