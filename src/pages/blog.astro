@@ -2,6 +2,8 @@
 // src/pages/blog.astro
 import '../styles/global.css';
 import Chatbot from '../components/Chatbot.astro';
+import NewsletterSignup from '../components/NewsletterSignup.astro';
+import SiteAnalytics from '../components/SiteAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import { seoPages } from '../data/seo';
 import { articlePath, getPublishedBlogPosts } from '../lib/blog';
@@ -335,6 +337,10 @@ const formatArticleDate = (value: string) => new Date(value).toLocaleDateString(
         </aside>
     </main>
 
+    <div class="max-w-7xl mx-auto px-6 pb-20 relative z-10">
+        <NewsletterSignup />
+    </div>
+
     <footer class="border-t border-white/5 bg-rasika-dark/80 relative z-10">
         <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500 font-medium">
             <p data-i18n="footer-text">© 2026 Rasika Producciones. Todos los derechos reservados.</p>
@@ -426,17 +432,6 @@ const formatArticleDate = (value: string) => new Date(value).toLocaleDateString(
                                 <span class="text-sm font-bold transition-colors" id="reader-likes">0</span>
                                 <i data-lucide="heart" class="w-5 h-5 group-hover:scale-110 transition-all"></i>
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="mt-8 p-6 md:p-8 rounded-2xl bg-gradient-to-br from-[#1E2226] to-[#141619] border border-white/5 flex flex-col md:flex-row items-center gap-6 justify-between">
-                        <div class="w-full md:w-auto text-center md:text-left">
-                            <h4 class="text-lg font-bold text-white mb-2" data-i18n="newsletter-title">Suscríbete a nuestro newsletter</h4>
-                            <p class="text-sm text-gray-400" data-i18n="newsletter-desc">Recibe las últimas tendencias en EdTech e IA directamente en tu correo.</p>
-                        </div>
-                        <div class="flex w-full md:w-auto gap-2">
-                            <input type="email" placeholder="Tu correo electrónico" data-i18n-placeholder="newsletter-placeholder" class="bg-[#141619] border border-white/10 text-white text-sm rounded-xl px-4 py-3 outline-none focus:border-rasika-accent w-full md:w-64 transition-all">
-                            <button onclick="alert('¡Gracias por suscribirte!')" class="bg-white/10 hover:bg-white/20 border border-white/10 text-white px-5 py-3 rounded-xl font-bold text-sm transition-colors shrink-0" data-i18n="newsletter-btn">Suscribir</button>
                         </div>
                     </div>
 
@@ -900,6 +895,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 "newsletter-title": "Suscríbete a nuestro newsletter",
                 "newsletter-desc": "Recibe las últimas tendencias en EdTech e IA directamente en tu correo.",
                 "newsletter-btn": "Suscribir",
+                "newsletter-consent": "Acepto recibir novedades de Rasika. Puedo cancelar mi suscripción en cualquier momento.",
                 "footer-text": "© 2026 Rasika Producciones. Todos los derechos reservados."
             },
             en: {
@@ -927,6 +923,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 "newsletter-title": "Subscribe to our newsletter",
                 "newsletter-desc": "Get the latest EdTech and AI trends delivered directly to your inbox.",
                 "newsletter-btn": "Subscribe",
+                "newsletter-consent": "I agree to receive news from Rasika. I can unsubscribe at any time.",
                 "footer-text": "© 2026 Rasika Productions. All rights reserved."
             }
         };
@@ -972,8 +969,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.lucide) lucide.createIcons();
             });
         }
+
     </script>
-    
+    <SiteAnalytics />
     <Chatbot />
 </body>
 </html>

@@ -180,16 +180,140 @@ const seo = seoPages.admin;
             </div>
         </div>
 
-        <div class="flex items-center gap-1 mb-4 p-1 bg-[#141619] border border-white/10 rounded-lg w-fit" role="tablist" aria-label="Secciones del CMS">
-            <button id="admin-tab-articles" type="button" role="tab" aria-selected="true" onclick="setAdminView('articles')" class="px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors">
+        <div class="flex flex-wrap items-center gap-1 mb-4 p-1 bg-[#141619] border border-white/10 rounded-lg w-fit" role="tablist" aria-label="Secciones del CMS">
+            <button id="admin-tab-overview" type="button" role="tab" aria-selected="true" onclick="setAdminView('overview')" class="px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="chart-no-axes-combined" class="w-4 h-4"></i> Resumen
+            </button>
+            <button id="admin-tab-contacts" type="button" role="tab" aria-selected="false" onclick="setAdminView('contacts')" class="px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="contact-round" class="w-4 h-4"></i> Contactos
+            </button>
+            <button id="admin-tab-articles" type="button" role="tab" aria-selected="false" onclick="setAdminView('articles')" class="px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors">
                 <i data-lucide="file-pen-line" class="w-4 h-4"></i> Artículos
             </button>
             <button id="admin-tab-radar" type="button" role="tab" aria-selected="false" onclick="setAdminView('radar')" class="px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors">
                 <i data-lucide="radar" class="w-4 h-4"></i> AI Radar
             </button>
+            <button id="admin-tab-campaigns" type="button" role="tab" aria-selected="false" onclick="setAdminView('campaigns')" class="px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors">
+                <i data-lucide="mails" class="w-4 h-4"></i> Campañas
+            </button>
         </div>
 
-        <section id="articles-panel" class="flex-1 flex flex-col min-h-0" role="tabpanel">
+        <section id="overview-panel" class="flex-1 flex flex-col min-h-0 gap-4" role="tabpanel">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-1 p-1 bg-[#141619] border border-white/10 rounded-lg" aria-label="Periodo del informe">
+                    <button type="button" data-marketing-days="7" class="px-3 py-2 rounded-md text-xs font-bold text-gray-400 hover:text-white">7 días</button>
+                    <button type="button" data-marketing-days="30" class="px-3 py-2 rounded-md text-xs font-bold bg-white/10 text-white">30 días</button>
+                    <button type="button" data-marketing-days="90" class="px-3 py-2 rounded-md text-xs font-bold text-gray-400 hover:text-white">90 días</button>
+                </div>
+                <button type="button" onclick="loadMarketingOverview(true)" class="w-10 h-10 border border-white/10 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" title="Actualizar métricas" aria-label="Actualizar métricas">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <div id="marketing-metrics" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3"></div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-[1.55fr_1fr] gap-4">
+                <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5 min-h-72">
+                    <div class="flex items-center justify-between gap-3 mb-6">
+                        <h2 class="font-bold text-white">Sesiones y páginas vistas</h2>
+                        <span id="marketing-period-label" class="text-xs text-gray-500"></span>
+                    </div>
+                    <div id="marketing-chart" class="h-52 flex items-end gap-1" aria-label="Actividad del sitio"></div>
+                    <div class="mt-4 flex items-center gap-5 text-xs text-gray-500">
+                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-[#5EA6B0] rounded-sm"></span> Sesiones</span>
+                        <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-white/25 rounded-sm"></span> Páginas vistas</span>
+                    </div>
+                </section>
+
+                <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5">
+                    <div class="flex items-center justify-between gap-3 mb-4">
+                        <h2 class="font-bold text-white">Estado operativo</h2>
+                        <span id="resend-status" class="text-xs font-bold text-gray-400">Verificando</span>
+                    </div>
+                    <div id="marketing-operational" class="space-y-3"></div>
+                </section>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5">
+                    <h2 class="font-bold text-white mb-4">Páginas principales</h2>
+                    <div id="marketing-top-pages" class="space-y-3"></div>
+                </section>
+                <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5">
+                    <h2 class="font-bold text-white mb-4">Fuentes de tráfico</h2>
+                    <div id="marketing-sources" class="space-y-3"></div>
+                </section>
+                <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5">
+                    <h2 class="font-bold text-white mb-4">Clics principales</h2>
+                    <div id="marketing-clicks" class="space-y-3"></div>
+                </section>
+            </div>
+
+            <section class="bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
+                <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+                    <h2 class="font-bold text-white">Novedades para próxima campaña</h2>
+                    <button type="button" onclick="setAdminView('campaigns')" class="text-xs font-bold text-[#88d6e0] hover:text-white">Abrir campañas</button>
+                </div>
+                <div id="marketing-content-queue" class="divide-y divide-white/10"></div>
+            </section>
+        </section>
+
+        <section id="contacts-panel" class="hidden flex-1 flex-col min-h-0 gap-4" role="tabpanel">
+            <div class="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                <div class="relative flex-1 max-w-xl">
+                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                    <input id="contacts-search" type="search" placeholder="Buscar por nombre, empresa o correo" class="w-full bg-[#141619] border border-white/10 rounded-lg pl-10 pr-4 py-3 outline-none text-sm focus:border-[#5EA6B0]">
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <input id="contacts-csv" type="file" accept=".csv,text/csv" class="hidden">
+                    <button type="button" onclick="document.getElementById('contacts-csv').click()" class="px-4 py-3 border border-white/10 rounded-lg text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 flex items-center gap-2">
+                        <i data-lucide="file-up" class="w-4 h-4"></i> Importar CSV
+                    </button>
+                    <button type="button" disabled class="px-4 py-3 border border-white/10 rounded-lg text-sm font-bold text-gray-600 flex items-center gap-2 cursor-not-allowed" title="Disponible en una fase posterior">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i> Nuevo contacto
+                    </button>
+                </div>
+            </div>
+            <div id="contacts-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+            <div class="bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[880px] text-sm">
+                        <thead class="bg-[#181b1e] text-xs uppercase text-gray-500">
+                            <tr><th class="px-4 py-3 text-left">Contacto</th><th class="px-4 py-3 text-left">Empresa</th><th class="px-4 py-3 text-left">Etapa</th><th class="px-4 py-3 text-left">Newsletter</th><th class="px-4 py-3 text-left">Origen</th><th class="px-4 py-3 text-right">Última actividad</th></tr>
+                        </thead>
+                        <tbody id="contacts-table" class="divide-y divide-white/10"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="campaigns-panel" class="hidden flex-1 flex-col min-h-0 gap-4" role="tabpanel">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <section class="lg:col-span-2 bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
+                    <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+                        <h2 class="font-bold text-white">Cola editorial</h2>
+                        <span id="campaign-queue-count" class="text-xs text-gray-500">0 novedades</span>
+                    </div>
+                    <div id="campaign-content-queue" class="divide-y divide-white/10"></div>
+                </section>
+                <aside class="bg-[#1E2226] border border-white/10 rounded-lg p-5 h-fit">
+                    <div class="w-10 h-10 border border-[#5EA6B0]/30 bg-[#5EA6B0]/10 rounded-lg flex items-center justify-center text-[#88d6e0] mb-5"><i data-lucide="send" class="w-5 h-5"></i></div>
+                    <h2 class="font-bold text-white mb-2">Nueva campaña</h2>
+                    <div class="space-y-3 mt-5">
+                        <button type="button" disabled class="w-full px-4 py-3 rounded-lg bg-[#5EA6B0]/30 text-[#0a0c0e]/70 font-bold cursor-not-allowed flex items-center justify-center gap-2"><i data-lucide="wand-sparkles" class="w-4 h-4"></i> Crear borrador</button>
+                        <button type="button" disabled class="w-full px-4 py-3 rounded-lg border border-white/10 text-gray-600 font-bold cursor-not-allowed flex items-center justify-center gap-2"><i data-lucide="users-round" class="w-4 h-4"></i> Segmentos</button>
+                        <button type="button" disabled class="w-full px-4 py-3 rounded-lg border border-white/10 text-gray-600 font-bold cursor-not-allowed flex items-center justify-center gap-2"><i data-lucide="calendar-clock" class="w-4 h-4"></i> Programar envío</button>
+                    </div>
+                    <p class="mt-5 text-xs leading-relaxed text-gray-500">Los envíos masivos permanecerán bloqueados hasta incorporar aprobación, previsualización y prueba de entrega.</p>
+                </aside>
+            </div>
+            <section class="bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
+                <div class="px-5 py-4 border-b border-white/10"><h2 class="font-bold text-white">Historial de campañas</h2></div>
+                <div id="campaign-history" class="divide-y divide-white/10"></div>
+            </section>
+        </section>
+
+        <section id="articles-panel" class="hidden flex-1 flex-col min-h-0" role="tabpanel">
             <div class="flex items-center gap-4 mb-4">
                 <div class="flex-1 relative">
                     <select id="edit-selector" onchange="handleEditSelection(this.value)" class="w-full bg-[#1A1E22] border border-white/20 rounded-xl px-4 py-3 appearance-none outline-none text-white focus:border-[#5EA6B0] font-medium">
@@ -406,8 +530,35 @@ const seo = seoPages.admin;
         </section>
     </div>
 
+    <div id="csv-import-modal" class="fixed inset-0 z-[200] hidden items-center justify-center bg-black/75 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="csv-import-title">
+        <div class="w-full max-w-2xl bg-[#1E2226] border border-white/10 rounded-lg shadow-2xl overflow-hidden">
+            <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
+                <div>
+                    <h2 id="csv-import-title" class="font-bold text-white">Revisar importación</h2>
+                    <p id="csv-import-file" class="text-xs text-gray-500 mt-1"></p>
+                </div>
+                <button type="button" onclick="closeCsvImport()" class="w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" aria-label="Cerrar"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+            <div class="p-5">
+                <div id="csv-import-summary" class="grid grid-cols-3 gap-3 mb-5"></div>
+                <div class="border border-white/10 rounded-lg overflow-x-auto max-h-64">
+                    <table class="w-full min-w-[640px] text-xs">
+                        <thead class="bg-[#141619] text-gray-500 uppercase"><tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Nombre</th><th class="px-3 py-2 text-left">Empresa</th><th class="px-3 py-2 text-left">Consentimiento</th></tr></thead>
+                        <tbody id="csv-import-preview" class="divide-y divide-white/10"></tbody>
+                    </table>
+                </div>
+                <p class="mt-4 text-xs leading-relaxed text-gray-500">Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.</p>
+                <p id="csv-import-status" class="mt-3 min-h-5 text-xs text-gray-400" role="status" aria-live="polite"></p>
+            </div>
+            <div class="px-5 py-4 border-t border-white/10 flex justify-end gap-3">
+                <button type="button" onclick="closeCsvImport()" class="px-4 py-2.5 rounded-lg border border-white/10 text-sm font-bold text-gray-300 hover:bg-white/5">Cancelar</button>
+                <button id="csv-import-confirm" type="button" onclick="confirmCsvImport()" class="px-4 py-2.5 rounded-lg bg-[#5EA6B0] text-black text-sm font-bold hover:bg-[#88d6e0] flex items-center gap-2"><i data-lucide="database-zap" class="w-4 h-4"></i> Importar contactos</button>
+            </div>
+        </div>
+    </div>
+
     <script is:inline>
-        lucide.createIcons();
+        if (window.lucide) lucide.createIcons();
         
         const config = document.getElementById('admin-config');
         const SUPA_URL = config.getAttribute('data-url').replace(/\/$/, '');
@@ -422,16 +573,21 @@ const seo = seoPages.admin;
         let openRadarSourceId = null;
         let radarSourceCatalog = [];
         let radarStatusFilter = 'suggested';
+        let marketingOverview = null;
+        let marketingOverviewLoaded = false;
+        let marketingContactsLoaded = false;
+        let marketingPeriodDays = 30;
+        let pendingCsvImport = null;
+        let contactsSearchTimer = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             initializeRadarStatusControl();
+            initializeMarketingControls();
             const token = sessionStorage.getItem('adminToken');
             if (token && token !== 'undefined' && token.split('.').length === 3) {
                 document.getElementById('login-screen').classList.add('hidden');
                 document.getElementById('dashboard-screen').classList.replace('hidden', 'flex');
-                
-                await loadArticlesList(); 
-                window.loadDraft();              
+                await window.setAdminView('overview');
             } else {
                 sessionStorage.removeItem('adminToken');
             }
@@ -485,25 +641,39 @@ const seo = seoPages.admin;
             };
         }
 
-        var quill = new Quill('#editor', {
-            theme: 'snow',
-            placeholder: 'Comienza a escribir aquí...',
-            modules: {
-                toolbar: {
-                    container: [
-                        [{ 'header': [2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'blockquote'],
-                        [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                        [{ 'align': '' }, { 'align': 'center' }, { 'align': 'right' }, { 'align': 'justify' }],
-                        ['link', 'video', 'image'],
-                        ['clean']
-                    ],
-                    handlers: {
-                        image: customImageHandler
+        const editorElement = document.getElementById('editor');
+        var quill;
+        if (window.Quill) {
+            quill = new Quill('#editor', {
+                theme: 'snow',
+                placeholder: 'Comienza a escribir aquí...',
+                modules: {
+                    toolbar: {
+                        container: [
+                            [{ 'header': [2, 3, false] }],
+                            ['bold', 'italic', 'underline', 'blockquote'],
+                            [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                            [{ 'align': '' }, { 'align': 'center' }, { 'align': 'right' }, { 'align': 'justify' }],
+                            ['link', 'video', 'image'],
+                            ['clean']
+                        ],
+                        handlers: { image: customImageHandler }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            editorElement.contentEditable = 'true';
+            editorElement.setAttribute('role', 'textbox');
+            editorElement.setAttribute('aria-multiline', 'true');
+            editorElement.className = 'min-h-[400px] bg-[#141619] border border-white/10 rounded-lg p-4 text-gray-200 outline-none focus:border-[#5EA6B0]';
+            quill = {
+                root: editorElement,
+                getText: () => editorElement.innerText || '',
+                getSelection: () => ({ index: 0 }),
+                insertEmbed: () => {},
+                setSelection: () => {}
+            };
+        }
 
         // --- COVER IMAGE UPLOADER ---
         window.uploadCoverImage = function() {
@@ -571,9 +741,7 @@ const seo = seoPages.admin;
                     sessionStorage.setItem('adminToken', data.access_token);
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('dashboard-screen').classList.replace('hidden', 'flex');
-                    
-                    await loadArticlesList(); 
-                    window.loadDraft();
+                    await window.setAdminView('overview');
                 }
             } catch (err) {
                 console.error(err);
@@ -589,6 +757,10 @@ const seo = seoPages.admin;
             radarSourcesLoaded = false;
             openRadarSourceId = null;
             radarSourceCatalog = [];
+            marketingOverview = null;
+            marketingOverviewLoaded = false;
+            marketingContactsLoaded = false;
+            pendingCsvImport = null;
             document.getElementById('dashboard-screen').classList.replace('flex', 'hidden');
             document.getElementById('login-screen').classList.remove('hidden');
             document.getElementById('password').value = '';
@@ -601,6 +773,338 @@ const seo = seoPages.admin;
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        }
+
+        async function marketingRequest(path = '', options = {}) {
+            const token = sessionStorage.getItem('adminToken');
+            if (!token || token.split('.').length !== 3) {
+                window.logout();
+                throw new Error('Tu sesión expiró. Ingresa nuevamente.');
+            }
+            const response = await fetch(`${SUPA_URL}/functions/v1/marketing-admin${path}`, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    apikey: SUPA_KEY,
+                    Authorization: `Bearer ${token}`,
+                    ...(options.headers || {})
+                }
+            });
+            const result = await response.json().catch(() => ({}));
+            if (response.status === 401) window.logout();
+            if (!response.ok) throw new Error(result.error || `Error de marketing (${response.status})`);
+            return result;
+        }
+
+        function formatMarketingNumber(value, digits = 0) {
+            return new Intl.NumberFormat('es-CL', { maximumFractionDigits: digits }).format(Number(value) || 0);
+        }
+
+        function formatMarketingDuration(seconds) {
+            const value = Math.max(0, Number(seconds) || 0);
+            if (value < 60) return `${Math.round(value)} s`;
+            return `${Math.floor(value / 60)} min ${Math.round(value % 60)} s`;
+        }
+
+        function formatMarketingDate(value) {
+            if (!value) return 'Sin actividad';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return 'Sin actividad';
+            return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+        }
+
+        function renderMetricList(id, items) {
+            const container = document.getElementById(id);
+            const rows = Array.isArray(items) ? items : [];
+            if (!rows.length) {
+                container.innerHTML = '<p class="text-sm text-gray-600 py-5">Sin datos en este periodo.</p>';
+                return;
+            }
+            const max = Math.max(...rows.map(item => Number(item.value) || 0), 1);
+            container.innerHTML = rows.map(item => `
+                <div>
+                    <div class="flex items-center justify-between gap-3 text-xs mb-1.5">
+                        <span class="text-gray-300 truncate" title="${escapeAdminHTML(item.label)}">${escapeAdminHTML(item.label)}</span>
+                        <span class="text-gray-500 tabular-nums">${formatMarketingNumber(item.value)}</span>
+                    </div>
+                    <div class="h-1 bg-white/5 rounded-full overflow-hidden"><div class="h-full bg-[#5EA6B0]" style="width:${Math.max(4, (Number(item.value) / max) * 100)}%"></div></div>
+                </div>`).join('');
+        }
+
+        function renderMarketingQueue(items) {
+            const rows = Array.isArray(items) ? items : [];
+            const queued = rows.filter(item => item.status !== 'dismissed');
+            const html = queued.length ? queued.map(item => `
+                <div class="px-5 py-4 flex flex-col md:flex-row md:items-center gap-3">
+                    <span class="w-9 h-9 shrink-0 rounded-lg bg-[#141619] border border-white/10 flex items-center justify-center text-[#88d6e0]"><i data-lucide="${item.content_type === 'article' ? 'file-text' : item.content_type === 'event' ? 'calendar-days' : 'package'}" class="w-4 h-4"></i></span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block text-sm font-bold text-white truncate">${escapeAdminHTML(item.title)}</span>
+                        <span class="block text-xs text-gray-500 mt-1">${escapeAdminHTML(item.content_type)} · ${escapeAdminHTML(formatMarketingDate(item.detected_at))}</span>
+                    </span>
+                    <div class="flex items-center gap-2">
+                        ${item.status === 'included'
+                            ? '<span class="px-2.5 py-1.5 rounded-md bg-emerald-400/10 text-emerald-300 text-xs font-bold">Incluido</span>'
+                            : `<button type="button" onclick="updateMarketingQueue('${item.id}', 'included')" class="px-3 py-2 rounded-lg border border-[#5EA6B0]/30 text-[#88d6e0] text-xs font-bold hover:bg-[#5EA6B0]/10">Incluir</button>`}
+                        <button type="button" onclick="updateMarketingQueue('${item.id}', 'dismissed')" class="w-8 h-8 rounded-lg text-gray-500 hover:text-red-300 hover:bg-red-400/10 flex items-center justify-center" title="Descartar" aria-label="Descartar"><i data-lucide="x" class="w-4 h-4"></i></button>
+                    </div>
+                </div>`).join('') : '<p class="px-5 py-8 text-sm text-gray-600 text-center">No hay novedades pendientes.</p>';
+            document.getElementById('marketing-content-queue').innerHTML = html;
+            document.getElementById('campaign-content-queue').innerHTML = html;
+            document.getElementById('campaign-queue-count').textContent = `${queued.length} ${queued.length === 1 ? 'novedad' : 'novedades'}`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderCampaignHistory(items) {
+            const rows = Array.isArray(items) ? items : [];
+            document.getElementById('campaign-history').innerHTML = rows.length ? rows.map(item => `
+                <div class="px-5 py-4 flex items-center gap-3">
+                    <span class="min-w-0 flex-1"><span class="block text-sm font-bold text-white">${escapeAdminHTML(item.name)}</span><span class="block text-xs text-gray-500 mt-1">${escapeAdminHTML(item.subject || 'Sin asunto')} · ${escapeAdminHTML(formatMarketingDate(item.created_at))}</span></span>
+                    <span class="px-2.5 py-1.5 rounded-md border border-white/10 text-xs font-bold text-gray-400">${escapeAdminHTML(item.status)}</span>
+                </div>`).join('') : '<p class="px-5 py-8 text-sm text-gray-600 text-center">Aún no hay campañas.</p>';
+        }
+
+        function renderMarketingOverview(data) {
+            marketingOverview = data;
+            const metrics = data.metrics || {};
+            const cards = [
+                ['Sesiones', formatMarketingNumber(metrics.sessions), 'mouse-pointer-click'],
+                ['Páginas vistas', formatMarketingNumber(metrics.page_views), 'eye'],
+                ['Duración media', formatMarketingDuration(metrics.average_session_seconds), 'timer'],
+                ['Rebote', `${formatMarketingNumber(metrics.bounce_rate, 1)} %`, 'move-up-right'],
+                ['Contactos', formatMarketingNumber(metrics.contacts_total), 'contact-round'],
+                ['Suscriptores', formatMarketingNumber(metrics.subscribers), 'mail-check']
+            ];
+            document.getElementById('marketing-metrics').innerHTML = cards.map(([label, value, icon]) => `
+                <div class="bg-[#1E2226] border border-white/10 rounded-lg p-4 min-w-0">
+                    <div class="flex items-center justify-between gap-2 text-gray-500"><span class="text-xs font-bold uppercase truncate">${label}</span><i data-lucide="${icon}" class="w-4 h-4 shrink-0"></i></div>
+                    <div class="mt-3 text-2xl font-bold text-white tabular-nums">${value}</div>
+                </div>`).join('');
+
+            const daily = Array.isArray(data.daily) ? data.daily : [];
+            const chartMax = Math.max(...daily.map(item => Math.max(Number(item.sessions) || 0, Number(item.page_views) || 0)), 1);
+            document.getElementById('marketing-chart').innerHTML = daily.map((item, index) => {
+                const showLabel = index === 0 || index === daily.length - 1 || index % Math.max(1, Math.floor(daily.length / 5)) === 0;
+                return `<div class="h-full min-w-0 flex-1 flex flex-col justify-end group relative" title="${escapeAdminHTML(item.date)} · ${item.sessions} sesiones · ${item.page_views} vistas">
+                    <div class="flex-1 min-h-0 flex items-end justify-center gap-px">
+                        <span class="w-[42%] bg-[#5EA6B0] min-h-px" style="height:${(Number(item.sessions) / chartMax) * 100}%"></span>
+                        <span class="w-[42%] bg-white/25 min-h-px" style="height:${(Number(item.page_views) / chartMax) * 100}%"></span>
+                    </div>
+                    <span class="h-5 pt-1 text-[9px] text-gray-600 truncate text-center">${showLabel ? escapeAdminHTML(item.date.slice(5)) : ''}</span>
+                </div>`;
+            }).join('');
+            document.getElementById('marketing-period-label').textContent = `Últimos ${data.period_days || marketingPeriodDays} días`;
+            renderMetricList('marketing-top-pages', data.top_pages);
+            renderMetricList('marketing-sources', data.traffic_sources);
+            renderMetricList('marketing-clicks', data.top_clicks);
+
+            const integration = (data.integrations || []).find(item => item.provider === 'resend');
+            const connected = integration?.status === 'connected';
+            const resend = document.getElementById('resend-status');
+            resend.textContent = connected ? 'Resend conectado' : integration?.status === 'error' ? 'Resend con error' : 'Resend pendiente';
+            resend.className = connected ? 'text-xs font-bold text-emerald-300' : integration?.status === 'error' ? 'text-xs font-bold text-red-300' : 'text-xs font-bold text-amber-300';
+            document.getElementById('marketing-operational').innerHTML = [
+                ['Formularios', metrics.form_submissions, 'send'],
+                ['Leads', metrics.leads, 'user-round-plus'],
+                ['Cotizaciones', metrics.quotes, 'file-check-2'],
+                ['Oportunidades', metrics.opportunities, 'briefcase-business'],
+                ['Clientes', metrics.clients, 'handshake']
+            ].map(([label, value, icon]) => `<div class="flex items-center gap-3 py-2 border-b border-white/5 last:border-0"><i data-lucide="${icon}" class="w-4 h-4 text-gray-500"></i><span class="flex-1 text-sm text-gray-300">${label}</span><strong class="text-sm text-white tabular-nums">${formatMarketingNumber(value)}</strong></div>`).join('');
+            renderMarketingQueue(data.content_queue);
+            renderCampaignHistory(data.campaigns);
+            renderContactsSummary(data.metrics);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.loadMarketingOverview = async function(force = false) {
+            if (marketingOverviewLoaded && !force) return;
+            document.getElementById('marketing-metrics').innerHTML = Array.from({ length: 6 }, () => '<div class="h-28 rounded-lg bg-[#1E2226] border border-white/10 animate-pulse"></div>').join('');
+            try {
+                const data = await marketingRequest(`?resource=overview&days=${marketingPeriodDays}`);
+                marketingOverviewLoaded = true;
+                renderMarketingOverview(data);
+            } catch (error) {
+                console.error('Marketing overview error', error);
+                document.getElementById('marketing-metrics').innerHTML = `<p class="col-span-full p-5 text-sm text-red-300 bg-red-400/5 border border-red-400/20 rounded-lg">${escapeAdminHTML(error.message)}</p>`;
+            }
+        }
+
+        window.updateMarketingQueue = async function(id, status) {
+            try {
+                await marketingRequest('', { method: 'POST', body: JSON.stringify({ action: 'update_queue', id, status }) });
+                marketingOverviewLoaded = false;
+                await window.loadMarketingOverview(true);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        function renderContactsSummary(metrics = {}) {
+            const values = [
+                ['Contactos', metrics.contacts_total || 0],
+                ['Suscriptores', metrics.subscribers || 0],
+                ['Oportunidades', metrics.opportunities || 0],
+                ['Clientes', metrics.clients || 0]
+            ];
+            document.getElementById('contacts-summary').innerHTML = values.map(([label, value]) => `<div class="bg-[#1E2226] border border-white/10 rounded-lg p-4"><span class="block text-xs uppercase font-bold text-gray-500">${label}</span><strong class="block mt-2 text-xl text-white tabular-nums">${formatMarketingNumber(value)}</strong></div>`).join('');
+        }
+
+        function contactStageLabel(stage) {
+            return { contact: 'Contacto', subscriber: 'Suscriptor', lead: 'Lead', opportunity: 'Oportunidad', client: 'Cliente', inactive: 'Inactivo' }[stage] || stage || 'Contacto';
+        }
+
+        function renderContacts(rows) {
+            const contacts = Array.isArray(rows) ? rows : [];
+            document.getElementById('contacts-table').innerHTML = contacts.length ? contacts.map(contact => `
+                <tr class="hover:bg-white/[0.02]">
+                    <td class="px-4 py-3"><span class="block font-bold text-white">${escapeAdminHTML(contact.full_name || 'Sin nombre')}</span><span class="block mt-1 text-xs text-gray-500">${escapeAdminHTML(contact.email)}</span></td>
+                    <td class="px-4 py-3 text-gray-300">${escapeAdminHTML(contact.company_name || '—')}</td>
+                    <td class="px-4 py-3"><span class="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-gray-300">${escapeAdminHTML(contactStageLabel(contact.lifecycle_stage))}</span></td>
+                    <td class="px-4 py-3"><span class="text-xs font-bold ${contact.newsletter_status === 'subscribed' ? 'text-emerald-300' : contact.newsletter_status === 'unsubscribed' ? 'text-gray-500' : 'text-amber-300'}">${contact.newsletter_status === 'subscribed' ? 'Suscrito' : contact.newsletter_status === 'unsubscribed' ? 'Cancelado' : 'Sin suscripción'}</span></td>
+                    <td class="px-4 py-3 text-xs text-gray-500">${escapeAdminHTML(contact.source_detail || contact.source_type || '—')}</td>
+                    <td class="px-4 py-3 text-right text-xs text-gray-500">${escapeAdminHTML(formatMarketingDate(contact.last_seen_at))}</td>
+                </tr>`).join('') : '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-600">No hay contactos para esta búsqueda.</td></tr>';
+        }
+
+        window.loadMarketingContacts = async function(force = false) {
+            if (marketingContactsLoaded && !force && !document.getElementById('contacts-search').value) return;
+            const search = document.getElementById('contacts-search').value.trim();
+            document.getElementById('contacts-table').innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-500"><i data-lucide="loader-circle" class="w-5 h-5 animate-spin mx-auto"></i></td></tr>';
+            if (window.lucide) lucide.createIcons();
+            try {
+                const result = await marketingRequest(`?resource=contacts&search=${encodeURIComponent(search)}`);
+                marketingContactsLoaded = true;
+                renderContacts(result.contacts || []);
+            } catch (error) {
+                document.getElementById('contacts-table').innerHTML = `<tr><td colspan="6" class="px-4 py-10 text-center text-red-300">${escapeAdminHTML(error.message)}</td></tr>`;
+            }
+        }
+
+        function parseCsv(text) {
+            const rows = [];
+            let row = [];
+            let value = '';
+            let quoted = false;
+            for (let index = 0; index < text.length; index += 1) {
+                const char = text[index];
+                if (char === '"' && quoted && text[index + 1] === '"') { value += '"'; index += 1; continue; }
+                if (char === '"') { quoted = !quoted; continue; }
+                if (char === ',' && !quoted) { row.push(value); value = ''; continue; }
+                if ((char === '\n' || char === '\r') && !quoted) {
+                    if (char === '\r' && text[index + 1] === '\n') index += 1;
+                    row.push(value); value = '';
+                    if (row.some(cell => cell.trim())) rows.push(row);
+                    row = [];
+                    continue;
+                }
+                value += char;
+            }
+            row.push(value);
+            if (row.some(cell => cell.trim())) rows.push(row);
+            return rows;
+        }
+
+        function normalizeCsvHeader(value) {
+            return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+        }
+
+        function csvContactRows(text) {
+            const parsed = parseCsv(text);
+            if (parsed.length < 2) return [];
+            const headers = parsed[0].map(normalizeCsvHeader);
+            const aliases = {
+                email: ['email', 'correo', 'correo_electronico'],
+                full_name: ['full_name', 'nombre', 'name', 'nombre_completo'],
+                company_name: ['company_name', 'empresa', 'company', 'organizacion'],
+                phone: ['phone', 'telefono', 'celular'],
+                lifecycle_stage: ['lifecycle_stage', 'etapa', 'estado'],
+                language: ['language', 'idioma'],
+                source_detail: ['source_detail', 'origen', 'fuente'],
+                newsletter_consent: ['newsletter_consent', 'consentimiento_newsletter', 'consentimiento', 'suscrito']
+            };
+            const indexFor = key => aliases[key].map(alias => headers.indexOf(alias)).find(index => index >= 0);
+            return parsed.slice(1).map(cells => {
+                const row = {};
+                Object.keys(aliases).forEach(key => {
+                    const index = indexFor(key);
+                    row[key] = index === undefined ? '' : String(cells[index] || '').trim();
+                });
+                row.newsletter_consent = ['true', '1', 'yes', 'si', 'sí', 'opt_in'].includes(String(row.newsletter_consent).toLowerCase());
+                return row;
+            }).filter(row => row.email);
+        }
+
+        function renderCsvImport(file, rows) {
+            pendingCsvImport = { file_name: file.name, rows };
+            const consented = rows.filter(row => row.newsletter_consent).length;
+            document.getElementById('csv-import-file').textContent = file.name;
+            document.getElementById('csv-import-summary').innerHTML = [
+                ['Filas', rows.length], ['Con consentimiento', consented], ['Sin suscripción', rows.length - consented]
+            ].map(([label, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${label}</span><strong class="block mt-1 text-lg text-white">${value}</strong></div>`).join('');
+            document.getElementById('csv-import-preview').innerHTML = rows.slice(0, 12).map(row => `<tr><td class="px-3 py-2 text-gray-300">${escapeAdminHTML(row.email)}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.full_name || '—')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.company_name || '—')}</td><td class="px-3 py-2 ${row.newsletter_consent ? 'text-emerald-300' : 'text-gray-600'}">${row.newsletter_consent ? 'Sí' : 'No'}</td></tr>`).join('');
+            document.getElementById('csv-import-status').textContent = '';
+            document.getElementById('csv-import-modal').classList.remove('hidden');
+            document.getElementById('csv-import-modal').classList.add('flex');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.closeCsvImport = function() {
+            document.getElementById('csv-import-modal').classList.add('hidden');
+            document.getElementById('csv-import-modal').classList.remove('flex');
+            document.getElementById('contacts-csv').value = '';
+            pendingCsvImport = null;
+        }
+
+        window.confirmCsvImport = async function() {
+            if (!pendingCsvImport) return;
+            const button = document.getElementById('csv-import-confirm');
+            const status = document.getElementById('csv-import-status');
+            button.disabled = true;
+            status.textContent = 'Importando contactos…';
+            try {
+                const result = await marketingRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'import_contacts', ...pendingCsvImport })
+                });
+                status.textContent = `${result.inserted || 0} creados · ${result.updated || 0} actualizados · ${result.skipped || 0} omitidos`;
+                status.className = 'mt-3 min-h-5 text-xs text-emerald-300';
+                marketingContactsLoaded = false;
+                marketingOverviewLoaded = false;
+                await window.loadMarketingContacts(true);
+                setTimeout(window.closeCsvImport, 1200);
+            } catch (error) {
+                status.textContent = error.message;
+                status.className = 'mt-3 min-h-5 text-xs text-red-300';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function initializeMarketingControls() {
+            document.querySelectorAll('[data-marketing-days]').forEach(button => {
+                button.addEventListener('click', async () => {
+                    marketingPeriodDays = Number(button.dataset.marketingDays) || 30;
+                    document.querySelectorAll('[data-marketing-days]').forEach(item => {
+                        const active = item === button;
+                        item.className = active
+                            ? 'px-3 py-2 rounded-md text-xs font-bold bg-white/10 text-white'
+                            : 'px-3 py-2 rounded-md text-xs font-bold text-gray-400 hover:text-white';
+                    });
+                    marketingOverviewLoaded = false;
+                    await window.loadMarketingOverview(true);
+                });
+            });
+            document.getElementById('contacts-search').addEventListener('input', () => {
+                clearTimeout(contactsSearchTimer);
+                contactsSearchTimer = setTimeout(() => window.loadMarketingContacts(true), 250);
+            });
+            document.getElementById('contacts-csv').addEventListener('change', async event => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                if (file.size > 2_000_000) return alert('El CSV supera el límite de 2 MB.');
+                const rows = csvContactRows(await file.text());
+                if (!rows.length) return alert('No se encontraron filas con una columna de correo válida.');
+                renderCsvImport(file, rows.slice(0, 1000));
+            });
         }
 
         function slugifyArticleTitle(value) {
@@ -895,13 +1399,13 @@ const seo = seoPages.admin;
             const previousId = openRadarSourceId;
             openRadarSourceId = previousId === sourceId ? null : sourceId;
             renderRadarSources(radarSourceCatalog);
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
             if (!openRadarSourceId) return;
 
             const container = document.getElementById(`radar-source-items-${sourceId}`);
             container.classList.remove('hidden');
             container.innerHTML = '<div class="px-11 py-4 text-gray-500"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></div>';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
             try {
                 const data = await radarRequest(`?view=source_items&source_id=${encodeURIComponent(sourceId)}`);
                 renderRadarSourceItems(container, data.items || []);
@@ -925,7 +1429,7 @@ const seo = seoPages.admin;
         window.loadRadarSources = async function() {
             const list = document.getElementById('radar-source-list');
             list.innerHTML = '<div class="px-4 py-4 text-gray-500"><i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i></div>';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
             try {
                 const [sources, runs] = await Promise.all([
                     radarRequest('?view=sources'),
@@ -939,7 +1443,7 @@ const seo = seoPages.admin;
                 console.error('AI Radar sources error', error);
                 list.innerHTML = `<div class="px-4 py-4 text-sm text-red-300">${escapeAdminHTML(error.message)}</div>`;
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         window.toggleRadarSources = async function() {
@@ -977,7 +1481,7 @@ const seo = seoPages.admin;
             button.disabled = true;
             button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Analizando';
             result.textContent = 'Leyendo RSS y evaluando novedades…';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const response = await fetch(`${SUPA_URL}/functions/v1/ai-radar-ingest`, {
@@ -1001,34 +1505,47 @@ const seo = seoPages.admin;
             } finally {
                 button.disabled = false;
                 button.innerHTML = original;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
 
         window.setAdminView = async function(view) {
-            const isRadar = view === 'radar';
-            const articlesPanel = document.getElementById('articles-panel');
-            const radarPanel = document.getElementById('radar-panel');
+            const views = ['overview', 'contacts', 'articles', 'radar', 'campaigns'];
+            if (!views.includes(view)) view = 'overview';
             const dashboard = document.getElementById('dashboard-screen');
-            const articleTab = document.getElementById('admin-tab-articles');
-            const radarTab = document.getElementById('admin-tab-radar');
+            views.forEach(name => {
+                const active = name === view;
+                const panel = document.getElementById(`${name}-panel`);
+                const tab = document.getElementById(`admin-tab-${name}`);
+                panel.classList.toggle('hidden', !active);
+                panel.classList.toggle('flex', active);
+                tab.setAttribute('aria-selected', String(active));
+                tab.className = active
+                    ? 'px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors'
+                    : 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors';
+            });
+            dashboard.classList.toggle('radar-layout', view === 'radar');
+            document.getElementById('php-token').classList.toggle('hidden', view !== 'articles');
+            document.getElementById('dashboard-title').textContent = {
+                overview: 'Panel de Marketing',
+                contacts: 'Base de Contactos',
+                articles: 'Editor de Artículos',
+                radar: 'AI Radar Editorial',
+                campaigns: 'Campañas de Marketing'
+            }[view];
 
-            articlesPanel.classList.toggle('hidden', isRadar);
-            articlesPanel.classList.toggle('flex', !isRadar);
-            radarPanel.classList.toggle('hidden', !isRadar);
-            radarPanel.classList.toggle('flex', isRadar);
-            dashboard.classList.toggle('radar-layout', isRadar);
-            articleTab.setAttribute('aria-selected', String(!isRadar));
-            radarTab.setAttribute('aria-selected', String(isRadar));
-            articleTab.className = isRadar
-                ? 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors'
-                : 'px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors';
-            radarTab.className = isRadar
-                ? 'px-4 py-2 rounded-md bg-[#5EA6B0] text-black text-sm font-bold flex items-center gap-2 transition-colors'
-                : 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors';
-            document.getElementById('dashboard-title').textContent = isRadar ? 'AI Radar Editorial' : 'Editor de Artículos';
-
-            if (isRadar && !radarQueueLoaded) await window.loadRadarQueue();
+            if (view === 'overview') await window.loadMarketingOverview();
+            if (view === 'contacts') {
+                if (!marketingOverviewLoaded) await window.loadMarketingOverview();
+                await window.loadMarketingContacts();
+            }
+            if (view === 'articles') {
+                await loadArticlesList();
+                window.loadDraft();
+            }
+            if (view === 'radar' && !radarQueueLoaded) await window.loadRadarQueue();
+            if (view === 'campaigns' && !marketingOverviewLoaded) await window.loadMarketingOverview();
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderRadarCounts(counts) {
@@ -1075,7 +1592,7 @@ const seo = seoPages.admin;
         window.loadRadarQueue = async function() {
             const queue = document.getElementById('radar-queue');
             queue.innerHTML = '<div class="h-full min-h-48 flex items-center justify-center text-gray-500"><i data-lucide="loader-circle" class="w-5 h-5 animate-spin"></i></div>';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const data = await radarRequest(`?view=queue&status=${encodeURIComponent(radarStatusFilter)}&limit=100`);
@@ -1083,7 +1600,7 @@ const seo = seoPages.admin;
                 renderRadarCounts(data.counts || {});
                 renderRadarGovernance(data.editorial_policy);
                 renderRadarQueue(data.items || []);
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             } catch (error) {
                 console.error('AI Radar queue error', error);
                 queue.innerHTML = `<div class="p-6 text-sm text-red-300">${escapeAdminHTML(error.message)}</div>`;
@@ -1197,7 +1714,7 @@ const seo = seoPages.admin;
             setRadarField('radar-review-notes', candidate.review_notes);
             renderRadarThumbnail(candidate);
             updateRadarActions(candidate);
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         window.selectRadarCandidate = async function(id) {
@@ -1205,7 +1722,7 @@ const seo = seoPages.admin;
             document.getElementById('radar-empty').classList.remove('hidden');
             document.getElementById('radar-empty').innerHTML = '<i data-lucide="loader-circle" class="w-6 h-6 animate-spin text-[#5EA6B0]"></i>';
             document.getElementById('radar-detail').classList.add('hidden');
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const detail = await radarRequest(`?view=detail&id=${encodeURIComponent(id)}`);
@@ -1237,7 +1754,7 @@ const seo = seoPages.admin;
             const original = button.innerHTML;
             button.disabled = true;
             button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Guardando';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const candidate = await radarRequest('', {
@@ -1254,7 +1771,7 @@ const seo = seoPages.admin;
             } finally {
                 button.disabled = false;
                 button.innerHTML = original;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -1272,7 +1789,7 @@ const seo = seoPages.admin;
             };
             renderRadarThumbnail(currentRadarCandidate);
             updateRadarActions(currentRadarCandidate);
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const result = await radarThumbnailRequest(currentRadarCandidate.id);
@@ -1293,7 +1810,7 @@ const seo = seoPages.admin;
                 alert(`El artículo quedó aprobado, pero la miniatura no pudo generarse: ${error.message}`);
                 return false;
             } finally {
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -1324,7 +1841,7 @@ const seo = seoPages.admin;
                     document.getElementById('radar-detail-status').textContent = radarStatusLabel(reviewed.status);
                     renderRadarThumbnail(reviewed);
                     updateRadarActions(reviewed);
-                    lucide.createIcons();
+                    if (window.lucide) lucide.createIcons();
                     await window.generateRadarThumbnail(true);
                     return;
                 }
@@ -1348,7 +1865,7 @@ const seo = seoPages.admin;
             const original = button.innerHTML;
             button.disabled = true;
             button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Publicando';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             try {
                 const result = await radarRequest('', {
@@ -1360,7 +1877,7 @@ const seo = seoPages.admin;
                     })
                 });
                 button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Generando página';
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
                 await requestSeoPublication(result.post?.id || null);
                 await loadArticlesList();
                 window.location.href = result.post?.slug ? `/blog/${result.post.slug}/` : (result.blog_url || '/blog/');
@@ -1370,7 +1887,7 @@ const seo = seoPages.admin;
             } finally {
                 button.disabled = false;
                 button.innerHTML = original;
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
 
@@ -1406,12 +1923,12 @@ const seo = seoPages.admin;
                 document.getElementById('post-cover').value = '';
                 quill.root.innerHTML = '';
                 publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
             publishBtn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Cargando datos...';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             const token = sessionStorage.getItem('adminToken');
             try {
@@ -1445,7 +1962,7 @@ const seo = seoPages.admin;
                 alert("Error de conexión al cargar los detalles del artículo.");
                 publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
             }
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
         }
 
         window.saveDraft = function() {
@@ -1466,8 +1983,8 @@ const seo = seoPages.admin;
             const saveBtn = document.getElementById('save-btn');
             const originalHTML = saveBtn.innerHTML;
             saveBtn.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400"></i> Guardado';
-            lucide.createIcons();
-            setTimeout(() => { saveBtn.innerHTML = originalHTML; lucide.createIcons(); }, 2000);
+            if (window.lucide) lucide.createIcons();
+            setTimeout(() => { saveBtn.innerHTML = originalHTML; if (window.lucide) lucide.createIcons(); }, 2000);
         }
 
         window.loadDraft = function() {
@@ -1488,7 +2005,7 @@ const seo = seoPages.admin;
                     currentEditingPublishedAt = draft.editingPublishedAt || null;
                     document.getElementById('edit-selector').value = draft.editingId;
                     document.getElementById('publish-btn').innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
-                    lucide.createIcons();
+                    if (window.lucide) lucide.createIcons();
                 }
             }
         }
@@ -1568,7 +2085,7 @@ const seo = seoPages.admin;
             
             const btn = document.getElementById('publish-btn');
             btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Procesando...';
-            lucide.createIcons();
+            if (window.lucide) lucide.createIcons();
 
             const type = document.getElementById('post-type').value;
             const title = document.getElementById('post-title').value;
@@ -1581,7 +2098,7 @@ const seo = seoPages.admin;
 
             if (!title.trim() || !author.trim() || !plainText) {
                 btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
                 return alert('Título, autor y contenido son obligatorios.');
             }
 
@@ -1627,7 +2144,7 @@ const seo = seoPages.admin;
                     const savedArticleId = savedPost.id || currentEditingId;
 
                     btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando página...';
-                    lucide.createIcons();
+                    if (window.lucide) lucide.createIcons();
                     await requestSeoPublication(savedArticleId);
                     
                     localStorage.removeItem('rasika_blog_draft'); 
@@ -1642,7 +2159,7 @@ const seo = seoPages.admin;
                 alert(e.message || "Error de red.");
             } finally {
                 btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
-                lucide.createIcons();
+                if (window.lucide) lucide.createIcons();
             }
         }
     </script>

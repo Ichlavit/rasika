@@ -1,0 +1,60 @@
+---
+import '../../styles/global.css';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Suscripción | Rasika Producciones</title>
+    <meta name="description" content="Gestiona tu suscripción al newsletter de Rasika." />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  </head>
+  <body class="min-h-screen bg-[#0a0c0e] text-gray-200 font-sans flex items-center justify-center p-6">
+    <main class="w-full max-w-xl border border-white/10 bg-[#1E2226] p-8 md:p-10 rounded-lg">
+      <a href="/" class="block w-40 mb-10">
+        <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones" class="w-full h-auto" />
+      </a>
+      <p class="text-xs font-bold uppercase text-[#88d6e0] mb-3">Rasika Insights</p>
+      <h1 class="text-3xl font-extrabold text-white mb-4">Cancelar suscripción</h1>
+      <p id="unsubscribe-status" class="text-gray-400 leading-relaxed" role="status" aria-live="polite">Procesando tu solicitud…</p>
+      <a href="/blog/" class="inline-flex mt-8 px-5 py-3 rounded-lg bg-[#5EA6B0] text-[#0a0c0e] font-bold hover:bg-[#88d6e0] transition-colors">Volver a Rasika Insights</a>
+    </main>
+
+    <div id="unsubscribe-config" class="hidden" data-url={supabaseUrl} data-key={supabaseAnonKey}></div>
+    <script is:inline>
+      (async () => {
+        const status = document.getElementById('unsubscribe-status');
+        const config = document.getElementById('unsubscribe-config');
+        const token = new URLSearchParams(location.search).get('token');
+        const url = config?.dataset.url?.replace(/\/$/, '');
+        const key = config?.dataset.key;
+        if (!token || !url || !key) {
+          status.textContent = 'El enlace no es válido o está incompleto.';
+          return;
+        }
+        try {
+          const response = await fetch(`${url}/functions/v1/newsletter-subscribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              apikey: key,
+              Authorization: `Bearer ${key}`,
+            },
+            body: JSON.stringify({ action: 'unsubscribe', token }),
+          });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(result.error || 'Unsubscribe failed');
+          status.textContent = 'Tu suscripción fue cancelada. No recibirás nuevos envíos de marketing.';
+        } catch {
+          status.textContent = 'No pudimos procesar el enlace. La suscripción puede haber sido cancelada anteriormente.';
+        }
+      })();
+    </script>
+  </body>
+</html>

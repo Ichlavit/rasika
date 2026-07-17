@@ -1,0 +1,91 @@
+---
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const { articleSlug = '' } = Astro.props;
+---
+
+<div
+  id="site-analytics-config"
+  class="hidden"
+  data-url={supabaseUrl}
+  data-key={supabaseAnonKey}
+  data-article-slug={articleSlug}
+></div>
+
+<script is:inline>
+  (() => {
+    const config = document.getElementById('site-analytics-config');
+    const url = config?.dataset.url?.replace(/\/$/, '');
+    const key = config?.dataset.key;
+    const articleSlug = config?.dataset.articleSlug || '';
+    const disabled = navigator.doNotTrack === '1' || window.doNotTrack === '1';
+    if (!url || !key || disabled || location.pathname.startsWith('/admin')) return;
+
+    const sessionKey = 'rasikaAnalyticsSessionId';
+    let sessionId = sessionStorage.getItem(sessionKey);
+    if (!sessionId) {
+      sessionId = crypto.randomUUID();
+      sessionStorage.setItem(sessionKey, sessionId);
+    }
+
+    const startedAt = Date.now();
+    let engagementSent = false;
+    const params = new URLSearchParams(location.search);
+    const referringHost = (() => {
+      try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch { return ''; }
+    })();
+    const source = (params.get('utm_source') || referringHost || 'direct').slice(0, 80);
+
+    const track = (eventType, metadata = {}, options = {}) => {
+      const payload = {
+        session_id: sessionId,
+        event_type: eventType,
+        page_path: location.pathname,
+        source,
+        referrer: document.referrer || null,
+        metadata,
+      };
+      return fetch(`${url}/functions/v1/analytics-capture`, {
+        method: 'POST',
+        keepalive: Boolean(options.keepalive),
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify(payload),
+      }).catch(() => null);
+    };
+
+    window.rasikaAnalytics = { sessionId, track };
+    track('page_view');
+    if (articleSlug) track('article_view', { article_slug: articleSlug });
+
+    document.addEventListener('click', (event) => {
+      const target = event.target?.closest?.('a,button');
+      if (!target) return;
+      const href = target instanceof HTMLAnchorElement ? target.href : '';
+      const label = (target.getAttribute('aria-label') || target.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
+      const isChat = target.id === 'mentor-fab' || target.closest('#mentor-cta-tooltip');
+      if (isChat) track('chatbot_open', { label: 'CourseMentor' });
+      track('click', {
+        label: label || target.id || target.tagName.toLowerCase(),
+        href: href ? new URL(href, location.href).pathname : '',
+        element: target.tagName.toLowerCase(),
+        outbound: Boolean(href && new URL(href, location.href).origin !== location.origin),
+      });
+    }, { passive: true });
+
+    const sendEngagement = () => {
+      if (engagementSent) return;
+      engagementSent = true;
+      track('session_engagement', {
+        duration_seconds: Math.max(0, Math.round((Date.now() - startedAt) / 1000)),
+      }, { keepalive: true });
+    };
+    addEventListener('pagehide', sendEngagement);
+    addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') sendEngagement();
+    });
+  })();
+</script>

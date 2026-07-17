@@ -1,0 +1,173 @@
+---
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+---
+
+<section class="newsletter-panel">
+  <form id="newsletter-form" class="newsletter-form">
+    <div class="newsletter-copy">
+      <p class="newsletter-kicker">Rasika Insights</p>
+      <h2 data-i18n="newsletter-title">Suscríbete a nuestro newsletter</h2>
+      <p data-i18n="newsletter-desc">Recibe nuevos artículos, servicios y eventos sobre EdTech e IA educativa.</p>
+    </div>
+    <div class="newsletter-fields">
+      <div class="newsletter-row">
+        <label for="newsletter-email" class="newsletter-sr-only">Correo electrónico</label>
+        <input id="newsletter-email" name="email" type="email" required autocomplete="email" placeholder="Tu correo electrónico" data-i18n-placeholder="newsletter-placeholder">
+        <button id="newsletter-submit" type="submit" data-i18n="newsletter-btn">Suscribir</button>
+      </div>
+      <label class="newsletter-consent">
+        <input id="newsletter-consent" type="checkbox" required>
+        <span data-i18n="newsletter-consent">Acepto recibir novedades de Rasika. Puedo cancelar mi suscripción en cualquier momento.</span>
+      </label>
+      <input name="website" type="text" tabindex="-1" autocomplete="off" class="newsletter-honeypot" aria-hidden="true">
+      <p id="newsletter-status" class="newsletter-status" role="status" aria-live="polite"></p>
+    </div>
+  </form>
+</section>
+
+<div id="newsletter-config" class="newsletter-config" data-url={supabaseUrl} data-key={supabaseAnonKey}></div>
+<script is:inline>
+  document.getElementById('newsletter-form')?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const config = document.getElementById('newsletter-config');
+    const url = config?.dataset.url?.replace(/\/$/, '');
+    const key = config?.dataset.key;
+    const email = document.getElementById('newsletter-email')?.value?.trim();
+    const consent = document.getElementById('newsletter-consent')?.checked === true;
+    const submit = document.getElementById('newsletter-submit');
+    const status = document.getElementById('newsletter-status');
+    const language = document.documentElement.lang === 'en' ? 'en' : 'es';
+    if (!email || !consent || !url || !key) return;
+
+    submit.disabled = true;
+    status.textContent = language === 'en' ? 'Subscribing…' : 'Registrando suscripción…';
+    status.className = 'newsletter-status';
+    try {
+      const response = await fetch(`${url}/functions/v1/newsletter-subscribe`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          email,
+          consent,
+          language,
+          source: 'blog_newsletter',
+          page_path: location.pathname,
+          session_id: window.rasikaAnalytics?.sessionId || null,
+          website: form.querySelector('[name="website"]')?.value || '',
+        }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Subscription failed');
+      status.textContent = language === 'en'
+        ? 'You are subscribed. Please check your inbox.'
+        : 'Suscripción confirmada. Revisa tu bandeja de entrada.';
+      status.className = 'newsletter-status newsletter-status-success';
+      form.reset();
+    } catch {
+      status.textContent = language === 'en'
+        ? 'We could not complete your subscription.'
+        : 'No pudimos completar la suscripción.';
+      status.className = 'newsletter-status newsletter-status-error';
+    } finally {
+      submit.disabled = false;
+    }
+  });
+</script>
+
+<style>
+  .newsletter-panel {
+    padding: 28px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    background: #1e2226;
+  }
+  .newsletter-form {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 32px;
+  }
+  .newsletter-copy { width: 100%; max-width: 430px; }
+  .newsletter-kicker {
+    margin: 0 0 8px;
+    color: #88d6e0 !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+  .newsletter-copy h2 { margin: 0 0 8px; color: #fff; font-size: 21px; line-height: 1.3; }
+  .newsletter-copy > p:last-child { margin: 0; color: #9ca3af; font-size: 14px; line-height: 1.6; }
+  .newsletter-fields { width: 100%; max-width: 580px; }
+  .newsletter-row { display: flex; gap: 8px; }
+  .newsletter-row input {
+    min-width: 0;
+    min-height: 46px;
+    flex: 1;
+    padding: 0 15px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 8px;
+    outline: none;
+    background: #141619;
+    color: #fff;
+    font: inherit;
+    font-size: 14px;
+  }
+  .newsletter-row input:focus { border-color: #5ea6b0; }
+  .newsletter-row button {
+    min-height: 46px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 8px;
+    background: #5ea6b0;
+    color: #081012;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+  }
+  .newsletter-row button:hover { background: #88d6e0; }
+  .newsletter-row button:disabled { cursor: not-allowed; opacity: .6; }
+  .newsletter-consent {
+    display: flex;
+    margin-top: 12px;
+    align-items: flex-start;
+    gap: 8px;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .newsletter-consent input { width: 16px; height: 16px; margin: 1px 0 0; flex: 0 0 auto; accent-color: #5ea6b0; }
+  .newsletter-status { min-height: 18px; margin: 10px 0 0; color: #9ca3af; font-size: 12px; }
+  .newsletter-status-success { color: #8ee6bd; }
+  .newsletter-status-error { color: #fca5a5; }
+  .newsletter-config,
+  .newsletter-honeypot { display: none; }
+  .newsletter-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+  @media (max-width: 860px) {
+    .newsletter-form { flex-direction: column; align-items: stretch; gap: 22px; }
+    .newsletter-copy, .newsletter-fields { max-width: none; }
+  }
+  @media (max-width: 520px) {
+    .newsletter-panel { padding: 22px; }
+    .newsletter-row { flex-direction: column; }
+    .newsletter-row button { width: 100%; }
+  }
+</style>

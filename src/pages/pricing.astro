@@ -2,6 +2,7 @@
 // src/pages/pricing.astro
 import '../styles/global.css'; 
 import Chatbot from '../components/Chatbot.astro';
+import SiteAnalytics from '../components/SiteAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import { seoPages } from '../data/seo';
 
@@ -672,6 +673,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     </script>
     
+    <SiteAnalytics />
     <Chatbot />
 </body>
 </html>

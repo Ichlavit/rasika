@@ -2409,17 +2409,20 @@ async function createAnonymousSession() {
     company_name: "Pendiente",
     traffic_source: formSubmitted
         ? "Website Form: Quote Request"
-        : (document.referrer || "Direct Traffic")
+        : (document.referrer || "Direct Traffic"),
+    language: document.documentElement.lang === 'en' ? 'en' : 'es',
+    session_id: window.rasikaAnalytics?.sessionId || null,
+    page_path: window.location.pathname,
+    website: ''
     };
 
         try {
-            var response = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/leads', {
+            var response = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/contact-capture', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                    'Prefer': 'return=representation'
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
                 },
                 body: JSON.stringify(payload)
             });
@@ -2431,8 +2434,8 @@ async function createAnonymousSession() {
 
             var data = await response.json();
 
-            if (data && data.length > 0 && data[0].id) {
-                window.mentorLeadId = data[0].id;
+            if (data && data.lead_id) {
+                window.mentorLeadId = data.lead_id;
                 localStorage.setItem('mentorLeadId', window.mentorLeadId);
                 if (!hasPriorConversation || customGreetingHTML) saveChatMessage('assistant', greetingText);
             }

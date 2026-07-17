@@ -2,6 +2,7 @@
 // src/pages/index.astro
 import '../styles/global.css';
 import Chatbot from '../components/Chatbot.astro';
+import SiteAnalytics from '../components/SiteAnalytics.astro';
 import SEO from '../components/SEO.astro';
 import { seoPages } from '../data/seo';
 
@@ -548,49 +549,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     name: name,
                     email: email,
                     company_name: company || 'Pendiente',
-                    traffic_source: document.referrer || 'Website Form'
+                    traffic_source: document.referrer || 'Website Form',
+                    lead_id: leadId,
+                    language: document.documentElement.lang === 'en' ? 'en' : 'es',
+                    session_id: window.rasikaAnalytics?.sessionId || null,
+                    page_path: window.location.pathname,
+                    website: ''
                 };
 
                 try {
-                    if (leadId) {
-                        const patchResponse = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/leads?id=eq.' + encodeURIComponent(leadId), {
-                            method: 'PATCH',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                                'Prefer': 'return=minimal'
-                            },
-                            body: JSON.stringify(leadPayload)
-                        });
+                    const captureResponse = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/contact-capture', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': SUPABASE_ANON_KEY,
+                            'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                        },
+                        body: JSON.stringify(leadPayload)
+                    });
 
-                        if (!patchResponse.ok) {
-                            console.warn('Existing lead update failed; creating a new lead:', await patchResponse.text());
-                            leadId = null;
-                        }
+                    if (!captureResponse.ok) {
+                        console.warn('Lead capture failed:', await captureResponse.text());
+                        return;
                     }
 
-                    if (!leadId) {
-                        const createResponse = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/rest/v1/leads', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'apikey': SUPABASE_ANON_KEY,
-                                'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
-                                'Prefer': 'return=representation'
-                            },
-                            body: JSON.stringify(leadPayload)
-                        });
-
-                        if (!createResponse.ok) {
-                            console.warn('Lead creation failed:', await createResponse.text());
-                            return;
-                        }
-
-                        const createdLead = await createResponse.json();
-                        if (!createdLead || !createdLead[0] || !createdLead[0].id) return;
-                        leadId = createdLead[0].id;
-                    }
+                    const captureResult = await captureResponse.json();
+                    leadId = captureResult?.lead_id || null;
+                    if (!leadId) return;
 
                     localStorage.setItem('mentorLeadId', leadId);
                     localStorage.setItem('mentorUserName', name);
@@ -681,6 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     </script>
+    <SiteAnalytics />
     <Chatbot />
 </body>
 </html>
