@@ -290,13 +290,18 @@ async function loadQueue(
     "source:ai_radar_sources(source_key,source_name,organization,publisher_name,trust_tier,active_recommendation)",
   ].join(",");
 
-  const [items, statuses] = await Promise.all([
+  const [items, statuses, editorialPolicies] = await Promise.all([
     restRequest(
       supabaseUrl,
       serviceRoleKey,
       `ai_radar_candidates?select=${encodeURIComponent(select)}${statusFilter}&order=score_total.desc.nullslast,discovered_at.desc&limit=${limit}`,
     ),
     restRequest(supabaseUrl, serviceRoleKey, "ai_radar_candidates?select=status"),
+    restRequest(
+      supabaseUrl,
+      serviceRoleKey,
+      "ai_radar_editorial_policy?is_active=eq.true&select=policy_key,owner_name,policy_version,evidence_rule,model_rule,service_rule,human_rule&limit=1",
+    ),
   ]);
 
   const counts: Record<string, number> = {};
@@ -304,7 +309,11 @@ async function loadQueue(
     counts[row.status] = (counts[row.status] || 0) + 1;
   }
 
-  return { items: Array.isArray(items) ? items : [], counts };
+  return {
+    items: Array.isArray(items) ? items : [],
+    counts,
+    editorial_policy: Array.isArray(editorialPolicies) ? editorialPolicies[0] || null : null,
+  };
 }
 
 async function loadCandidateDetail(
