@@ -6,6 +6,10 @@ if [[ -z "${RASIKA_PUBLIC_ROOT:-}" ]]; then
   exit 1
 fi
 
+export GOMAXPROCS="${GOMAXPROCS:-2}"
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
+export ASTRO_TELEMETRY_DISABLED=1
+
 npm ci --no-audit --no-fund
 npm run build
 
