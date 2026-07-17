@@ -1,8 +1,13 @@
 import { SITE, publicSeoPages, absoluteUrl } from "../data/seo";
+import { articlePath, getPublishedBlogPosts } from "../lib/blog";
 
 export async function GET() {
+  const posts = await getPublishedBlogPosts();
   const corePages = publicSeoPages
     .map((page) => `- [${page.title}](${absoluteUrl(page.path)}): ${page.description}`)
+    .join("\n");
+  const articles = posts
+    .map((post) => `- [${post.title}](${absoluteUrl(articlePath(post.slug))}): ${post.excerpt}`)
     .join("\n");
 
   return new Response(`# ${SITE.name}
@@ -34,6 +39,10 @@ ${corePages}
 ## AI-Readable Overview
 
 - [Rasika EdTech services overview](${SITE.origin}/ai-overview.md)
+
+## Published Insights
+
+${articles}
 
 ## Best Fit Queries
 

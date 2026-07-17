@@ -224,6 +224,10 @@ const seo = seoPages.admin;
                         <input type="text" id="post-category" placeholder="Ej: Diseño Instruccional" class="w-full bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]">
                     </div>
                     <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-gray-400 mb-2 uppercase">Resumen para buscadores</label>
+                        <textarea id="post-excerpt" rows="3" maxlength="320" placeholder="Resumen claro del artículo. Si se deja vacío, se generará desde el contenido." class="w-full resize-y bg-[#141619] border border-white/10 rounded-xl px-4 py-3 outline-none text-white focus:border-[#5EA6B0]"></textarea>
+                    </div>
+                    <div class="md:col-span-2">
                         <label class="block text-xs font-bold text-gray-400 mb-2 uppercase flex justify-between">
                             <span>Ruta de la Imagen de Portada (Carpeta Public)</span>
                             <button type="button" onclick="uploadCoverImage()" class="text-[#5EA6B0] hover:text-white flex items-center gap-1 normal-case"><i data-lucide="upload" class="w-3 h-3"></i> Subir Imagen</button>
@@ -410,6 +414,8 @@ const seo = seoPages.admin;
         const SUPA_KEY = config.getAttribute('data-key');
         
         let currentEditingId = null;
+        let currentEditingSlug = null;
+        let currentEditingPublishedAt = null;
         let currentRadarCandidate = null;
         let radarQueueLoaded = false;
         let radarSourcesLoaded = false;
@@ -595,6 +601,34 @@ const seo = seoPages.admin;
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
+        }
+
+        function slugifyArticleTitle(value) {
+            return String(value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '')
+                .slice(0, 90);
+        }
+
+        async function requestSeoPublication(articleId) {
+            const token = sessionStorage.getItem('adminToken');
+            const response = await fetch(`${SUPA_URL}/functions/v1/site-publish`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPA_KEY,
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ article_id: articleId })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || 'El artículo se guardó, pero no fue posible generar su página pública.');
+            }
+            return result;
         }
 
         function radarStatusLabel(status) {
@@ -1325,8 +1359,11 @@ const seo = seoPages.admin;
                         notes: document.getElementById('radar-review-notes').value
                     })
                 });
+                button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Generando página';
+                lucide.createIcons();
+                await requestSeoPublication(result.post?.id || null);
                 await loadArticlesList();
-                window.location.href = result.blog_url || '/blog/';
+                window.location.href = result.post?.slug ? `/blog/${result.post.slug}/` : (result.blog_url || '/blog/');
             } catch (error) {
                 console.error('AI Radar publish error', error);
                 alert(error.message);
@@ -1357,12 +1394,15 @@ const seo = seoPages.admin;
 
         window.handleEditSelection = async function(id) {
             currentEditingId = id || null;
+            currentEditingSlug = null;
+            currentEditingPublishedAt = null;
             const publishBtn = document.getElementById('publish-btn');
             
             if(!id) {
                 document.getElementById('post-title').value = '';
                 document.getElementById('post-author').value = '';
                 document.getElementById('post-category').value = '';
+                document.getElementById('post-excerpt').value = '';
                 document.getElementById('post-cover').value = '';
                 quill.root.innerHTML = '';
                 publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
@@ -1389,8 +1429,11 @@ const seo = seoPages.admin;
                     document.getElementById('post-title').value = post.title || '';
                     document.getElementById('post-author').value = post.author || '';
                     document.getElementById('post-category').value = post.category || '';
+                    document.getElementById('post-excerpt').value = post.excerpt || '';
                     document.getElementById('post-cover').value = post.cover_image || '';
                     quill.root.innerHTML = post.content_html || '';
+                    currentEditingSlug = post.slug || null;
+                    currentEditingPublishedAt = post.published_at || null;
                     
                     publishBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
                 } else {
@@ -1411,9 +1454,12 @@ const seo = seoPages.admin;
                 title: document.getElementById('post-title').value,
                 author: document.getElementById('post-author').value,
                 category: document.getElementById('post-category').value,
+                excerpt: document.getElementById('post-excerpt').value,
                 cover_image: document.getElementById('post-cover').value,
                 content: quill.root.innerHTML,
-                editingId: currentEditingId 
+                editingId: currentEditingId,
+                editingSlug: currentEditingSlug,
+                editingPublishedAt: currentEditingPublishedAt
             };
             localStorage.setItem('rasika_blog_draft', JSON.stringify(draft));
             
@@ -1432,11 +1478,14 @@ const seo = seoPages.admin;
                 document.getElementById('post-title').value = draft.title || '';
                 document.getElementById('post-author').value = draft.author || '';
                 document.getElementById('post-category').value = draft.category || '';
+                document.getElementById('post-excerpt').value = draft.excerpt || '';
                 document.getElementById('post-cover').value = draft.cover_image || '';
                 if(draft.content && draft.content !== '<p><br></p>') quill.root.innerHTML = draft.content;
                 
                 if(draft.editingId) {
                     currentEditingId = draft.editingId;
+                    currentEditingSlug = draft.editingSlug || null;
+                    currentEditingPublishedAt = draft.editingPublishedAt || null;
                     document.getElementById('edit-selector').value = draft.editingId;
                     document.getElementById('publish-btn').innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
                     lucide.createIcons();
@@ -1525,14 +1574,30 @@ const seo = seoPages.admin;
             const title = document.getElementById('post-title').value;
             const author = document.getElementById('post-author').value;
             const category = document.getElementById('post-category').value;
+            const excerptInput = document.getElementById('post-excerpt').value.trim();
             const cover = document.getElementById('post-cover').value;
             const htmlContent = quill.root.innerHTML;
+            const plainText = quill.getText().replace(/\s+/g, ' ').trim();
+
+            if (!title.trim() || !author.trim() || !plainText) {
+                btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                lucide.createIcons();
+                return alert('Título, autor y contenido son obligatorios.');
+            }
+
+            const slug = currentEditingSlug || slugifyArticleTitle(title) || `articulo-${Date.now()}`;
+            const excerpt = excerptInput || plainText.slice(0, 280).replace(/\s+\S*$/, '').trim();
+            const wordCount = plainText.split(/\s+/).filter(Boolean).length;
             
             const payload = {
                 type: type,
                 title: title,
                 author: author,
                 category: category,
+                slug: slug,
+                excerpt: excerpt,
+                published_at: currentEditingPublishedAt || new Date().toISOString(),
+                read_time: `${Math.max(2, Math.ceil(wordCount / 200))} min read`,
                 cover_image: cover || null,
                 icon: type === 'agent' ? 'bot' : 'user',
                 content_html: htmlContent
@@ -1558,12 +1623,15 @@ const seo = seoPages.admin;
 
                 if(res.ok) {
                     const responseData = await res.json();
-                    const savedArticleId = responseData[0]?.id || currentEditingId; 
-                    
-                    alert(`¡Artículo ${currentEditingId ? 'actualizado' : 'publicado'} exitosamente!`);
+                    const savedPost = responseData[0] || {};
+                    const savedArticleId = savedPost.id || currentEditingId;
+
+                    btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando página...';
+                    lucide.createIcons();
+                    await requestSeoPublication(savedArticleId);
                     
                     localStorage.removeItem('rasika_blog_draft'); 
-                    window.location.href = '/blog?article=' + savedArticleId;
+                    window.location.href = `/blog/${savedPost.slug || slug}/`;
                     
                 } else {
                     const errData = await res.json();
@@ -1571,7 +1639,7 @@ const seo = seoPages.admin;
                 }
             } catch (e) {
                 console.error(e);
-                alert("Error de red.");
+                alert(e.message || "Error de red.");
             } finally {
                 btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
                 lucide.createIcons();

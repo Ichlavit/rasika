@@ -1,4 +1,5 @@
 import { absoluteUrl, publicSeoPages } from "../data/seo";
+import { articlePath, getPublishedBlogPosts } from "../lib/blog";
 
 const routeMeta: Record<string, { changefreq: string; priority: string }> = {
   "/": { changefreq: "weekly", priority: "1.0" },
@@ -12,8 +13,9 @@ const routeMeta: Record<string, { changefreq: string; priority: string }> = {
 export async function GET() {
   const lastmod = new Date().toISOString().slice(0, 10);
   const pages = publicSeoPages;
+  const posts = await getPublishedBlogPosts();
 
-  const urls = pages
+  const pageUrls = pages
     .map((page) => {
       const meta = routeMeta[page.path] || {
         changefreq: "monthly",
@@ -28,6 +30,15 @@ export async function GET() {
   </url>`;
     })
     .join("\n");
+
+  const articleUrls = posts
+    .map((post) => `  <url>
+    <loc>${absoluteUrl(articlePath(post.slug))}</loc>
+    <lastmod>${new Date(post.updated_at || post.published_at).toISOString()}</lastmod>
+  </url>`)
+    .join("\n");
+
+  const urls = [pageUrls, articleUrls].filter(Boolean).join("\n");
 
   return new Response(`<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

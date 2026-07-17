@@ -124,6 +124,13 @@ function asOptionalText(value: unknown, maxLength = 20_000) {
   return text || null;
 }
 
+function buildExcerpt(value: unknown, maxLength = 280) {
+  const text = cleanText(value, 20_000).replace(/\s+/g, " ");
+  if (text.length <= maxLength) return text;
+  const shortened = text.slice(0, Math.max(1, maxLength - 3)).replace(/\s+\S*$/, "").trim();
+  return `${shortened || text.slice(0, maxLength - 3).trim()}...`;
+}
+
 function serviceDestination(service: CandidateServiceMatch["service"]) {
   return service?.category === "saas" ? "/lms/" : "/pricing/";
 }
@@ -588,7 +595,7 @@ async function publishCandidate(
         content_html: contentHTML,
         cover_image: candidate.thumbnail_url || null,
         slug,
-        excerpt: summary.slice(0, 280),
+        excerpt: buildExcerpt(summary),
         source_name: source?.publisher_name || source?.organization || source?.source_name || candidate.source_title,
         source_url: candidate.canonical_url,
         source_published_at: candidate.source_published_at,
@@ -625,7 +632,10 @@ async function publishCandidate(
     });
   }
 
-  return { post, blog_url: post?.id ? `/blog/?article=${post.id}` : "/blog/" };
+  return {
+    post,
+    blog_url: post?.slug ? `/blog/${post.slug}/` : post?.id ? `/blog/?article=${post.id}` : "/blog/",
+  };
 }
 
 serve(async (request) => {

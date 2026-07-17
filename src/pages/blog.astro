@@ -453,7 +453,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await fetch(GLOBAL_SUPA_URL.replace(/\/$/, '') + '/rest/v1/blog_posts?order=created_at.desc', {
+                const res = await fetch(GLOBAL_SUPA_URL.replace(/\/$/, '') + '/rest/v1/blog_posts?published_at=not.is.null&slug=not.is.null&order=published_at.desc', {
                     headers: { 'apikey': GLOBAL_SUPA_KEY, 'Authorization': 'Bearer ' + GLOBAL_SUPA_KEY }
                 });
                 
@@ -482,7 +482,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             views: post.views || 0,
                             likes: post.likes || 0,
                             body: post.content_html,
-                            cover_image: post.cover_image || null
+                            cover_image: post.cover_image || null,
+                            slug: post.slug
                         };
 
                         if (post.type === 'human') {
@@ -496,7 +497,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                    </div>`;
 
                             humanContainer.innerHTML += `
-                                <article class="group cursor-pointer mb-5" onclick="openReader('${post.id}')">
+                                <article class="group mb-5">
+                                  <a href="/blog/${post.slug}/" class="block cursor-pointer no-underline" onclick="openReader('${post.id}'); return false;">
                                     <div class="relative w-full aspect-[21/9] rounded-2xl overflow-hidden mb-5 bg-[#0f1114] ring-1 ring-white/10 group-hover:ring-rasika-accent/50 transition-all">
                                         ${coverHtml}
                                     </div>
@@ -517,18 +519,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                             </div>
                                         </div>
                                     </div>
+                                  </a>
                                 </article>
                             `;
                         } else if (post.type === 'agent') {
                             aiContainer.innerHTML += `
-                                <div class="ai-border p-5 group cursor-pointer mb-4" onclick="openReader('${post.id}')">
+                                <a href="/blog/${post.slug}/" class="ai-border block p-5 group cursor-pointer mb-4 no-underline" onclick="openReader('${post.id}'); return false;">
                                     <div class="flex items-center gap-2 mb-3">
                                         <i data-lucide="radar" class="w-4 h-4 text-rasika-accent"></i>
                                         <span class="text-xs font-bold text-rasika-accent tracking-widest uppercase">${post.author || 'Rasika Agent'}</span>
                                         <span class="text-xs text-gray-500 ml-auto">Nuevo</span>
                                     </div>
                                     <h4 class="text-base font-bold text-white mb-2 leading-snug">${post.title}</h4>
-                                </div>
+                                </a>
                             `;
                         }
                     });
@@ -711,8 +714,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function getTrackableUrl() {
-            let url = new URL(window.location.href);
-            if(currentArticleId) url.searchParams.set('article', currentArticleId);
+            const article = articles[currentArticleId];
+            let url = article?.slug
+                ? new URL('/blog/' + article.slug + '/', window.location.origin)
+                : new URL(window.location.href);
             if (window.mentorLeadId) url.searchParams.set('ref', window.mentorLeadId);
             return url.toString();
         }
