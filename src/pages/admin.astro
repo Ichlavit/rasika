@@ -218,7 +218,7 @@ const seo = seoPages.admin;
                         <h2 class="font-bold text-white">Sesiones y páginas vistas</h2>
                         <span id="marketing-period-label" class="text-xs text-gray-500"></span>
                     </div>
-                    <div id="marketing-chart" class="h-52 flex items-end gap-1" aria-label="Actividad del sitio"></div>
+                    <div id="marketing-chart" class="h-60" aria-label="Actividad del sitio"></div>
                     <div class="mt-4 flex items-center gap-5 text-xs text-gray-500">
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-[#5EA6B0] rounded-sm"></span> Sesiones</span>
                         <span class="flex items-center gap-2"><span class="w-2.5 h-2.5 bg-white/25 rounded-sm"></span> Páginas vistas</span>
@@ -228,7 +228,10 @@ const seo = seoPages.admin;
                 <section class="bg-[#1E2226] border border-white/10 rounded-lg p-5">
                     <div class="flex items-center justify-between gap-3 mb-4">
                         <h2 class="font-bold text-white">Estado operativo</h2>
-                        <span id="resend-status" class="text-xs font-bold text-gray-400">Verificando</span>
+                        <span class="text-right">
+                            <span id="resend-status" class="block text-xs font-bold text-gray-400">Verificando</span>
+                            <span id="resend-status-detail" class="block mt-1 text-[10px] text-gray-600"></span>
+                        </span>
                     </div>
                     <div id="marketing-operational" class="space-y-3"></div>
                 </section>
@@ -844,8 +847,8 @@ const seo = seoPages.admin;
                     <div class="flex items-center gap-2">
                         ${item.status === 'included'
                             ? '<span class="px-2.5 py-1.5 rounded-md bg-emerald-400/10 text-emerald-300 text-xs font-bold">Incluido</span>'
-                            : `<button type="button" onclick="updateMarketingQueue('${item.id}', 'included')" class="px-3 py-2 rounded-lg border border-[#5EA6B0]/30 text-[#88d6e0] text-xs font-bold hover:bg-[#5EA6B0]/10">Incluir</button>`}
-                        <button type="button" onclick="updateMarketingQueue('${item.id}', 'dismissed')" class="w-8 h-8 rounded-lg text-gray-500 hover:text-red-300 hover:bg-red-400/10 flex items-center justify-center" title="Descartar" aria-label="Descartar"><i data-lucide="x" class="w-4 h-4"></i></button>
+                            : `<button type="button" data-marketing-queue-id="${item.id}" data-marketing-queue-action="included" onclick="updateMarketingQueue('${item.id}', 'included')" class="min-w-[84px] px-3 py-2 rounded-lg border border-[#5EA6B0]/30 text-[#88d6e0] text-xs font-bold hover:bg-[#5EA6B0]/10 disabled:cursor-wait disabled:opacity-70">Incluir</button>`}
+                        <button type="button" data-marketing-queue-id="${item.id}" data-marketing-queue-action="dismissed" onclick="updateMarketingQueue('${item.id}', 'dismissed')" class="w-8 h-8 rounded-lg text-gray-500 hover:text-red-300 hover:bg-red-400/10 flex items-center justify-center disabled:cursor-wait disabled:opacity-40" title="Descartar" aria-label="Descartar"><i data-lucide="x" class="w-4 h-4"></i></button>
                     </div>
                 </div>`).join('') : '<p class="px-5 py-8 text-sm text-gray-600 text-center">No hay novedades pendientes.</p>';
             document.getElementById('marketing-content-queue').innerHTML = html;
@@ -881,17 +884,50 @@ const seo = seoPages.admin;
                 </div>`).join('');
 
             const daily = Array.isArray(data.daily) ? data.daily : [];
-            const chartMax = Math.max(...daily.map(item => Math.max(Number(item.sessions) || 0, Number(item.page_views) || 0)), 1);
-            document.getElementById('marketing-chart').innerHTML = daily.map((item, index) => {
-                const showLabel = index === 0 || index === daily.length - 1 || index % Math.max(1, Math.floor(daily.length / 5)) === 0;
-                return `<div class="h-full min-w-0 flex-1 flex flex-col justify-end group relative" title="${escapeAdminHTML(item.date)} · ${item.sessions} sesiones · ${item.page_views} vistas">
-                    <div class="flex-1 min-h-0 flex items-end justify-center gap-px">
-                        <span class="w-[42%] bg-[#5EA6B0] min-h-px" style="height:${(Number(item.sessions) / chartMax) * 100}%"></span>
-                        <span class="w-[42%] bg-white/25 min-h-px" style="height:${(Number(item.page_views) / chartMax) * 100}%"></span>
-                    </div>
-                    <span class="h-5 pt-1 text-[9px] text-gray-600 truncate text-center">${showLabel ? escapeAdminHTML(item.date.slice(5)) : ''}</span>
+            const rawChartMax = Math.max(...daily.map(item => Math.max(Number(item.sessions) || 0, Number(item.page_views) || 0)), 1);
+            const rawStep = rawChartMax / 4;
+            const magnitude = 10 ** Math.floor(Math.log10(Math.max(rawStep, 1)));
+            const normalizedStep = rawStep / magnitude;
+            const niceStep = (normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10) * magnitude;
+            const chartMax = niceStep * 4;
+            const ticks = Array.from({ length: 5 }, (_, index) => niceStep * index);
+            const tickMarkup = ticks.map((value, index) => {
+                const position = (index / 4) * 100;
+                return `<span class="absolute right-2 text-[10px] text-gray-500 tabular-nums -translate-y-1/2" style="bottom:calc(${position}% - 5px)">${formatMarketingNumber(value)}</span>`;
+            }).join('');
+            const gridMarkup = ticks.map((_, index) => {
+                const position = (index / 4) * 100;
+                return `<span class="absolute inset-x-0 border-t border-white/[0.07]" style="bottom:${position}%"></span>`;
+            }).join('');
+            const dateInterval = Math.max(1, Math.floor(daily.length / 5));
+            const barsMarkup = daily.map((item, index) => {
+                const sessions = Number(item.sessions) || 0;
+                const views = Number(item.page_views) || 0;
+                const showLabel = index === 0 || index === daily.length - 1 || index % dateInterval === 0;
+                const tooltipPosition = index < 2
+                    ? 'left-0'
+                    : index > daily.length - 3
+                        ? 'right-0'
+                        : 'left-1/2 -translate-x-1/2';
+                return `<div class="h-full min-w-0 flex-1 group relative flex items-end justify-center gap-px outline-none" tabindex="0" aria-label="${escapeAdminHTML(item.date)}: ${sessions} sesiones y ${views} páginas vistas">
+                    <span class="absolute top-2 ${tooltipPosition} z-20 pointer-events-none opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity min-w-32 px-3 py-2 rounded-md border border-white/10 bg-[#0f1113] shadow-xl text-[10px] leading-5 text-gray-300 whitespace-nowrap">
+                        <strong class="block text-white">${escapeAdminHTML(item.date)}</strong>
+                        <span class="block"><span class="inline-block w-2 h-2 mr-1.5 rounded-sm bg-[#5EA6B0]"></span>Sesiones: <strong class="text-white">${formatMarketingNumber(sessions)}</strong></span>
+                        <span class="block"><span class="inline-block w-2 h-2 mr-1.5 rounded-sm bg-white/25"></span>Páginas vistas: <strong class="text-white">${formatMarketingNumber(views)}</strong></span>
+                    </span>
+                    <span class="w-[42%] bg-[#5EA6B0] min-h-px group-hover:bg-[#88d6e0] group-focus:bg-[#88d6e0] transition-colors" style="height:${(sessions / chartMax) * 100}%"></span>
+                    <span class="w-[42%] bg-white/25 min-h-px group-hover:bg-white/45 group-focus:bg-white/45 transition-colors" style="height:${(views / chartMax) * 100}%"></span>
+                    <span class="absolute top-full mt-1 left-1/2 -translate-x-1/2 text-[9px] text-gray-600 whitespace-nowrap">${showLabel ? escapeAdminHTML(item.date.slice(5)) : ''}</span>
                 </div>`;
             }).join('');
+            document.getElementById('marketing-chart').innerHTML = `
+                <div class="h-[calc(100%-20px)] flex min-h-0">
+                    <div class="w-10 shrink-0 relative" aria-hidden="true">${tickMarkup}</div>
+                    <div class="relative flex-1 min-w-0">
+                        <div class="absolute inset-0 pointer-events-none" aria-hidden="true">${gridMarkup}</div>
+                        <div class="absolute inset-0 flex gap-1">${barsMarkup}</div>
+                    </div>
+                </div>`;
             document.getElementById('marketing-period-label').textContent = `Últimos ${data.period_days || marketingPeriodDays} días`;
             renderMetricList('marketing-top-pages', data.top_pages);
             renderMetricList('marketing-sources', data.traffic_sources);
@@ -900,8 +936,14 @@ const seo = seoPages.admin;
             const integration = (data.integrations || []).find(item => item.provider === 'resend');
             const connected = integration?.status === 'connected';
             const resend = document.getElementById('resend-status');
-            resend.textContent = connected ? 'Resend conectado' : integration?.status === 'error' ? 'Resend con error' : 'Resend pendiente';
+            const resendDetail = document.getElementById('resend-status-detail');
+            resend.textContent = connected ? 'Newsletter activo' : integration?.status === 'error' ? 'Newsletter requiere atención' : 'Newsletter sin suscriptores';
             resend.className = connected ? 'text-xs font-bold text-emerald-300' : integration?.status === 'error' ? 'text-xs font-bold text-red-300' : 'text-xs font-bold text-amber-300';
+            resendDetail.textContent = connected
+                ? 'Resend conectado'
+                : integration?.status === 'error'
+                    ? 'Revisar integración con Resend'
+                    : 'Se activará con la primera suscripción';
             document.getElementById('marketing-operational').innerHTML = [
                 ['Formularios', metrics.form_submissions, 'send'],
                 ['Leads', metrics.leads, 'user-round-plus'],
@@ -929,12 +971,24 @@ const seo = seoPages.admin;
         }
 
         window.updateMarketingQueue = async function(id, status) {
+            const buttons = Array.from(document.querySelectorAll(`[data-marketing-queue-id="${id}"]`));
+            buttons.forEach(button => {
+                button.disabled = true;
+                button.setAttribute('aria-busy', 'true');
+                if (button.dataset.marketingQueueAction === status) {
+                    button.innerHTML = status === 'included'
+                        ? '<span class="inline-flex items-center gap-1.5"><i data-lucide="loader-circle" class="w-3.5 h-3.5 animate-spin"></i>Incluyendo…</span>'
+                        : '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i>';
+                }
+            });
+            if (window.lucide) lucide.createIcons();
             try {
                 await marketingRequest('', { method: 'POST', body: JSON.stringify({ action: 'update_queue', id, status }) });
                 marketingOverviewLoaded = false;
                 await window.loadMarketingOverview(true);
             } catch (error) {
                 alert(error.message);
+                if (marketingOverview) renderMarketingQueue(marketingOverview.content_queue);
             }
         }
 
