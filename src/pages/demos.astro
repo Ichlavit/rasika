@@ -587,7 +587,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let frameRequest = 0;
             let destroyed = false;
             let originalPlayPending = false;
-            let isDragging = false;
+            let pointerDragging = false;
+            let touchDragging = false;
             let userInteracted = false;
             let autoSweepTimer = 0;
             let autoSweepRequest = 0;
@@ -659,42 +660,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const onPointerDown = (event) => {
                 if (!scrubSurface) return;
                 markUserInteraction();
-                isDragging = true;
-                try { scrubSurface.setPointerCapture?.(event.pointerId); } catch (error) {}
+                pointerDragging = true;
                 setPositionFromClientX(event.clientX);
-                event.preventDefault();
             };
 
             const onPointerMove = (event) => {
-                if (!isDragging) return;
+                if (!pointerDragging) return;
                 setPositionFromClientX(event.clientX);
                 event.preventDefault();
             };
 
-            const onPointerEnd = (event) => {
-                if (!isDragging) return;
-                isDragging = false;
-                try { scrubSurface?.releasePointerCapture?.(event.pointerId); } catch (error) {}
+            const onPointerEnd = () => {
+                pointerDragging = false;
             };
 
             const onTouchStart = (event) => {
                 const touch = event.touches[0];
                 if (!touch) return;
                 markUserInteraction();
-                isDragging = true;
+                touchDragging = true;
                 setPositionFromClientX(touch.clientX);
                 event.preventDefault();
             };
 
             const onTouchMove = (event) => {
                 const touch = event.touches[0];
-                if (!isDragging || !touch) return;
+                if (!touchDragging || !touch) return;
                 setPositionFromClientX(touch.clientX);
                 event.preventDefault();
             };
 
             const onTouchEnd = () => {
-                isDragging = false;
+                touchDragging = false;
             };
 
             const alignOriginal = (force = false) => {
@@ -781,17 +778,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 markUserInteraction();
                 setComparisonPosition(range.value);
             });
-            if (scrubSurface && 'PointerEvent' in window) {
+            if (scrubSurface) {
                 scrubSurface.addEventListener('pointerdown', onPointerDown);
-                scrubSurface.addEventListener('pointermove', onPointerMove);
-                scrubSurface.addEventListener('pointerup', onPointerEnd);
-                scrubSurface.addEventListener('pointercancel', onPointerEnd);
-            } else if (scrubSurface) {
                 scrubSurface.addEventListener('touchstart', onTouchStart, { passive: false });
-                scrubSurface.addEventListener('touchmove', onTouchMove, { passive: false });
-                scrubSurface.addEventListener('touchend', onTouchEnd);
-                scrubSurface.addEventListener('touchcancel', onTouchEnd);
             }
+            window.addEventListener('pointermove', onPointerMove, { passive: false });
+            window.addEventListener('pointerup', onPointerEnd);
+            window.addEventListener('pointercancel', onPointerEnd);
+            window.addEventListener('touchmove', onTouchMove, { passive: false });
+            window.addEventListener('touchend', onTouchEnd);
+            window.addEventListener('touchcancel', onTouchEnd);
             playButton?.addEventListener('click', togglePlayback);
             startButton?.addEventListener('click', startPlayback);
             muteButton?.addEventListener('click', () => {
@@ -836,6 +832,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 destroyed = true;
                 stopAutoSweep();
                 cancelAnimationFrame(frameRequest);
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerEnd);
+                window.removeEventListener('pointercancel', onPointerEnd);
+                window.removeEventListener('touchmove', onTouchMove);
+                window.removeEventListener('touchend', onTouchEnd);
+                window.removeEventListener('touchcancel', onTouchEnd);
                 resultVideo.pause();
                 originalVideo.pause();
             };
