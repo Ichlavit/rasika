@@ -850,6 +850,7 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     var currentQuote = "";
     var currentRAGContext = "";
     var requestInFlight = false;
+    var mentorCatalogReadyPromise = null;
     var ARTICLE_CONTEXT_STORAGE_KEY = "rasika_mentor_article_context";
 
     window.mentorChatHistory = [];
@@ -928,6 +929,13 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
             normalized === "pendiente@rasika.cl"
         ) return "";
         return v;
+    }
+
+    function canonicalizeServiceNames(value) {
+        return String(value || "").replace(
+            /Video Enhance con IA/gi,
+            "Chroma Key con IA Generativa"
+        );
     }
 
     function safeJsonParse(raw, fallback) {
@@ -1153,7 +1161,9 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
                 catalogText += "\n";
             });
 
-            window.mentorServicesCatalog = catalogText || "Catálogo no disponible.";
+            window.mentorServicesCatalog = canonicalizeServiceNames(
+                catalogText || "Catálogo no disponible."
+            );
         } catch (e) {
             console.warn("Catalog fetch error:", e);
             window.mentorServicesCatalog = "Catálogo no disponible.";
@@ -2217,6 +2227,7 @@ if (quoteRequested && quoteIntent) {
             "Servicio activo canónico: " + (activeService ? (activeService.service_name + " | ID: " + activeService.id + " | CATEGORIA: " + (activeService.category || "")) : "no resuelto") + "\n" +
             "Modo sugerido para este turno: " + modeHint + "\n" +
             "Regla: si Servicio activo canónico = no resuelto, no infieras servicio/categoría desde la etiqueta visible. Usa solo el catálogo y lo que el usuario diga.\n\n" +
+            "Nombre canónico obligatorio: expresa siempre el alias histórico 'Video Enhance con IA' como 'Chroma Key con IA Generativa'.\n\n" +
             "--- CATÁLOGO COMPACTO DE SERVICIOS Y PRECIOS ---\n" +
             window.mentorServicesCatalog + "\n\n" +
             "--- CATÁLOGO DE DEMOS ---\n" +
@@ -2606,6 +2617,9 @@ async function createAnonymousSession() {
     setProcessingState(true);
 
     try {
+        if (mentorCatalogReadyPromise) {
+            await mentorCatalogReadyPromise;
+        }
         var baseInstructions = await loadBaseInstructions();
         var instructions = buildDynamicInstructions(baseInstructions, userMessage);
         var stageDirective = buildStageDirective(userMessage, passiveEmail);
@@ -2710,7 +2724,9 @@ async function createAnonymousSession() {
             xhr.setRequestHeader("x-article-id", activeArticle.id);
         }
 
-        var recentHistory = window.mentorChatHistory.slice(-8).join("\n");
+        var recentHistory = canonicalizeServiceNames(
+            window.mentorChatHistory.slice(-8).join("\n")
+        );
 
         var finalInput =
             "Historial reciente:\n" +
@@ -2748,7 +2764,7 @@ async function createAnonymousSession() {
             var data = JSON.parse(xhr.responseText);
             syncMeta(data._meta);
 
-            var botMsg = extractBotMessage(data);
+            var botMsg = canonicalizeServiceNames(extractBotMessage(data));
             var uiAction = sanitizeMentorUiAction(data._ui_action);
 
             // If backend rejected a quote, do not expose technical/pricing-matrix errors.
@@ -2766,6 +2782,8 @@ async function createAnonymousSession() {
                     botMsg = "Perfecto. Prepararé el desglose formal como estimación preliminar para que el equipo pueda revisarlo contigo.";
                 }
             }
+
+            botMsg = canonicalizeServiceNames(botMsg);
 
             window.mentorChatHistory.push("CourseMentor: " + botMsg);
             addMsg(botMsg, false, false);
@@ -2960,8 +2978,10 @@ async function createAnonymousSession() {
         };
         document.head.appendChild(script);
 
-        fetchServicesCatalog();
-        fetchDemoCatalog();
+        mentorCatalogReadyPromise = Promise.all([
+            fetchServicesCatalog(),
+            fetchDemoCatalog()
+        ]);
         setupEvents();
     }
 
