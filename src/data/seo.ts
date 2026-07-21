@@ -139,9 +139,9 @@ export const seoPages = {
     jsonLd: [serviceCatalogJsonLd],
   },
   demos: {
-    title: "Demos de cursos online y SCORM interactivo | Rasika",
+    title: "Demos de cursos, SCORM y video con IA | Rasika",
     description:
-      "Explora demos de cursos interactivos, videos educativos, simuladores de software, SCORM y experiencias de aprendizaje inmersivo desarrolladas por Rasika.",
+      "Explora cursos interactivos, SCORM, simuladores y videos educativos con postproduccion IA, fondos generativos y chroma key desarrollados por Rasika.",
     path: "/demos/",
     image: "/images/blog/tech_learning.jpg",
     topic: "Demos de aprendizaje digital",
@@ -151,13 +151,15 @@ export const seoPages = {
       "cursos interactivos",
       "simuladores de software",
       "videos educativos corporativos",
+      "postproduccion video IA",
+      "chroma key inteligencia artificial",
     ],
     jsonLd: [
       {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: "Demos de cursos online y SCORM",
-        about: ["SCORM", "cursos interactivos", "videos educativos", "LMS"],
+        name: "Demos de cursos, SCORM y video con IA",
+        about: ["SCORM", "cursos interactivos", "videos educativos", "video con IA", "chroma key", "LMS"],
       },
     ],
   },
@@ -209,9 +211,9 @@ export const seoPages = {
     ],
   },
   pricing: {
-    title: "Precios de cursos online, SCORM y tutores IA | Rasika",
+    title: "Precios de cursos, SCORM, video IA y tutores | Rasika",
     description:
-      "Revisa modelos de inversion para producir cursos online, SCORM, videos educativos, simuladores, tutores virtuales IA e integraciones LMS.",
+      "Revisa precios para producir cursos, SCORM, videos educativos, postproduccion con IA, simuladores, tutores virtuales e integraciones LMS.",
     path: "/pricing/",
     image: "/images/blog/making_app.png",
     topic: "Precios EdTech y e-learning",
@@ -221,6 +223,7 @@ export const seoPages = {
       "precio chatbot tutor virtual",
       "costos e-learning",
       "produccion cursos online",
+      "precio postproduccion video IA",
     ],
     jsonLd: [
       {

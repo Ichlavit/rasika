@@ -28,6 +28,7 @@ const SERVICE_IDS = {
   aiUltra: "5e452688-9ad1-4857-ad71-11259886dbfa",
   presenter: "5594e6ab-917a-487a-8a1d-dca4bf12e185",
   roleplay: "994f43f1-e367-4001-b1b8-b3433754a654",
+  videoEnhance: "0cabec7c-39f7-497d-bdb9-97f1e3124a14",
   marketing: "515473fb-6e6e-434c-a4b8-c33678368c42",
 };
 
@@ -55,6 +56,13 @@ const VIDEO_PRICES = {
     short_1_to_5_min_uf: 40,
     medium_5_to_10_min_uf: 60,
     long_10_to_20_min_uf: 100,
+  },
+  [SERVICE_IDS.videoEnhance]: {
+    serviceName: "Video Enhance con IA",
+    pricingModel: "rate_by_total_video_minutes",
+    short_1_to_5_min_uf_per_minute: 8,
+    medium_over_5_to_10_min_uf_per_minute: 6,
+    long_over_10_to_20_min_uf_per_minute: 5,
   },
   [SERVICE_IDS.motion2d]: {
     serviceName: "2D Motion Graphics (Flat Design)",
@@ -196,6 +204,19 @@ const CONTENT = {
       "Hosting, distribución, campañas pagadas o cargas en LMS.",
     ],
   },
+  videoEnhance: {
+    inclusions: [
+      "Hasta dos fondos animados realistas generados con inteligencia artificial.",
+      "Hasta dos sets de vestuario o elementos de protección personal (EPP).",
+      "Composición, integración visual y postproducción sobre material grabado en estudio con chroma key.",
+    ],
+    exclusions: [
+      "Cambios de personajes.",
+      "Cambios en el guion.",
+      "Cambios de idioma.",
+      "Efectos especiales adicionales.",
+    ],
+  },
   motion2d: {
     inclusions: [
       "Storyboard a medida a partir de guion aprobado.",
@@ -253,6 +274,7 @@ const STANDALONE_CONTENT = {
   [SERVICE_IDS.aiBoards]: CONTENT.aiBoards,
   [SERVICE_IDS.presenter]: CONTENT.presenter,
   [SERVICE_IDS.roleplay]: CONTENT.roleplay,
+  [SERVICE_IDS.videoEnhance]: CONTENT.videoEnhance,
   [SERVICE_IDS.motion2d]: CONTENT.motion2d,
   [SERVICE_IDS.marketing]: CONTENT.marketing,
   [SERVICE_IDS.courseMentor]: CONTENT.courseMentor,
@@ -384,6 +406,17 @@ function simulationPricing() {
 }
 
 function standaloneVideoPricing(video) {
+  if (video.pricingModel === "rate_by_total_video_minutes") {
+    return {
+      currency: "UF",
+      pricing_model: "rate_by_total_video_minutes",
+      billing_basis: "one_time_project",
+      short_1_to_5_min_uf_per_minute: video.short_1_to_5_min_uf_per_minute,
+      medium_over_5_to_10_min_uf_per_minute: video.medium_over_5_to_10_min_uf_per_minute,
+      long_over_10_to_20_min_uf_per_minute: video.long_over_10_to_20_min_uf_per_minute,
+    };
+  }
+
   return {
     currency: "UF",
     pricing_model: "fixed_by_total_video_minutes",
@@ -649,7 +682,15 @@ function analyzeRow(service) {
       "pricing_tiers.legacy_keys",
     ]);
   } else if (VIDEO_PRICES[service.id]) {
-    pricePaths = pathDiffs(service, expected, VIDEO_LEVELS.map((level) => `pricing_tiers.${level.key}`));
+    const video = VIDEO_PRICES[service.id];
+    const videoPricePaths = video.pricingModel === "rate_by_total_video_minutes"
+      ? [
+          "pricing_tiers.short_1_to_5_min_uf_per_minute",
+          "pricing_tiers.medium_over_5_to_10_min_uf_per_minute",
+          "pricing_tiers.long_over_10_to_20_min_uf_per_minute",
+        ]
+      : VIDEO_LEVELS.map((level) => `pricing_tiers.${level.key}`);
+    pricePaths = pathDiffs(service, expected, videoPricePaths);
   } else {
     pricePaths = pathDiffs(service, expected, SCORM_LEVELS.map((level) => `pricing_tiers.${level.key}`));
   }
