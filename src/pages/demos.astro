@@ -580,6 +580,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let frameRequest = 0;
             let destroyed = false;
+            let originalPlayPending = false;
 
             const updateIcons = () => {
                 if (playButton) {
@@ -603,14 +604,47 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const alignOriginal = (force = false) => {
                 if (originalVideo.readyState < 2 || resultVideo.readyState < 2) return;
-                const drift = Math.abs(originalVideo.currentTime - resultVideo.currentTime);
-                if (force || drift > 0.08) originalVideo.currentTime = resultVideo.currentTime;
-                if (originalVideo.playbackRate !== resultVideo.playbackRate) originalVideo.playbackRate = resultVideo.playbackRate;
+                const offset = originalVideo.currentTime - resultVideo.currentTime;
+                const drift = Math.abs(offset);
+
+                if (force || drift > 0.25) {
+                    originalVideo.currentTime = resultVideo.currentTime;
+                    originalVideo.playbackRate = resultVideo.playbackRate;
+                    return;
+                }
+
+                const correction = drift < 0.03
+                    ? 0
+                    : Math.max(-0.04, Math.min(0.04, -offset * 0.2));
+                const targetRate = resultVideo.playbackRate + correction;
+                if (Math.abs(originalVideo.playbackRate - targetRate) > 0.005) {
+                    originalVideo.playbackRate = targetRate;
+                }
+            };
+
+            const resumeOriginal = () => {
+                if (
+                    destroyed ||
+                    resultVideo.paused ||
+                    !originalVideo.paused ||
+                    originalVideo.readyState < 2 ||
+                    originalPlayPending
+                ) return;
+
+                originalPlayPending = true;
+                originalVideo.play()
+                    .catch(() => {})
+                    .finally(() => {
+                        originalPlayPending = false;
+                    });
             };
 
             const monitorSync = () => {
                 if (destroyed) return;
-                if (!resultVideo.paused) alignOriginal();
+                if (!resultVideo.paused) {
+                    resumeOriginal();
+                    alignOriginal();
+                }
                 frameRequest = requestAnimationFrame(monitorSync);
             };
 
@@ -618,7 +652,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalVideo.muted = true;
                 alignOriginal(true);
                 try {
-                    await Promise.all([resultVideo.play(), originalVideo.play()]);
+                    await resultVideo.play();
+                    alignOriginal(true);
+                    if (originalVideo.paused) await originalVideo.play();
                     startButton?.classList.add('hidden');
                     startButton?.classList.remove('flex');
                     if (status) status.textContent = 'Comparación reproduciéndose';
@@ -658,13 +694,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             resultVideo.addEventListener('play', () => {
                 alignOriginal(true);
-                originalVideo.play().catch(() => {});
+                resumeOriginal();
                 startButton?.classList.add('hidden');
                 startButton?.classList.remove('flex');
                 updateIcons();
             });
             resultVideo.addEventListener('pause', () => {
                 originalVideo.pause();
+                originalVideo.playbackRate = resultVideo.playbackRate;
                 updateIcons();
             });
             resultVideo.addEventListener('seeking', () => alignOriginal(true));
