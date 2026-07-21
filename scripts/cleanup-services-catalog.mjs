@@ -58,7 +58,7 @@ const VIDEO_PRICES = {
     long_10_to_20_min_uf: 100,
   },
   [SERVICE_IDS.videoEnhance]: {
-    serviceName: "Video Enhance con IA",
+    serviceName: "Chroma Key con IA Generativa",
     pricingModel: "rate_by_total_video_minutes",
     short_1_to_5_min_uf_per_minute: 8,
     medium_over_5_to_10_min_uf_per_minute: 6,
@@ -214,7 +214,7 @@ const CONTENT = {
       "Cambios de personajes.",
       "Cambios en el guion.",
       "Cambios de idioma.",
-      "Efectos especiales adicionales.",
+      "Efectos especiales fuera del alcance base; se cotizan por separado.",
     ],
   },
   motion2d: {

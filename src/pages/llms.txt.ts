@@ -1,4 +1,9 @@
-import { SITE, publicSeoPages, absoluteUrl } from "../data/seo";
+import {
+  SITE,
+  publicSeoPages,
+  absoluteUrl,
+  VIDEO_ENHANCE_SEO,
+} from "../data/seo";
 import { articlePath, getPublishedBlogPosts } from "../lib/blog";
 
 export async function GET() {
@@ -26,13 +31,35 @@ Rasika Producciones creates corporate online courses, SCORM/HTML5 learning exper
 - IA educativa, RAG, LMS, Moodle, TalentLMS y xAPI
 - Automatizaciones EdTech con Supabase, APIs, reportes y CRM
 
+## Chroma Key con IA Generativa
+
+Chroma Key con IA Generativa is Rasika's AI-assisted post-production service for footage recorded in a chroma key studio. It can replace locations, wardrobe, lighting and personal protective equipment (EPP), and can add separately quoted special effects. It preserves the approved actors, script, language, edit and audio unless a broader scope is explicitly quoted.
+
+Included scope:
+
+- Up to two realistic AI-generated animated backgrounds.
+- Up to two wardrobe or EPP sets.
+- Visual composition, integration and post-production over approved chroma key footage.
+
+Excluded scope:
+
+- Character changes.
+- Script changes.
+- Language changes.
+- Special effects outside the base scope; these can be quoted separately.
+
+Pricing uses one volume rate across the total finished duration: 8 UF per minute for 1-5 minutes, 6 UF per minute for more than 5 and up to 10 minutes, and 5 UF per minute for more than 10 and up to 20 minutes. Projects longer than 20 minutes require technical evaluation.
+
+- [Compare original and AI result](${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)})
+- [Chroma Key con IA Generativa pricing](${absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath)})
+
 ## Core Pages
 
 ${corePages}
 
 ## Where To Send Search Intent
 
-- Building online courses, SCORM, HTML5, simulations, educational video and AI video enhancement: ${SITE.origin}/demos/
+- Building online courses, SCORM, HTML5, simulations, educational video and generative AI chroma key post-production: ${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)}
 - Chatbots for virtual tutors, CourseMentor, Moodle, TalentLMS and LMS automation: ${SITE.origin}/lms/
 - Pricing, quote requests and project scope conversations: ${SITE.origin}/pricing/
 - EdTech thought leadership, AI learning trends and educational automation articles: ${SITE.origin}/blog/

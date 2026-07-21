@@ -29,6 +29,22 @@ export function absoluteUrl(path = "/") {
   return new URL(path, SITE.origin).toString();
 }
 
+export const VIDEO_ENHANCE_SEO = {
+  name: "Chroma Key con IA Generativa: original vs. resultado",
+  serviceName: "Chroma Key con IA Generativa",
+  description:
+    "Transforma tus videos grabados en estudio con nuestra IA generativa. Reemplaza locaciones, vestuarios, iluminación, añade efectos especiales y más.",
+  serviceDescription:
+    "Postproducción para video grabado en estudio con chroma key: reemplaza locaciones, vestuario, EPP e iluminación con IA generativa. Los efectos especiales se cotizan como alcance adicional.",
+  demoPath: "/demos/?demo=video-enhance-ia",
+  pricingPath: "/pricing/#video-enhance",
+  thumbnailPath: "/images/demos/video-enhance-ia.jpg",
+  contentPath:
+    "/videos/standalone/video_enhance_result.mp4?v=ec0150223449",
+  uploadDate: "2026-07-21T17:28:05-04:00",
+  duration: "PT19.33S",
+} as const;
+
 export const organizationJsonLd: JsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -51,6 +67,10 @@ export const organizationJsonLd: JsonLd = {
     "CourseMentor",
     "automatizaciones EdTech",
     "integracion LMS",
+    "postproduccion de video con inteligencia artificial",
+    "chroma key con inteligencia artificial",
+    "fondos de video generados con inteligencia artificial",
+    "vestuario virtual y EPP virtual",
     "TalentLMS",
     "Moodle",
     "xAPI",
@@ -116,6 +136,17 @@ const serviceCatalogJsonLd: JsonLd = {
             "Integraciones con TalentLMS, Moodle, Supabase, xAPI, CRM y flujos de datos para aprendizaje corporativo.",
         },
       },
+      {
+        "@type": "Offer",
+        url: absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath),
+        itemOffered: {
+          "@type": "Service",
+          name: VIDEO_ENHANCE_SEO.serviceName,
+          serviceType: "Postproducción de video con inteligencia artificial",
+          description: VIDEO_ENHANCE_SEO.serviceDescription,
+          url: absoluteUrl(VIDEO_ENHANCE_SEO.demoPath),
+        },
+      },
     ],
   },
 };
@@ -139,11 +170,11 @@ export const seoPages = {
     jsonLd: [serviceCatalogJsonLd],
   },
   demos: {
-    title: "Demos de cursos, SCORM y video con IA | Rasika",
+    title: "Demos de SCORM y Chroma Key con IA Generativa | Rasika",
     description:
-      "Explora cursos interactivos, SCORM, simuladores y videos educativos con postproduccion IA, fondos generativos y chroma key desarrollados por Rasika.",
+      "Compara video original y Chroma Key con IA Generativa. Reemplaza locaciones, vestuario, iluminación y EPP en producciones corporativas grabadas en estudio.",
     path: "/demos/",
-    image: "/images/blog/tech_learning.jpg",
+    image: VIDEO_ENHANCE_SEO.thumbnailPath,
     topic: "Demos de aprendizaje digital",
     keywords: [
       "demos e-learning",
@@ -153,13 +184,43 @@ export const seoPages = {
       "videos educativos corporativos",
       "postproduccion video IA",
       "chroma key inteligencia artificial",
+      "reemplazo de fondo chroma key",
+      "escenarios virtuales para video",
+      "cambio de vestuario con IA",
+      "EPP virtual",
     ],
     jsonLd: [
       {
         "@context": "https://schema.org",
         "@type": "CollectionPage",
-        name: "Demos de cursos, SCORM y video con IA",
-        about: ["SCORM", "cursos interactivos", "videos educativos", "video con IA", "chroma key", "LMS"],
+        name: "Demos de cursos, SCORM y Chroma Key con IA Generativa",
+        about: [
+          "SCORM",
+          "cursos interactivos",
+          "videos educativos",
+          "postproduccion de video con IA",
+          "chroma key",
+          "fondos generados con IA",
+          "vestuario virtual",
+          "EPP virtual",
+          "LMS",
+        ],
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "@id": `${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)}#video`,
+        name: VIDEO_ENHANCE_SEO.name,
+        description: VIDEO_ENHANCE_SEO.description,
+        thumbnailUrl: absoluteUrl(VIDEO_ENHANCE_SEO.thumbnailPath),
+        uploadDate: VIDEO_ENHANCE_SEO.uploadDate,
+        duration: VIDEO_ENHANCE_SEO.duration,
+        contentUrl: absoluteUrl(VIDEO_ENHANCE_SEO.contentPath),
+        url: absoluteUrl(VIDEO_ENHANCE_SEO.demoPath),
+        inLanguage: SITE.language,
+        publisher: {
+          "@id": absoluteUrl("/#organization"),
+        },
       },
     ],
   },
@@ -211,9 +272,9 @@ export const seoPages = {
     ],
   },
   pricing: {
-    title: "Precios de cursos, SCORM, video IA y tutores | Rasika",
+    title: "Precios de Chroma Key con IA, cursos y SCORM | Rasika",
     description:
-      "Revisa precios para producir cursos, SCORM, videos educativos, postproduccion con IA, simuladores, tutores virtuales e integraciones LMS.",
+      "Revisa precios de Chroma Key con IA Generativa para reemplazar locaciones, vestuario, iluminación o EPP, además de cursos, SCORM y tutores virtuales.",
     path: "/pricing/",
     image: "/images/blog/making_app.png",
     topic: "Precios EdTech y e-learning",
@@ -224,6 +285,8 @@ export const seoPages = {
       "costos e-learning",
       "produccion cursos online",
       "precio postproduccion video IA",
+      "precio chroma key IA",
+      "precio fondos generados con IA",
     ],
     jsonLd: [
       {
@@ -244,6 +307,58 @@ export const seoPages = {
               "@type": "Service",
               name: "Videos educativos",
             },
+          },
+          {
+            "@type": "Offer",
+            name: "Chroma Key con IA Generativa por minuto terminado",
+            url: absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath),
+            itemOffered: {
+              "@type": "Service",
+              name: VIDEO_ENHANCE_SEO.serviceName,
+              serviceType: "Postproducción de video con inteligencia artificial",
+              description: VIDEO_ENHANCE_SEO.serviceDescription,
+              provider: {
+                "@id": absoluteUrl("/#organization"),
+              },
+            },
+            priceSpecification: [
+              {
+                "@type": "UnitPriceSpecification",
+                price: 8,
+                priceCurrency: "CLF",
+                unitText: "minuto de video terminado",
+                eligibleQuantity: {
+                  "@type": "QuantitativeValue",
+                  minValue: 1,
+                  maxValue: 5,
+                  unitCode: "MIN",
+                },
+              },
+              {
+                "@type": "UnitPriceSpecification",
+                price: 6,
+                priceCurrency: "CLF",
+                unitText: "minuto de video terminado",
+                eligibleQuantity: {
+                  "@type": "QuantitativeValue",
+                  minValue: 5.01,
+                  maxValue: 10,
+                  unitCode: "MIN",
+                },
+              },
+              {
+                "@type": "UnitPriceSpecification",
+                price: 5,
+                priceCurrency: "CLF",
+                unitText: "minuto de video terminado",
+                eligibleQuantity: {
+                  "@type": "QuantitativeValue",
+                  minValue: 10.01,
+                  maxValue: 20,
+                  unitCode: "MIN",
+                },
+              },
+            ],
           },
           {
             "@type": "Offer",
