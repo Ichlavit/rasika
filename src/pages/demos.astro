@@ -600,6 +600,8 @@ document.addEventListener('DOMContentLoaded', () => {
             let userInteracted = false;
             let autoSweepTimer = 0;
             let autoSweepRequest = 0;
+            let resizeObserver = null;
+            const usesPointerEvents = 'PointerEvent' in window;
 
             const updateIcons = () => {
                 if (playButton) {
@@ -615,10 +617,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const setComparisonPosition = (value) => {
                 const position = Math.min(100, Math.max(0, Number(value) || 0));
-                originalLayer.style.clipPath = `inset(0 ${100 - position}% 0 0)`;
+                originalLayer.style.width = `${position}%`;
                 divider.style.left = `${position}%`;
                 range.value = String(position);
                 range.setAttribute('aria-valuetext', `${Math.round(position)}% original, ${Math.round(100 - position)}% resultado IA`);
+            };
+
+            const sizeOriginalVideo = () => {
+                const bounds = player.getBoundingClientRect();
+                if (!bounds.width || !bounds.height) return;
+                originalVideo.style.width = `${bounds.width}px`;
+                originalVideo.style.height = `${bounds.height}px`;
             };
 
             const stopAutoSweep = () => {
@@ -679,11 +688,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const onPointerMove = (event) => {
                 if (!pointerDragging) return;
                 setPositionFromClientX(event.clientX);
-                event.preventDefault();
             };
 
             const onPointerEnd = () => {
+                const wasDragging = pointerDragging;
                 pointerDragging = false;
+                if (wasDragging) alignOriginal(true);
             };
 
             const onTouchStart = (event) => {
@@ -703,7 +713,9 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const onTouchEnd = () => {
+                const wasDragging = touchDragging;
                 touchDragging = false;
+                if (wasDragging) alignOriginal(true);
             };
 
             const suppressNativeGesture = (event) => {
@@ -751,7 +763,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (destroyed) return;
                 if (!resultVideo.paused) {
                     resumeOriginal();
-                    alignOriginal();
+                    if (!pointerDragging && !touchDragging) alignOriginal();
                 }
                 frameRequest = requestAnimationFrame(monitorSync);
             };
@@ -795,15 +807,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 setComparisonPosition(range.value);
             });
             if (scrubSurface) {
-                scrubSurface.addEventListener('pointerdown', onPointerDown);
-                scrubSurface.addEventListener('touchstart', onTouchStart, { passive: false });
+                if (usesPointerEvents) {
+                    scrubSurface.addEventListener('pointerdown', onPointerDown);
+                    window.addEventListener('pointermove', onPointerMove);
+                    window.addEventListener('pointerup', onPointerEnd);
+                    window.addEventListener('pointercancel', onPointerEnd);
+                } else {
+                    scrubSurface.addEventListener('touchstart', onTouchStart, { passive: false });
+                    window.addEventListener('touchmove', onTouchMove, { passive: false });
+                    window.addEventListener('touchend', onTouchEnd);
+                    window.addEventListener('touchcancel', onTouchEnd);
+                }
             }
-            window.addEventListener('pointermove', onPointerMove, { passive: false });
-            window.addEventListener('pointerup', onPointerEnd);
-            window.addEventListener('pointercancel', onPointerEnd);
-            window.addEventListener('touchmove', onTouchMove, { passive: false });
-            window.addEventListener('touchend', onTouchEnd);
-            window.addEventListener('touchcancel', onTouchEnd);
             player.addEventListener('contextmenu', suppressNativeGesture);
             player.addEventListener('dragstart', suppressNativeGesture);
             player.addEventListener('selectstart', suppressNativeGesture);
@@ -838,6 +853,12 @@ document.addEventListener('DOMContentLoaded', () => {
             originalVideo.addEventListener('loadeddata', markReady);
             originalVideo.addEventListener('canplay', markReady);
 
+            sizeOriginalVideo();
+            if ('ResizeObserver' in window) {
+                resizeObserver = new ResizeObserver(sizeOriginalVideo);
+                resizeObserver.observe(player);
+            }
+            window.addEventListener('resize', sizeOriginalVideo);
             setComparisonPosition(range.value || 50);
             resultVideo.muted = true;
             originalVideo.muted = true;
@@ -852,16 +873,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 destroyed = true;
                 stopAutoSweep();
                 cancelAnimationFrame(frameRequest);
-                window.removeEventListener('pointermove', onPointerMove);
-                window.removeEventListener('pointerup', onPointerEnd);
-                window.removeEventListener('pointercancel', onPointerEnd);
-                window.removeEventListener('touchmove', onTouchMove);
-                window.removeEventListener('touchend', onTouchEnd);
-                window.removeEventListener('touchcancel', onTouchEnd);
+                if (usesPointerEvents) {
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerEnd);
+                    window.removeEventListener('pointercancel', onPointerEnd);
+                } else {
+                    window.removeEventListener('touchmove', onTouchMove);
+                    window.removeEventListener('touchend', onTouchEnd);
+                    window.removeEventListener('touchcancel', onTouchEnd);
+                }
                 player.removeEventListener('contextmenu', suppressNativeGesture);
                 player.removeEventListener('dragstart', suppressNativeGesture);
                 player.removeEventListener('selectstart', suppressNativeGesture);
                 player.removeEventListener('gesturestart', suppressNativeGesture);
+                resizeObserver?.disconnect();
+                window.removeEventListener('resize', sizeOriginalVideo);
                 resultVideo.pause();
                 originalVideo.pause();
             };
@@ -900,8 +926,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 contentHtml = `
                     <div data-video-enhance-player class="relative w-full h-full overflow-hidden bg-black select-none">
                         <video data-enhance-result src="${source}" poster="/images/demos/video-enhance-ia.jpg" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
-                        <div data-enhance-original-layer class="absolute inset-0 overflow-hidden" style="clip-path: inset(0 50% 0 0);">
-                            <video data-enhance-original src="${comparisonSource}" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
+                        <div data-enhance-original-layer class="absolute inset-y-0 left-0 overflow-hidden" style="width: 50%; contain: paint; will-change: width;">
+                            <video data-enhance-original src="${comparisonSource}" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute left-0 top-0 max-w-none object-cover"></video>
                         </div>
 
                         <div class="absolute inset-x-0 top-0 z-30 flex justify-between p-4 pointer-events-none text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
