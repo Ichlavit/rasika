@@ -8,7 +8,6 @@ import { articlePath, getPublishedBlogPosts } from "../lib/blog";
 const routeMeta: Record<string, { changefreq: string; priority: string }> = {
   "/": { changefreq: "weekly", priority: "1.0" },
   "/demos/": { changefreq: "monthly", priority: "0.8" },
-  "/chroma-key-ia/": { changefreq: "monthly", priority: "0.9" },
   "/lms/": { changefreq: "monthly", priority: "0.9" },
   "/clients/": { changefreq: "monthly", priority: "0.7" },
   "/pricing/": { changefreq: "monthly", priority: "0.8" },

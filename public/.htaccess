@@ -1,1 +1,2 @@
 RedirectMatch 301 ^/nosotros/?$ /demos/
+RedirectMatch 301 ^/chroma-key-ia/?$ /demos/?demo=video-enhance-ia

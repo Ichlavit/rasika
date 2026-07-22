@@ -50,7 +50,6 @@ Excluded scope:
 
 Pricing uses one volume rate across the total finished duration: 8 UF per minute for 1-5 minutes, 6 UF per minute for more than 5 and up to 10 minutes, and 5 UF per minute for more than 10 and up to 20 minutes. Projects longer than 20 minutes require technical evaluation.
 
-- [Chroma Key con IA Generativa in Chile](${absoluteUrl(VIDEO_ENHANCE_SEO.servicePath)})
 - [Compare original and AI result](${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)})
 - [Chroma Key con IA Generativa pricing](${absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath)})
 
