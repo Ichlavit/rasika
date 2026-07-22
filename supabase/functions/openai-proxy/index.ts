@@ -1011,6 +1011,31 @@ if (
     normalizedQuoteText.includes("scorm") ||
     normalizedQuoteText.includes("rise");
 
+  const quoteIncludesAdditiveChroma =
+    normalizedQuoteText.includes("chroma key con ia generativa");
+
+  const normalizedServiceName =
+    normalizeLower(serviceName);
+
+  const normalizedBundleVideoName =
+    normalizeLower(
+      selectedService?.pricing_tiers?.video_component?.service_name,
+    );
+
+  const eligibleChromaBaseNames = [
+    "video presentador (estudio)",
+    "video role-playing (estudio)",
+  ];
+
+  const primarySupportsAdditiveChroma =
+    !quoteIncludesAdditiveChroma ||
+    normalizedServiceName === "chroma key con ia generativa" ||
+    eligibleChromaBaseNames.includes(normalizedServiceName) ||
+    (
+      serviceCategory === "bundle" &&
+      eligibleChromaBaseNames.includes(normalizedBundleVideoName)
+    );
+
   const selectedStandaloneVideoForInteractiveNeed =
     serviceCategory === "video" &&
     needsInteractive &&
@@ -1026,7 +1051,8 @@ if (
   serviceCategory === "bundle" &&
   validatedPrice !== null &&
   selectedService &&
-  !priceMatchesKnownBundleTotal(selectedService, validatedPrice);
+  !priceMatchesKnownBundleTotal(selectedService, validatedPrice) &&
+  !quoteIncludesAdditiveChroma;
 
   const selectedSaasWithWrongCurrency =
     serviceCategory === "saas" &&
@@ -1044,6 +1070,7 @@ if (
     validatedServiceId &&
     validatedPrice &&
     selectedService &&
+    primarySupportsAdditiveChroma &&
     !selectedStandaloneVideoForInteractiveNeed &&
     !selectedSimulationWithoutSoftwareNeed &&
     !selectedBundleWithInvalidTotal &&

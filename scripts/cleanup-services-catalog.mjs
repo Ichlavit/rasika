@@ -63,6 +63,26 @@ const VIDEO_PRICES = {
     short_1_to_5_min_uf_per_minute: 8,
     medium_over_5_to_10_min_uf_per_minute: 6,
     long_over_10_to_20_min_uf_per_minute: 5,
+    pricingMetadata: {
+      combination_mode: "additive_postproduction",
+      discount_policy: "commitment_tier_only",
+      rate_selection_basis: "total_chroma_minutes_in_project",
+      eligible_input_modes: [
+        "client_supplied_chroma_footage",
+        "rasika_studio_video",
+      ],
+      eligible_base_service_ids: [
+        SERVICE_IDS.presenter,
+        SERVICE_IDS.roleplay,
+      ],
+      eligible_base_service_names: [
+        "Video Presentador (Estudio)",
+        "Video Role-Playing (Estudio)",
+      ],
+      bundle_application: "add_after_base_video_or_scorm_video_bundle",
+      selection_rule:
+        "Apply one rate to all eligible chroma minutes, then add that amount to the full base video or SCORM plus video bundle price. Use the base video service ID for standalone combinations and the bundle service ID for SCORM combinations. Do not discount the base service or the add-on.",
+    },
   },
   [SERVICE_IDS.motion2d]: {
     serviceName: "2D Motion Graphics (Flat Design)",
@@ -414,6 +434,7 @@ function standaloneVideoPricing(video) {
       short_1_to_5_min_uf_per_minute: video.short_1_to_5_min_uf_per_minute,
       medium_over_5_to_10_min_uf_per_minute: video.medium_over_5_to_10_min_uf_per_minute,
       long_over_10_to_20_min_uf_per_minute: video.long_over_10_to_20_min_uf_per_minute,
+      ...(video.pricingMetadata || {}),
     };
   }
 

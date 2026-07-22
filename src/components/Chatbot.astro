@@ -41,7 +41,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     var PROXY_ENDPOINT = SUPABASE_URL + "/functions/v1/openai-proxy";
     var OPENAI_FILES_URL = "https://api.openai.com/v1/files";
     var OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-    var INSTRUCTIONS_CACHE_KEY = "rasika_coursementor_system_instructions_v4";
+    var INSTRUCTIONS_CACHE_KEY = "rasika_coursementor_system_instructions_v5";
     var INSTRUCTIONS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
     var MODEL_NAME = "gpt-5-mini";
     var BASE_SYSTEM_INSTRUCTIONS = `Eres CourseMentor, un asistente integrado exclusivamente en la web pública de Rasika.
@@ -391,6 +391,18 @@ Clave correcta = scorm_10_to_20__video_5_to_10.
 8. En quote_request.summary detalla: navegación total, minutos de video, minutos SCORM billables, componentes, precios y total.
 9. No uses el UUID del video como servicio principal si hay SCORM/simulador.
 10. Nunca uses Simulación de Software salvo que el usuario pida explícitamente práctica de software, interfaz, ERP, plataforma, clicks o sandbox.
+
+Reglas de adicionales de postproducción:
+1. Chroma Key con IA Generativa es siempre una línea adicional. Nunca reemplaza ni rebaja el precio del video base y no tiene un bundle con descuento propio.
+2. Puede aplicarse directamente a metraje chroma provisto por el cliente. Si Rasika también produce el video base, solo puede agregarse a Video Presentador (Estudio) o Video Role-Playing (Estudio) grabado con chroma key.
+3. No lo combines como adicional con Video con IA Ultra-Realista, Cápsulas de Video (IA + Boards), 2D Motion Graphics ni Videos de Marketing de Alta Calidad.
+4. Suma todos los minutos elegibles de chroma del proyecto y aplica una sola tarifa de pricing_tiers: 8 UF/min entre 1 y 5 minutos, 6 UF/min sobre 5 y hasta 10 minutos, o 5 UF/min sobre 10 y hasta 20 minutos. No mezcles tarifas.
+5. El único descuento es esa tarifa descendente por compromiso total de minutos. No apliques descuentos sobre el video base, el bundle ni el adicional.
+6. Si se combina con Video Presentador o Video Role-Playing standalone, suma: precio completo del video base + minutos chroma × tarifa aplicable. Usa el UUID del video base como quote_request.service_id.
+7. Si el video forma parte de una solución SCORM/HTML, usa primero el total del bundle SCORM + Presentador o SCORM + Role-Playing que corresponda y luego suma el adicional de Chroma Key. Usa el UUID del bundle como quote_request.service_id.
+8. Si el cliente aporta el metraje chroma ya grabado, cotiza solo el adicional y usa el UUID de Chroma Key con IA Generativa.
+9. Si no está claro si el metraje lo aporta el cliente o si Rasika debe producirlo, pregunta solo ese dato antes de estimar.
+10. En quote_request.summary escribe los nombres canónicos de todos los componentes, minutos chroma, tarifa por minuto, subtotal del adicional, precio del video o bundle base y total final.
 
 Diseño instruccional, guionización, evaluaciones básicas y PDFs están incluidos cuando el catálogo lo indique. No los cobres aparte si ya están incluidos.
 
@@ -2092,6 +2104,7 @@ function buildStageDirective(userText, passiveEmail) {
             "Nunca digas 'te acabo de enviar', 'ya envié' o equivalente. Si quote_request.should_send=true, di solo que prepararás/enviarás el desglose formal al correo indicado. NO hagas preguntas adicionales en ese mismo mensaje. NO preguntes si quiere agendar reunión; el email de cotización ya incluirá el botón para agendar.\n" +
             "Cuando quote_request.should_send=true, assistant_response debe ser un cierre breve y definitivo, no una nueva etapa del funnel. Ejemplo correcto: “Perfecto, Yuri. Prepararé el desglose formal del paquete SCORM/HTML en Rise + Cápsulas de Video para enviarlo a jose.contreras@rasika.cl.”\n" +
             "REGLA CRÍTICA DE BUNDLES: si el proyecto requiere video + evaluación/interactividad/SCORM/LMS/reportes/desafíos, DEBES preferir un servicio con CATEGORIA=bundle que calce con la combinación. Usa su BUNDLE_TOTALS_UF directo; no recalcules componentes si hay una clave aplicable. Si no existe bundle, usa el service_id del SCORM/simulador principal y detalla ambos componentes en summary.\n" +
+            "REGLA CRÍTICA DE CHROMA ADITIVO: Chroma Key con IA Generativa nunca reemplaza ni descuenta el video base. Acepta metraje chroma del cliente o, si Rasika produce el video, solo Video Presentador (Estudio) o Video Role-Playing (Estudio). Calcula todos los minutos chroma con una sola tarifa de compromiso y suma el adicional completo al video base o al bundle SCORM + Presentador/Role-Playing. Si existe bundle, conserva su service_id y nombra Chroma Key con IA Generativa en summary con minutos, tarifa y subtotal. No lo combines con otros tipos de video.\n" +
             "REGLA CRÍTICA DE CONSISTENCIA SERVICIO-PRECIO: el quote_request.service_id y quote_request.quoted_price deben venir de la misma fila del catálogo. Si eliges un servicio CATEGORIA=bundle, el precio debe existir dentro de BUNDLE_TOTALS_UF de ese mismo bundle. No mezcles el UUID de un servicio con el precio de otro bundle parecido.\n" +
             "REGLA CRÍTICA DE CLAVE BUNDLE: para paquetes SCORM + video, calcula primero minutos SCORM billables = navegación total - playback total de video. Usa esos minutos para la parte scorm_X_to_Y y usa playback total de video para video_X_to_Y. Ejemplo: 30 min navegación total con 10 min video => scorm_10_to_20__video_5_to_10.\n" +
             "REGLA CRÍTICA DE SIMULACIÓN: nunca selecciones 'Simulación de Software (HTML/SCORM)' salvo que el usuario pida explícitamente práctica de software/interfaz/plataforma/ERP/clics/sandbox.\n" +

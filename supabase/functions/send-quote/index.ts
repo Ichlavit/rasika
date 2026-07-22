@@ -437,10 +437,6 @@ function resolveQuotedServices(
   catalog: ServiceRecord[],
   summary: string,
 ) {
-  if (primaryService.category === "bundle") {
-    return [primaryService];
-  }
-
   const normalizedSummary = normalizeServiceText(summary);
   const matchedServices = catalog
     .filter((service) => service.category !== "bundle")
@@ -449,11 +445,27 @@ function resolveQuotedServices(
       return serviceName && normalizedSummary.includes(serviceName);
     });
 
+  if (primaryService.category === "bundle") {
+    const additiveServices = matchedServices.filter(
+      (service) =>
+        service.pricing_tiers?.combination_mode === "additive_postproduction",
+    );
+
+    return [primaryService, ...additiveServices];
+  }
+
   const servicesById = new Map<string, ServiceRecord>();
   servicesById.set(primaryService.id, primaryService);
   matchedServices.forEach((service) => servicesById.set(service.id, service));
 
-  return Array.from(servicesById.values());
+  return Array.from(servicesById.values()).sort((a, b) => {
+    const aIsAdditive = a.pricing_tiers?.combination_mode ===
+      "additive_postproduction";
+    const bIsAdditive = b.pricing_tiers?.combination_mode ===
+      "additive_postproduction";
+
+    return Number(aIsAdditive) - Number(bIsAdditive);
+  });
 }
 
 function renderList(items: string[]) {
