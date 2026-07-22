@@ -33,9 +33,10 @@ export const VIDEO_ENHANCE_SEO = {
   name: "Chroma Key con IA Generativa: original vs. resultado",
   serviceName: "Chroma Key con IA Generativa",
   description:
-    "Transforma tus videos grabados en estudio con nuestra IA generativa. Reemplaza locaciones, vestuarios, iluminación, añade efectos especiales y más.",
+    "Actores reales dan vida a la escena y la IA generativa crea locaciones, vestuario y extras para lograr producciones más ambiciosas con menos rodajes.",
   serviceDescription:
-    "Postproducción para video grabado en estudio con chroma key: reemplaza locaciones, vestuario, EPP e iluminación con IA generativa. Los efectos especiales se cotizan como alcance adicional.",
+    "Producción híbrida controlada para video grabado en estudio con chroma key: conserva la actuación humana y transforma locaciones, vestuario, EPP, iluminación y extras con IA generativa.",
+  servicePath: "/chroma-key-ia/",
   demoPath: "/demos/?demo=video-enhance-ia",
   pricingPath: "/pricing/#video-enhance",
   thumbnailPath: "/images/demos/video-enhance-ia.jpg",
@@ -144,7 +145,7 @@ const serviceCatalogJsonLd: JsonLd = {
           name: VIDEO_ENHANCE_SEO.serviceName,
           serviceType: "Postproducción de video con inteligencia artificial",
           description: VIDEO_ENHANCE_SEO.serviceDescription,
-          url: absoluteUrl(VIDEO_ENHANCE_SEO.demoPath),
+          url: absoluteUrl(VIDEO_ENHANCE_SEO.servicePath),
         },
       },
     ],
@@ -221,6 +222,152 @@ export const seoPages = {
         publisher: {
           "@id": absoluteUrl("/#organization"),
         },
+      },
+    ],
+  },
+  videoEnhance: {
+    title: "Chroma Key con IA generativa en Chile | Rasika",
+    description:
+      "Actores reales e IA generativa para crear locaciones, vestuario, EPP y extras sin repetir cada rodaje. Compara el resultado y revisa precios en UF.",
+    path: VIDEO_ENHANCE_SEO.servicePath,
+    image: VIDEO_ENHANCE_SEO.thumbnailPath,
+    topic: "Producción híbrida con chroma key e IA generativa en Chile",
+    keywords: [
+      "chroma key con IA generativa en Chile",
+      "productora audiovisual IA Santiago",
+      "cambio de locaciones con IA",
+      "cambio de vestuario con IA",
+      "fondos animados generados por IA",
+      "extras generados por IA",
+      "postproduccion chroma key Chile",
+      "video corporativo con IA",
+      "EPP virtual",
+    ],
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "Service",
+        "@id": `${absoluteUrl(VIDEO_ENHANCE_SEO.servicePath)}#service`,
+        name: VIDEO_ENHANCE_SEO.serviceName,
+        alternateName: [
+          "Producción híbrida controlada",
+          "Postproducción de chroma key con IA",
+        ],
+        serviceType:
+          "Producción y postproducción audiovisual con chroma key e inteligencia artificial generativa",
+        description: VIDEO_ENHANCE_SEO.serviceDescription,
+        url: absoluteUrl(VIDEO_ENHANCE_SEO.servicePath),
+        provider: {
+          "@id": absoluteUrl("/#organization"),
+        },
+        areaServed: ["Santiago de Chile", "Chile", "Latinoamérica"],
+        audience: {
+          "@type": "BusinessAudience",
+          audienceType:
+            "Empresas, instituciones, equipos de capacitación, comunicaciones, marketing y prevención de riesgos",
+        },
+        image: absoluteUrl(VIDEO_ENHANCE_SEO.thumbnailPath),
+        subjectOf: {
+          "@type": "VideoObject",
+          "@id": `${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)}#video`,
+          name: VIDEO_ENHANCE_SEO.name,
+          description: VIDEO_ENHANCE_SEO.description,
+          thumbnailUrl: absoluteUrl(VIDEO_ENHANCE_SEO.thumbnailPath),
+          uploadDate: VIDEO_ENHANCE_SEO.uploadDate,
+          duration: VIDEO_ENHANCE_SEO.duration,
+          contentUrl: absoluteUrl(VIDEO_ENHANCE_SEO.contentPath),
+          url: absoluteUrl(VIDEO_ENHANCE_SEO.demoPath),
+          inLanguage: SITE.language,
+        },
+        offers: {
+          "@type": "Offer",
+          url: absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath),
+          priceCurrency: "CLF",
+          priceSpecification: [
+            {
+              "@type": "UnitPriceSpecification",
+              price: 8,
+              priceCurrency: "CLF",
+              unitText: "minuto de video terminado",
+              eligibleQuantity: {
+                "@type": "QuantitativeValue",
+                minValue: 1,
+                maxValue: 5,
+                unitCode: "MIN",
+              },
+            },
+            {
+              "@type": "UnitPriceSpecification",
+              price: 6,
+              priceCurrency: "CLF",
+              unitText: "minuto de video terminado",
+              eligibleQuantity: {
+                "@type": "QuantitativeValue",
+                minValue: 5.01,
+                maxValue: 10,
+                unitCode: "MIN",
+              },
+            },
+            {
+              "@type": "UnitPriceSpecification",
+              price: 5,
+              priceCurrency: "CLF",
+              unitText: "minuto de video terminado",
+              eligibleQuantity: {
+                "@type": "QuantitativeValue",
+                minValue: 10.01,
+                maxValue: 20,
+                unitCode: "MIN",
+              },
+            },
+          ],
+        },
+      },
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: [
+          {
+            "@type": "Question",
+            name: "¿Pueden trabajar con un video ya grabado?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Sí. Evaluamos el material grabado con chroma key, su resolución, iluminación, encuadre y duración antes de definir el alcance de postproducción.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "¿Se puede cambiar el vestuario o el EPP?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Sí. El servicio base contempla hasta dos sets de vestuario o elementos de protección personal, sujetos a evaluación técnica del movimiento y la toma.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "¿Se conserva la actuación y el audio original?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Sí. La propuesta conserva a los actores, su interpretación, el guion, el idioma, la edición y el audio aprobados, salvo que se cotice un alcance adicional.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "¿Cuánto cuesta el Chroma Key con IA generativa?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "La tarifa es de 8 UF por minuto para 1 a 5 minutos terminados, 6 UF por minuto para más de 5 y hasta 10 minutos, y 5 UF por minuto para más de 10 y hasta 20 minutos.",
+            },
+          },
+          {
+            "@type": "Question",
+            name: "¿Trabajan con empresas fuera de Santiago?",
+            acceptedAnswer: {
+              "@type": "Answer",
+              text: "Sí. Rasika opera desde Santiago de Chile y puede recibir material aprobado para postproducción desde otras regiones de Chile y Latinoamérica.",
+            },
+          },
+        ],
       },
     ],
   },

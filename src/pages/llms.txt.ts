@@ -33,7 +33,7 @@ Rasika Producciones creates corporate online courses, SCORM/HTML5 learning exper
 
 ## Chroma Key con IA Generativa
 
-Chroma Key con IA Generativa is Rasika's AI-assisted post-production service for footage recorded in a chroma key studio. It can replace locations, wardrobe, lighting and personal protective equipment (EPP), and can add separately quoted special effects. It preserves the approved actors, script, language, edit and audio unless a broader scope is explicitly quoted.
+Chroma Key con IA Generativa is Rasika's controlled hybrid-production service based in Santiago, Chile. Real actors preserve the performance, emotion, script and approved audio while generative AI creates locations, wardrobe, EPP, lighting and extras that would otherwise require additional shoots. This makes more ambitious corporate and learning scenes possible with greater creative flexibility and a fraction of the cost of an equivalent production.
 
 Included scope:
 
@@ -50,6 +50,7 @@ Excluded scope:
 
 Pricing uses one volume rate across the total finished duration: 8 UF per minute for 1-5 minutes, 6 UF per minute for more than 5 and up to 10 minutes, and 5 UF per minute for more than 10 and up to 20 minutes. Projects longer than 20 minutes require technical evaluation.
 
+- [Chroma Key con IA Generativa in Chile](${absoluteUrl(VIDEO_ENHANCE_SEO.servicePath)})
 - [Compare original and AI result](${absoluteUrl(VIDEO_ENHANCE_SEO.demoPath)})
 - [Chroma Key con IA Generativa pricing](${absoluteUrl(VIDEO_ENHANCE_SEO.pricingPath)})
 
