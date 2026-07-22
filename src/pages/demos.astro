@@ -147,17 +147,17 @@ const sectionConfigs = [
         }
         .animate-float-bounce { animation: float-bounce 2s infinite ease-in-out; }
 
-        .video-enhance-range {
+        :global(.video-enhance-range) {
             appearance: none;
             -webkit-appearance: none;
             background: transparent;
             cursor: ew-resize;
         }
-        .video-enhance-range::-webkit-slider-runnable-track {
+        :global(.video-enhance-range)::-webkit-slider-runnable-track {
             height: 100%;
             background: transparent;
         }
-        .video-enhance-range::-webkit-slider-thumb {
+        :global(.video-enhance-range)::-webkit-slider-thumb {
             appearance: none;
             -webkit-appearance: none;
             width: 48px;
@@ -165,20 +165,28 @@ const sectionConfigs = [
             background: transparent;
             border: 0;
         }
-        .video-enhance-range::-moz-range-track {
+        :global(.video-enhance-range)::-moz-range-track {
             height: 100%;
             background: transparent;
             border: 0;
         }
-        .video-enhance-range::-moz-range-thumb {
+        :global(.video-enhance-range)::-moz-range-thumb {
             width: 48px;
             height: 100%;
             background: transparent;
             border: 0;
         }
-        .video-enhance-scrub-surface {
+        :global(.video-enhance-scrub-surface) {
             cursor: ew-resize;
             touch-action: none;
+        }
+        :global([data-video-enhance-player]),
+        :global([data-video-enhance-player] *) {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-tap-highlight-color: transparent;
         }
         
         /* Bottom Scroll Glow Classes */
@@ -623,7 +631,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const markUserInteraction = () => {
                 userInteracted = true;
                 stopAutoSweep();
-                if (instruction) instruction.textContent = 'Desliza para comparar';
+                if (instruction) {
+                    instruction.textContent = window.matchMedia?.('(max-width: 767px)').matches
+                        ? 'Desliza sin mantener presionado'
+                        : 'Desliza para comparar';
+                }
             };
 
             const setPositionFromClientX = (clientX) => {
@@ -638,7 +650,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 autoSweepTimer = 0;
                 const startedAt = performance.now();
-                if (instruction) instruction.textContent = 'Comparación automática · toca o desliza';
+                if (instruction) instruction.textContent = 'Comparación automática · desliza para controlar';
 
                 const animate = (now) => {
                     if (destroyed || userInteracted) return;
@@ -692,6 +704,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const onTouchEnd = () => {
                 touchDragging = false;
+            };
+
+            const suppressNativeGesture = (event) => {
+                event.preventDefault();
             };
 
             const alignOriginal = (force = false) => {
@@ -788,6 +804,10 @@ document.addEventListener('DOMContentLoaded', () => {
             window.addEventListener('touchmove', onTouchMove, { passive: false });
             window.addEventListener('touchend', onTouchEnd);
             window.addEventListener('touchcancel', onTouchEnd);
+            player.addEventListener('contextmenu', suppressNativeGesture);
+            player.addEventListener('dragstart', suppressNativeGesture);
+            player.addEventListener('selectstart', suppressNativeGesture);
+            player.addEventListener('gesturestart', suppressNativeGesture, { passive: false });
             playButton?.addEventListener('click', togglePlayback);
             startButton?.addEventListener('click', startPlayback);
             muteButton?.addEventListener('click', () => {
@@ -838,6 +858,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.removeEventListener('touchmove', onTouchMove);
                 window.removeEventListener('touchend', onTouchEnd);
                 window.removeEventListener('touchcancel', onTouchEnd);
+                player.removeEventListener('contextmenu', suppressNativeGesture);
+                player.removeEventListener('dragstart', suppressNativeGesture);
+                player.removeEventListener('selectstart', suppressNativeGesture);
+                player.removeEventListener('gesturestart', suppressNativeGesture);
                 resultVideo.pause();
                 originalVideo.pause();
             };
@@ -875,9 +899,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const comparisonSource = serviceMeta?.comparisonSourceUrl || '';
                 contentHtml = `
                     <div data-video-enhance-player class="relative w-full h-full overflow-hidden bg-black select-none">
-                        <video data-enhance-result src="${source}" poster="/images/demos/video-enhance-ia.jpg" preload="auto" loop muted playsinline webkit-playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+                        <video data-enhance-result src="${source}" poster="/images/demos/video-enhance-ia.jpg" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
                         <div data-enhance-original-layer class="absolute inset-0 overflow-hidden" style="clip-path: inset(0 50% 0 0);">
-                            <video data-enhance-original src="${comparisonSource}" preload="auto" loop muted playsinline webkit-playsinline class="absolute inset-0 w-full h-full object-cover"></video>
+                            <video data-enhance-original src="${comparisonSource}" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
                         </div>
 
                         <div class="absolute inset-x-0 top-0 z-30 flex justify-between p-4 pointer-events-none text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
