@@ -30,7 +30,7 @@ export function absoluteUrl(path = "/") {
 }
 
 export const VIDEO_ENHANCE_SEO = {
-  name: "Chroma Key con IA Generativa: original vs. resultado",
+  name: "Chroma Key con IA",
   serviceName: "Chroma Key con IA Generativa",
   description:
     "Actores reales dan vida a la escena y la IA generativa crea locaciones, vestuario y extras para lograr producciones más ambiciosas con menos rodajes.",

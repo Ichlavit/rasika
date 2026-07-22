@@ -84,6 +84,7 @@ async function fetchDemoCatalog(): Promise<DemoCatalogItem[]> {
 }
 
 const demoCatalog = await fetchDemoCatalog();
+const videoEnhanceDemo = demoCatalog.find((demo) => demo.slug === 'video-enhance-ia');
 
 const sectionConfigs = [
     {
@@ -135,6 +136,8 @@ const sectionConfigs = [
     </script>
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    {videoEnhanceDemo?.source_url && <link rel="preload" as="video" type="video/mp4" href={videoEnhanceDemo.source_url} />}
+    {videoEnhanceDemo?.comparison_source_url && <link rel="preload" as="video" type="video/mp4" href={videoEnhanceDemo.comparison_source_url} />}
     <script is:inline src="https://unpkg.com/lucide@latest"></script>
     
     <style>
@@ -598,6 +601,9 @@ document.addEventListener('DOMContentLoaded', () => {
             let pointerDragging = false;
             let touchDragging = false;
             let userInteracted = false;
+            let readyHandled = false;
+            let playbackStarted = false;
+            let autoSweepCompleted = false;
             let autoSweepTimer = 0;
             let autoSweepRequest = 0;
             let resizeObserver = null;
@@ -655,27 +661,50 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const startAutoSweep = () => {
-                if (destroyed || userInteracted || autoSweepRequest) return;
+                if (destroyed || userInteracted || autoSweepCompleted || autoSweepRequest) return;
 
                 autoSweepTimer = 0;
                 const startedAt = performance.now();
-                if (instruction) instruction.textContent = 'Comparación automática · desliza para controlar';
+                const duration = 3600;
+                const easeInOut = (value) => 0.5 - (Math.cos(Math.PI * value) / 2);
+                if (instruction) instruction.textContent = 'Mira la comparación · luego desliza';
 
                 const animate = (now) => {
-                    if (destroyed || userInteracted) return;
-                    const phase = ((now - startedAt) % 6000) / 6000;
-                    setComparisonPosition(50 + (Math.sin(phase * Math.PI * 2) * 30));
-                    autoSweepRequest = requestAnimationFrame(animate);
+                    if (destroyed || userInteracted) {
+                        autoSweepRequest = 0;
+                        return;
+                    }
+
+                    const progress = Math.min(1, (now - startedAt) / duration);
+                    let position = 50;
+
+                    if (progress < 0.25) {
+                        position = 50 + (30 * easeInOut(progress / 0.25));
+                    } else if (progress < 0.75) {
+                        position = 80 - (60 * easeInOut((progress - 0.25) / 0.5));
+                    } else {
+                        position = 20 + (30 * easeInOut((progress - 0.75) / 0.25));
+                    }
+
+                    setComparisonPosition(position);
+
+                    if (progress < 1) {
+                        autoSweepRequest = requestAnimationFrame(animate);
+                        return;
+                    }
+
+                    autoSweepRequest = 0;
+                    autoSweepCompleted = true;
+                    if (instruction) instruction.textContent = 'Desliza para comparar';
                 };
 
                 autoSweepRequest = requestAnimationFrame(animate);
             };
 
             const scheduleAutoSweep = () => {
-                const isMobile = window.matchMedia?.('(max-width: 767px)').matches;
                 const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-                if (!isMobile || reduceMotion || userInteracted || autoSweepTimer || autoSweepRequest) return;
-                autoSweepTimer = window.setTimeout(startAutoSweep, 1200);
+                if (reduceMotion || userInteracted || autoSweepCompleted || autoSweepTimer || autoSweepRequest) return;
+                autoSweepTimer = window.setTimeout(startAutoSweep, 900);
             };
 
             const onPointerDown = (event) => {
@@ -691,9 +720,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const onPointerEnd = () => {
-                const wasDragging = pointerDragging;
                 pointerDragging = false;
-                if (wasDragging) alignOriginal(true);
             };
 
             const onTouchStart = (event) => {
@@ -713,9 +740,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const onTouchEnd = () => {
-                const wasDragging = touchDragging;
                 touchDragging = false;
-                if (wasDragging) alignOriginal(true);
             };
 
             const suppressNativeGesture = (event) => {
@@ -727,8 +752,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const offset = originalVideo.currentTime - resultVideo.currentTime;
                 const drift = Math.abs(offset);
 
-                if (force || drift > 0.25) {
-                    originalVideo.currentTime = resultVideo.currentTime;
+                if (force || drift > 0.65) {
+                    if (drift > 0.03) originalVideo.currentTime = resultVideo.currentTime;
                     originalVideo.playbackRate = resultVideo.playbackRate;
                     return;
                 }
@@ -769,15 +794,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const startPlayback = async () => {
+                if (playbackStarted && !resultVideo.paused) return;
                 originalVideo.muted = true;
                 alignOriginal(true);
                 try {
                     await Promise.all([resultVideo.play(), originalVideo.play()]);
-                    alignOriginal(true);
+                    playbackStarted = true;
+                    alignOriginal();
                     startButton?.classList.add('hidden');
                     startButton?.classList.remove('flex');
                     if (status) status.textContent = 'Comparación reproduciéndose';
                 } catch (error) {
+                    playbackStarted = false;
                     startButton?.classList.remove('hidden');
                     startButton?.classList.add('flex');
                     if (status) status.textContent = 'Presiona reproducir para iniciar la comparación';
@@ -795,11 +823,13 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const markReady = () => {
-                if (resultVideo.readyState >= 2 && originalVideo.readyState >= 2) {
-                    loading?.classList.add('hidden');
-                    alignOriginal(true);
-                    scheduleAutoSweep();
-                }
+                if (readyHandled || resultVideo.readyState < 2 || originalVideo.readyState < 2) return;
+
+                readyHandled = true;
+                loading?.classList.add('hidden');
+                alignOriginal(true);
+                scheduleAutoSweep();
+                startPlayback();
             };
 
             range.addEventListener('input', () => {
@@ -840,13 +870,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateIcons();
             });
             resultVideo.addEventListener('pause', () => {
+                playbackStarted = false;
                 originalVideo.pause();
                 originalVideo.playbackRate = resultVideo.playbackRate;
                 updateIcons();
             });
             resultVideo.addEventListener('seeking', () => alignOriginal(true));
             resultVideo.addEventListener('seeked', () => alignOriginal(true));
-            resultVideo.addEventListener('ratechange', () => alignOriginal(true));
+            resultVideo.addEventListener('ratechange', () => alignOriginal());
             resultVideo.addEventListener('volumechange', updateIcons);
             resultVideo.addEventListener('loadeddata', markReady);
             resultVideo.addEventListener('canplay', markReady);
@@ -866,8 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
             originalVideo.load();
             updateIcons();
             monitorSync();
-            scheduleAutoSweep();
-            startPlayback();
+            markReady();
 
             return () => {
                 destroyed = true;
@@ -954,7 +984,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <button data-enhance-play type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Pausar comparación"></button>
                             <button data-enhance-mute type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Silenciar audio"></button>
                             <span data-enhance-status class="sr-only" aria-live="polite">Cargando comparación</span>
-                            <span data-enhance-instruction class="flex-1 text-center text-[10px] sm:text-xs text-white/70 font-semibold">Desliza para comparar</span>
+                            <span data-enhance-instruction class="flex-1 text-center text-xs sm:text-sm lg:text-base text-white font-extrabold drop-shadow-[0_2px_5px_rgba(0,0,0,0.95)]">Desliza para comparar</span>
                             <button data-enhance-fullscreen type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Ver en pantalla completa">
                                 <i data-lucide="maximize" class="w-4 h-4"></i>
                             </button>
