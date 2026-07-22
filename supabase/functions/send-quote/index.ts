@@ -399,6 +399,63 @@ async function fetchService(
   return data?.[0] || null;
 }
 
+async function fetchServiceCatalog(
+  supabaseUrl: string,
+  serviceKey: string,
+): Promise<ServiceRecord[]> {
+  const url = buildSupabaseRestUrl(
+    supabaseUrl,
+    "services?select=id,service_name,category,public_description,ai_context_description,pricing_tiers,inclusions,exclusions,tech_specs,production_time_days",
+  );
+
+  const res = await fetch(url, {
+    headers: {
+      apikey: serviceKey,
+      Authorization: `Bearer ${serviceKey}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Service catalog fetch failed: ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
+function normalizeServiceText(value: unknown) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function resolveQuotedServices(
+  primaryService: ServiceRecord,
+  catalog: ServiceRecord[],
+  summary: string,
+) {
+  if (primaryService.category === "bundle") {
+    return [primaryService];
+  }
+
+  const normalizedSummary = normalizeServiceText(summary);
+  const matchedServices = catalog
+    .filter((service) => service.category !== "bundle")
+    .filter((service) => {
+      const serviceName = normalizeServiceText(service.service_name);
+      return serviceName && normalizedSummary.includes(serviceName);
+    });
+
+  const servicesById = new Map<string, ServiceRecord>();
+  servicesById.set(primaryService.id, primaryService);
+  matchedServices.forEach((service) => servicesById.set(service.id, service));
+
+  return Array.from(servicesById.values());
+}
+
 function renderList(items: string[]) {
   if (items.length === 0) {
     return `<p style="margin:0;color:#4a5568;font-size:14px;line-height:1.6;">N/A</p>`;
@@ -745,18 +802,36 @@ serve(async (req) => {
       throw new Error("Service not found.");
     }
 
-    const canonicalServiceName = service.service_name || "Servicio Rasika";
+    const summary = String(quote.ai_summary || record.ai_summary || "");
+    const serviceCatalog = await fetchServiceCatalog(
+      supabaseUrl,
+      supabaseServiceKey,
+    );
+    const quotedServices = resolveQuotedServices(
+      service,
+      serviceCatalog,
+      summary,
+    );
+    const canonicalServiceName = quotedServices
+      .map((item) => item.service_name)
+      .filter(Boolean)
+      .join(" + ") || "Servicio Rasika";
 
-    const publicDesc =
-      service.public_description ||
-      quote.ai_summary ||
-      record.ai_summary ||
-      service.ai_context_description ||
-      "";
+    const publicDesc = quotedServices.length > 1
+      ? language === "en"
+        ? `Combined quote integrating ${canonicalServiceName}.`
+        : `Cotización combinada que integra ${canonicalServiceName}.`
+      : service.public_description ||
+        service.ai_context_description ||
+        "";
 
-    const inclusions = uniqueCleanList(asArray(service.inclusions));
+    const inclusions = uniqueCleanList(
+      quotedServices.flatMap((item) => asArray(item.inclusions)),
+    );
 
-    const exclusions = uniqueCleanList(asArray(service.exclusions)).filter(
+    const exclusions = uniqueCleanList(
+      quotedServices.flatMap((item) => asArray(item.exclusions)),
+    ).filter(
       (item) => !inclusions.includes(item),
     );
 
@@ -801,6 +876,11 @@ serve(async (req) => {
       throw new Error(`Resend failed: ${await resendResponse.text()}`);
     }
 
+    const resendResult = await resendResponse.json().catch(() => ({}));
+    const resendEmailId = typeof resendResult?.id === "string"
+      ? resendResult.id
+      : null;
+
     if (claimedQuoteId) {
       await patchQuote(
         supabaseUrl,
@@ -842,7 +922,11 @@ serve(async (req) => {
       quoted_service: canonicalServiceName,
       quoted_currency: quotedCurrency,
       billing_basis: billingBasis,
-      category: service.category || null,
+      category: quotedServices.length > 1
+        ? "composite"
+        : service.category || null,
+      service_ids: quotedServices.map((item) => item.id),
+      resend_email_id: resendEmailId,
       tracking_url: trackingUrl,
     });
   } catch (error: any) {
