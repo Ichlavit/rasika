@@ -48,3 +48,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/ai-radar-thumbnail/deno.json"
 entrypoint = "./functions/ai-radar-thumbnail/index.ts"
+
+[functions.localization-admin]
+enabled = true
+verify_jwt = true
+import_map = "./functions/localization-admin/deno.json"
+entrypoint = "./functions/localization-admin/index.ts"

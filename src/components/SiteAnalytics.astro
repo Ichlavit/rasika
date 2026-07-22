@@ -18,6 +18,7 @@ const { articleSlug = '' } = Astro.props;
     const url = config?.dataset.url?.replace(/\/$/, '');
     const key = config?.dataset.key;
     const articleSlug = config?.dataset.articleSlug || '';
+    const locale = document.documentElement.lang === 'en' ? 'en' : 'es';
     const disabled = navigator.doNotTrack === '1' || window.doNotTrack === '1';
     if (!url || !key || disabled || location.pathname.startsWith('/admin')) return;
 
@@ -43,7 +44,7 @@ const { articleSlug = '' } = Astro.props;
         page_path: location.pathname,
         source,
         referrer: document.referrer || null,
-        metadata,
+        metadata: { locale, ...metadata },
       };
       return fetch(`${url}/functions/v1/analytics-capture`, {
         method: 'POST',

@@ -37,6 +37,8 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
 
     var SUPABASE_URL = configDiv.getAttribute('data-url');
     var SUPABASE_ANON_KEY = configDiv.getAttribute('data-key');
+    var INTERFACE_LOCALE = document.documentElement.lang === 'en' ? 'en' : 'es';
+    var INTERFACE_IS_ENGLISH = INTERFACE_LOCALE === 'en';
 
     var PROXY_ENDPOINT = SUPABASE_URL + "/functions/v1/openai-proxy";
     var OPENAI_FILES_URL = "https://api.openai.com/v1/files";
@@ -1287,6 +1289,12 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
         return path;
     }
 
+    function localizedMentorPath(value) {
+        var path = normalizePathname(value);
+        if (!INTERFACE_IS_ENGLISH || path.indexOf('/en/') === 0) return path;
+        return path === '/' ? '/en/' : '/en' + path;
+    }
+
     function buildUiActionAllowlist() {
         var demoLines = (window.mentorDemoCatalogData || []).map(function (demo) {
             return "- " + demo.slug + " => " + (demo.card_title || demo.demo_name || "");
@@ -1339,10 +1347,10 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     function getUiActionTargetPath(action) {
         if (!action) return null;
 
-        if (action.type === 'open_demo') return '/demos/';
-        if (action.type === 'navigate_to_page') return MENTOR_PAGE_ACTIONS[action.id] || null;
+        if (action.type === 'open_demo') return localizedMentorPath('/demos/');
+        if (action.type === 'navigate_to_page') return MENTOR_PAGE_ACTIONS[action.id] ? localizedMentorPath(MENTOR_PAGE_ACTIONS[action.id]) : null;
         if (action.type === 'scroll_to_section') {
-            return MENTOR_SECTION_ACTIONS[action.id] ? MENTOR_SECTION_ACTIONS[action.id].path : null;
+            return MENTOR_SECTION_ACTIONS[action.id] ? localizedMentorPath(MENTOR_SECTION_ACTIONS[action.id].path) : null;
         }
 
         return null;
@@ -1362,15 +1370,15 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
 
         if (!normalized) return false;
 
-        if (/^(si|sí|dale|ok|okay|ya|claro|perfecto|vamos|porfa|por favor)$/.test(normalized)) {
+        if (/^(si|sí|dale|ok|okay|ya|claro|perfecto|vamos|porfa|por favor|yes|sure|go ahead|please do)$/.test(normalized)) {
             return true;
         }
 
-        if (words.length <= 3 && /\b(si|sí|dale|ok|okay|claro|perfecto|vamos)\b/.test(normalized)) {
+        if (words.length <= 3 && /\b(si|sí|dale|ok|okay|claro|perfecto|vamos|yes|sure|open|show|go)\b/.test(normalized)) {
             return true;
         }
 
-        return /\b(abre|abrir|abreme|ábreme|muestra|muestrame|muéstrame|mostrar|llevame|llévame|lleva|vamos|carga|cargalo|cárgalo|verlo|verla|quiero verlo|quiero verla)\b/.test(normalized);
+        return /\b(abre|abrir|abreme|ábreme|muestra|muestrame|muéstrame|mostrar|llevame|llévame|lleva|vamos|carga|cargalo|cárgalo|verlo|verla|quiero verlo|quiero verla|open|show|take me|let's go|load|view it)\b/.test(normalized);
     }
 
     function storePendingUiAction(action) {
@@ -1384,18 +1392,25 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     }
 
     function describeUiAction(action) {
-        if (!action) return "eso";
+        if (!action) return INTERFACE_IS_ENGLISH ? "that" : "eso";
 
         if (action.type === 'open_demo') {
             var demo = (window.mentorDemoCatalogData || []).find(function (item) {
                 return item.slug === action.id;
             });
-
-            return demo ? (demo.card_title || demo.demo_name || "ese demo") : "ese demo";
+            var renderedCardTitle = document.querySelector('#demo-' + CSS.escape(action.id) + ' h3')?.textContent?.trim();
+            return renderedCardTitle || (demo ? (demo.card_title || demo.demo_name || (INTERFACE_IS_ENGLISH ? "that demo" : "ese demo")) : (INTERFACE_IS_ENGLISH ? "that demo" : "ese demo"));
         }
 
         if (action.type === 'navigate_to_page') {
-            var labels = {
+            var labels = INTERFACE_IS_ENGLISH ? {
+                home: 'Home',
+                demos: 'Demos',
+                lms: 'LMS & Bots',
+                pricing: 'Pricing',
+                blog: 'Blog',
+                clients: 'Clients'
+            } : {
                 home: 'inicio',
                 demos: 'Demos',
                 lms: 'LMS & Bots',
@@ -1404,12 +1419,12 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
                 clients: 'Clientes'
             };
 
-            return labels[action.id] || "esa página";
+            return labels[action.id] || (INTERFACE_IS_ENGLISH ? "that page" : "esa página");
         }
 
-        if (action.type === 'scroll_to_section') return "esa sección";
+        if (action.type === 'scroll_to_section') return INTERFACE_IS_ENGLISH ? "that section" : "esa sección";
 
-        return "eso";
+        return INTERFACE_IS_ENGLISH ? "that" : "eso";
     }
 
     function maybeExecutePendingUiAction(userText) {
@@ -1420,8 +1435,8 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
         storePendingUiAction(null);
 
         var confirmationText = uiActionChangesPage(pendingAction)
-            ? "Dale, te llevo ahora."
-            : "Dale, lo abro ahora.";
+            ? (INTERFACE_IS_ENGLISH ? "Sure, I'll take you there now." : "Dale, te llevo ahora.")
+            : (INTERFACE_IS_ENGLISH ? "Sure, I'll open it now." : "Dale, lo abro ahora.");
 
         addMsg(confirmationText, false, false);
         saveChatMessage('assistant', confirmationText);
@@ -1448,7 +1463,9 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
             storePendingUiAction(safeAction);
 
             if (!/[¿?]/.test(String(options.botText || ""))) {
-                var promptText = "Puedo llevarte a " + describeUiAction(safeAction) + ". ¿Quieres que lo abra?";
+                var promptText = INTERFACE_IS_ENGLISH
+                    ? "I can take you to " + describeUiAction(safeAction) + ". Would you like me to open it?"
+                    : "Puedo llevarte a " + describeUiAction(safeAction) + ". ¿Quieres que lo abra?";
                 addMsg(promptText, false, false);
                 saveChatMessage('assistant', promptText);
                 window.mentorChatHistory.push("CourseMentor: " + promptText);
@@ -1467,21 +1484,22 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
                 return window.openDemoBySlug(safeAction.id);
             }
 
-            window.location.href = '/demos/?demo=' + encodeURIComponent(safeAction.id);
+            window.location.href = localizedMentorPath('/demos/') + '?demo=' + encodeURIComponent(safeAction.id);
             return true;
         }
 
         if (safeAction.type === 'navigate_to_page') {
-            window.location.href = MENTOR_PAGE_ACTIONS[safeAction.id];
+            window.location.href = localizedMentorPath(MENTOR_PAGE_ACTIONS[safeAction.id]);
             return true;
         }
 
         if (safeAction.type === 'scroll_to_section') {
             var target = MENTOR_SECTION_ACTIONS[safeAction.id];
+            var localizedTargetPath = localizedMentorPath(target.path);
             var currentPath = normalizePathname(window.location.pathname);
 
-            if (currentPath !== normalizePathname(target.path)) {
-                window.location.href = target.path + (target.elementId ? '#' + target.elementId : '');
+            if (currentPath !== normalizePathname(localizedTargetPath)) {
+                window.location.href = localizedTargetPath + (target.elementId ? '#' + target.elementId : '');
                 return true;
             }
 
@@ -2261,7 +2279,11 @@ if (quoteRequested && quoteIntent) {
                 "Nota: en modo sales no incluyas ni uses contenido extenso del demo actual; usa catálogo, precios y lo dicho por el usuario.\n\n";
         }
 
-        return context + "\n\n" + baseInstructions;
+        var localeInstruction = INTERFACE_IS_ENGLISH
+            ? "INTERFACE LANGUAGE: English. Respond in natural, concise professional English unless the user explicitly asks for another language. Keep the conversation collegial and consultative, never expose backend context, and set profile_update.language='en'."
+            : "IDIOMA DE INTERFAZ: español. Responde en español chileno natural salvo que el usuario pida explícitamente otro idioma y usa profile_update.language='es'.";
+
+        return localeInstruction + "\n\n" + context + "\n\n" + baseInstructions;
     }
 
     function syncMeta(meta) {
@@ -2291,7 +2313,7 @@ if (quoteRequested && quoteIntent) {
     }
 
     function extractBotMessage(data) {
-        if (!data || !data.output) return "Lo siento, tuve un problema procesando la respuesta.";
+        if (!data || !data.output) return INTERFACE_IS_ENGLISH ? "Sorry, I had trouble processing that response." : "Lo siento, tuve un problema procesando la respuesta.";
 
         for (var i = 0; i < data.output.length; i++) {
             var output = data.output[i];
@@ -2304,7 +2326,7 @@ if (quoteRequested && quoteIntent) {
             }
         }
 
-        return "Lo siento, tuve un problema procesando la respuesta.";
+        return INTERFACE_IS_ENGLISH ? "Sorry, I had trouble processing that response." : "Lo siento, tuve un problema procesando la respuesta.";
     }
 
     function setProcessingState(active) {
@@ -2370,14 +2392,17 @@ async function createAnonymousSession() {
     if (customGreetingHTML) {
         greetingHTML = customGreetingHTML;
     } else if (formSubmitted && knownNameForGreeting) {
-        greetingHTML =
-            "¡Hola, " + knownNameForGreeting + "! Gracias por tu solicitud. Para ayudarte mejor, voy a precisar contigo el objetivo formativo y el alcance.";
+        greetingHTML = INTERFACE_IS_ENGLISH
+            ? "Hi, " + knownNameForGreeting + "! Thanks for reaching out. Let's clarify the learning goal and scope so I can guide you properly."
+            : "¡Hola, " + knownNameForGreeting + "! Gracias por tu solicitud. Para ayudarte mejor, voy a precisar contigo el objetivo formativo y el alcance.";
     } else if (isGreetingSpecific) {
-        greetingHTML =
-            "¡Hola! Veo que te interesó <b class='text-white'>" + currentContext + "</b>. ¿Cómo puedo ayudarte a implementarlo?";
+        greetingHTML = INTERFACE_IS_ENGLISH
+            ? "Hi! I see you're interested in <b class='text-white'>" + currentContext + "</b>. How could this help with your current learning challenge?"
+            : "¡Hola! Veo que te interesó <b class='text-white'>" + currentContext + "</b>. ¿Cómo puedo ayudarte a implementarlo?";
     } else {
-        greetingHTML =
-            "¡Hola! Soy CourseMentor. ¿En qué puedo ayudarte hoy?";
+        greetingHTML = INTERFACE_IS_ENGLISH
+            ? "Hi! I'm CourseMentor. What learning challenge can I help you explore today?"
+            : "¡Hola! Soy CourseMentor. ¿En qué puedo ayudarte hoy?";
     }
 
     var greetingText = greetingHTML.replace(/<[^>]*>/g, '');
@@ -2441,13 +2466,13 @@ async function createAnonymousSession() {
     }
 
     var payload = {
-    name: cleanKnownValue(window.mentorUserName) || "Visitante Anónimo",
+    name: cleanKnownValue(window.mentorUserName) || (INTERFACE_IS_ENGLISH ? "Anonymous Visitor" : "Visitante Anónimo"),
     email: "pendiente@rasika.cl",
-    company_name: "Pendiente",
+    company_name: INTERFACE_IS_ENGLISH ? "Pending" : "Pendiente",
     traffic_source: formSubmitted
         ? "Website Form: Quote Request"
         : (document.referrer || "Direct Traffic"),
-    language: document.documentElement.lang === 'en' ? 'en' : 'es',
+    language: INTERFACE_LOCALE,
     session_id: window.rasikaAnalytics?.sessionId || null,
     page_path: window.location.pathname,
     website: ''
@@ -2543,7 +2568,7 @@ async function createAnonymousSession() {
     function uploadFile(file) {
         if (!file) return;
 
-        showUploadStatus("Subiendo " + file.name + "...", "loading");
+        showUploadStatus((INTERFACE_IS_ENGLISH ? "Uploading " : "Subiendo ") + file.name + "...", "loading");
 
         currentFileName = file.name;
 
@@ -2569,13 +2594,13 @@ async function createAnonymousSession() {
                     if (isImage) currentImageFileId = res.id;
                     else currentFileId = res.id;
 
-                    showUploadStatus("¡Archivo listo!", "success");
+                    showUploadStatus(INTERFACE_IS_ENGLISH ? "File ready" : "¡Archivo listo!", "success");
                 } catch (e) {
-                    showUploadStatus("Error procesando archivo", "error");
+                    showUploadStatus(INTERFACE_IS_ENGLISH ? "Could not process the file" : "Error procesando archivo", "error");
                     currentFileName = "";
                 }
             } else {
-                showUploadStatus("Error al subir", "error");
+                showUploadStatus(INTERFACE_IS_ENGLISH ? "Upload failed" : "Error al subir", "error");
                 currentFileName = "";
             }
 
@@ -2609,7 +2634,7 @@ async function createAnonymousSession() {
 
     window.mentorRequestInFlight = true;
 
-    var userMessage = val || (currentImageFileId ? "Imagen enviada" : "Archivo enviado");
+    var userMessage = val || (currentImageFileId ? (INTERFACE_IS_ENGLISH ? "Image sent" : "Imagen enviada") : (INTERFACE_IS_ENGLISH ? "File sent" : "Archivo enviado"));
     var passiveEmail = extractEmailFromText(userMessage);
 
     addMsg(userMessage, true, false);
@@ -2641,7 +2666,7 @@ async function createAnonymousSession() {
     } catch (e) {
         window.mentorRequestInFlight = false;
         setProcessingState(false);
-        addMsg("Hubo un problema preparando la respuesta. Intenta nuevamente.", false, false);
+        addMsg(INTERFACE_IS_ENGLISH ? "There was a problem preparing the response. Please try again." : "Hubo un problema preparando la respuesta. Intenta nuevamente.", false, false);
         console.warn("sendMessage failed:", e);
     }
 }
@@ -2816,14 +2841,14 @@ async function createAnonymousSession() {
             currentFileName = "";
             currentQuote = "";
         } catch (e) {
-            addMsg("La respuesta llegó con un formato inválido. Intenta nuevamente.", false, false);
+            addMsg(INTERFACE_IS_ENGLISH ? "The response arrived in an invalid format. Please try again." : "La respuesta llegó con un formato inválido. Intenta nuevamente.", false, false);
             console.warn("Response parse error:", e);
         }
 
         return;
     }
 
-            var errorText = "Falla técnica temporal. Intenta nuevamente.";
+            var errorText = INTERFACE_IS_ENGLISH ? "Temporary technical issue. Please try again." : "Falla técnica temporal. Intenta nuevamente.";
             try {
                 var err = JSON.parse(xhr.responseText);
                 if (err && err.error) {
@@ -2956,7 +2981,7 @@ async function createAnonymousSession() {
                         '</div>' +
 
                         '<div id="mentor-messages" class="flex-1 overflow-y-auto p-4 bg-transparent flex flex-col gap-4 relative z-10"></div>' +
-                        '<div id="mentor-typing" class="hidden px-4 pb-2 text-xs text-gray-400 italic relative z-10">Escribiendo...</div>' +
+                        '<div id="mentor-typing" class="hidden px-4 pb-2 text-xs text-gray-400 italic relative z-10">' + (INTERFACE_IS_ENGLISH ? 'Writing...' : 'Escribiendo...') + '</div>' +
 
                         '<div id="mentor-controls" class="p-3 bg-black/20 border-t border-white/5 flex flex-col gap-2 relative z-20">' +
                             '<div id="upload-status-container" class="empty:hidden"></div>' +
@@ -2969,7 +2994,7 @@ async function createAnonymousSession() {
                             '<div class="flex items-end gap-2">' +
                                 '<label for="mentor-file" class="cursor-pointer text-gray-400 hover:text-rasika-accent transition-colors p-2 pb-2"><i data-lucide="paperclip" class="w-5 h-5"></i></label>' +
                                 '<input type="file" id="mentor-file" class="hidden" accept=".png,.jpg,.jpeg,.webp,.pdf,.docx,.txt">' +
-                                '<textarea id="mentor-input" rows="1" placeholder="Escribe aquí..." class="flex-1 bg-black/40 border border-white/10 text-white placeholder-gray-500 rounded-[20px] px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-rasika-accent focus:border-rasika-accent transition-all resize-none overflow-hidden min-h-[40px] max-h-[120px] leading-relaxed"></textarea>' +
+                                '<textarea id="mentor-input" rows="1" placeholder="' + (INTERFACE_IS_ENGLISH ? 'Type here...' : 'Escribe aquí...') + '" class="flex-1 bg-black/40 border border-white/10 text-white placeholder-gray-500 rounded-[20px] px-4 py-2 text-sm outline-none focus:ring-1 focus:ring-rasika-accent focus:border-rasika-accent transition-all resize-none overflow-hidden min-h-[40px] max-h-[120px] leading-relaxed"></textarea>' +
                                 '<button id="mentor-send" type="button" class="bg-rasika-accent text-[#0a0b0d] p-2 rounded-full w-10 h-10 flex items-center justify-center hover:bg-[#88d6e0] hover:scale-105 transition-all self-end mb-0.5"><i data-lucide="send" class="w-4 h-4"></i></button>' +
                             '</div>' +
                         '</div>' +

@@ -8,13 +8,19 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "postbuild": "node scripts/build-locales.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "ai-radar:seed": "node scripts/seed-ai-radar-research.mjs",
+    "i18n:translate": "node scripts/generate-english-catalog.mjs",
+    "i18n:articles": "node scripts/generate-blog-translations.mjs",
     "services:cleanup": "node scripts/cleanup-services-catalog.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.0",
     "astro": "^6.1.8"
+  },
+  "devDependencies": {
+    "cheerio": "^1.2.0"
   }
 }

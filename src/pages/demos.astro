@@ -460,24 +460,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!demo) return false;
 
             const card = document.getElementById('demo-' + demo.slug);
+            const renderedName = card?.querySelector('h3')?.textContent?.trim() || demo.demo_name;
+            const renderedFormat = card?.querySelector('.text-\\[10px\\]')?.textContent?.trim() || demo.format_type;
+            const renderedDescription = card?.querySelector('p')?.textContent?.trim() || demo.description || '';
             if (card) {
                 card.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
             }
 
             window.launchDemo(
-                demo.demo_name,
-                demo.format_type,
+                renderedName,
+                renderedFormat,
                 demo.client_name || '',
                 demo.project_year || '',
-                demo.description || '',
+                renderedDescription,
                 demo.source_url,
                 demo.media_type,
                 demo.custom_width || null,
                 {
                     serviceId: demo.service_id,
                     serviceContentId: demo.service_content_id,
-                    serviceName: demo.format_type,
-                    demoName: demo.demo_name,
+                    serviceName: renderedFormat,
+                    demoName: renderedName,
                     demoSlug: demo.slug,
                     comparisonSourceUrl: demo.comparison_source_url || null
                 }
@@ -577,6 +580,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let activeVideoEnhanceCleanup = null;
+        const interfaceIsEnglish = document.documentElement.lang.toLowerCase().startsWith('en');
+        const enhanceCopy = interfaceIsEnglish
+            ? {
+                original: 'Original',
+                result: 'AI Result',
+                compareLabel: 'Compare original video and AI result',
+                play: 'Play comparison',
+                pause: 'Pause comparison',
+                soundOn: 'Turn sound on',
+                soundOff: 'Mute audio',
+                loading: 'Loading comparison',
+                instruction: 'Slide to compare',
+                mobileInstruction: 'Slide without holding',
+                sweepInstruction: 'Watch the comparison, then slide',
+                fullscreen: 'View full screen',
+                originalValue: 'original',
+                resultValue: 'AI result',
+            }
+            : {
+                original: 'Original',
+                result: 'Resultado IA',
+                compareLabel: 'Comparar video original y resultado IA',
+                play: 'Reproducir comparación',
+                pause: 'Pausar comparación',
+                soundOn: 'Activar audio',
+                soundOff: 'Silenciar audio',
+                loading: 'Cargando comparación',
+                instruction: 'Desliza para comparar',
+                mobileInstruction: 'Desliza sin mantener presionado',
+                sweepInstruction: 'Mira la comparación · luego desliza',
+                fullscreen: 'Ver en pantalla completa',
+                originalValue: 'original',
+                resultValue: 'resultado IA',
+            };
 
         function initVideoEnhancePlayer(player) {
             const resultVideo = player.querySelector('[data-enhance-result]');
@@ -611,11 +648,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const updateIcons = () => {
                 if (playButton) {
-                    playButton.setAttribute('aria-label', resultVideo.paused ? 'Reproducir comparación' : 'Pausar comparación');
+                    playButton.setAttribute('aria-label', resultVideo.paused ? enhanceCopy.play : enhanceCopy.pause);
                     playButton.innerHTML = `<i data-lucide="${resultVideo.paused ? 'play' : 'pause'}" class="w-4 h-4"></i>`;
                 }
                 if (muteButton) {
-                    muteButton.setAttribute('aria-label', resultVideo.muted ? 'Activar audio' : 'Silenciar audio');
+                    muteButton.setAttribute('aria-label', resultVideo.muted ? enhanceCopy.soundOn : enhanceCopy.soundOff);
                     muteButton.innerHTML = `<i data-lucide="${resultVideo.muted ? 'volume-x' : 'volume-2'}" class="w-4 h-4"></i>`;
                 }
                 if (window.lucide) lucide.createIcons();
@@ -626,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalLayer.style.width = `${position}%`;
                 divider.style.left = `${position}%`;
                 range.value = String(position);
-                range.setAttribute('aria-valuetext', `${Math.round(position)}% original, ${Math.round(100 - position)}% resultado IA`);
+                range.setAttribute('aria-valuetext', `${Math.round(position)}% ${enhanceCopy.originalValue}, ${Math.round(100 - position)}% ${enhanceCopy.resultValue}`);
             };
 
             const sizeOriginalVideo = () => {
@@ -648,8 +685,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 stopAutoSweep();
                 if (instruction) {
                     instruction.textContent = window.matchMedia?.('(max-width: 767px)').matches
-                        ? 'Desliza sin mantener presionado'
-                        : 'Desliza para comparar';
+                        ? enhanceCopy.mobileInstruction
+                        : enhanceCopy.instruction;
                 }
             };
 
@@ -667,7 +704,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const startedAt = performance.now();
                 const duration = 3600;
                 const easeInOut = (value) => 0.5 - (Math.cos(Math.PI * value) / 2);
-                if (instruction) instruction.textContent = 'Mira la comparación · luego desliza';
+                if (instruction) instruction.textContent = enhanceCopy.sweepInstruction;
 
                 const animate = (now) => {
                     if (destroyed || userInteracted) {
@@ -695,7 +732,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     autoSweepRequest = 0;
                     autoSweepCompleted = true;
-                    if (instruction) instruction.textContent = 'Desliza para comparar';
+                    if (instruction) instruction.textContent = enhanceCopy.instruction;
                 };
 
                 autoSweepRequest = requestAnimationFrame(animate);
@@ -961,12 +998,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
 
                         <div class="absolute inset-x-0 top-0 z-30 flex justify-between p-4 pointer-events-none text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
-                            <span class="px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md text-white">Original</span>
-                            <span class="px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md text-rasika-accent">Resultado IA</span>
+                            <span class="px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md text-white">${enhanceCopy.original}</span>
+                            <span class="px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md text-rasika-accent">${enhanceCopy.result}</span>
                         </div>
 
                         <div data-enhance-scrub-surface class="video-enhance-scrub-surface absolute inset-x-0 top-0 bottom-14 z-40" aria-hidden="true"></div>
-                        <input data-enhance-range type="range" min="0" max="100" value="50" step="0.1" class="video-enhance-range sr-only" aria-label="Comparar video original y resultado IA" />
+                        <input data-enhance-range type="range" min="0" max="100" value="50" step="0.1" class="video-enhance-range sr-only" aria-label="${enhanceCopy.compareLabel}" />
                         <div data-enhance-divider class="absolute inset-y-0 left-1/2 z-30 w-px bg-white shadow-[0_0_14px_rgba(0,0,0,0.8)] pointer-events-none">
                             <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#141619]/90 border border-white/70 shadow-xl flex items-center justify-center text-white">
                                 <i data-lucide="chevrons-left-right" class="w-6 h-6"></i>
@@ -976,16 +1013,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div data-enhance-loading class="absolute inset-0 z-20 flex items-center justify-center bg-black/30 pointer-events-none">
                             <i data-lucide="loader-circle" class="w-9 h-9 text-rasika-accent animate-spin"></i>
                         </div>
-                        <button data-enhance-start type="button" class="hidden absolute inset-0 z-[60] m-auto w-16 h-16 rounded-full bg-rasika-accent text-[#0a0b0d] shadow-2xl items-center justify-center" aria-label="Reproducir comparación">
+                        <button data-enhance-start type="button" class="hidden absolute inset-0 z-[60] m-auto w-16 h-16 rounded-full bg-rasika-accent text-[#0a0b0d] shadow-2xl items-center justify-center" aria-label="${enhanceCopy.play}">
                             <i data-lucide="play" class="w-7 h-7 ml-1"></i>
                         </button>
 
                         <div class="absolute inset-x-0 bottom-0 z-50 h-14 px-4 flex items-center gap-2 bg-gradient-to-t from-black/90 to-transparent">
-                            <button data-enhance-play type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Pausar comparación"></button>
-                            <button data-enhance-mute type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Silenciar audio"></button>
-                            <span data-enhance-status class="sr-only" aria-live="polite">Cargando comparación</span>
-                            <span data-enhance-instruction class="flex-1 text-center text-xs sm:text-sm lg:text-base text-white font-extrabold drop-shadow-[0_2px_5px_rgba(0,0,0,0.95)]">Desliza para comparar</span>
-                            <button data-enhance-fullscreen type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="Ver en pantalla completa">
+                            <button data-enhance-play type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.pause}"></button>
+                            <button data-enhance-mute type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.soundOff}"></button>
+                            <span data-enhance-status class="sr-only" aria-live="polite">${enhanceCopy.loading}</span>
+                            <span data-enhance-instruction class="flex-1 text-center text-xs sm:text-sm lg:text-base text-white font-extrabold drop-shadow-[0_2px_5px_rgba(0,0,0,0.95)]">${enhanceCopy.instruction}</span>
+                            <button data-enhance-fullscreen type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.fullscreen}">
                                 <i data-lucide="maximize" class="w-4 h-4"></i>
                             </button>
                         </div>
@@ -1079,7 +1116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     playerArea.innerHTML = `
                         <div class="w-full aspect-video max-h-[65vh] rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 bg-[#0f1114] flex flex-col items-center justify-center text-gray-500 shadow-2xl" style="max-width: calc(65vh * 16 / 9);">
                             <i data-lucide="loader-2" class="w-12 h-12 animate-spin mb-4 text-rasika-accent"></i>
-                            <p class="text-sm font-medium tracking-wide">Cerrando recurso...</p>
+                            <p class="text-sm font-medium tracking-wide">${document.documentElement.lang === 'en' ? 'Closing resource...' : 'Cerrando recurso...'}</p>
                         </div>
                     `;
                 }
@@ -1087,9 +1124,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 300);
             
             if (window.setMentorCourse) {
-                window.setMentorCourse("Catálogo General");
+                window.setMentorCourse(document.documentElement.lang === 'en' ? "General Catalog" : "Catálogo General");
             } else {
-                window.mentorActiveCourse = "Catálogo General";
+                window.mentorActiveCourse = document.documentElement.lang === 'en' ? "General Catalog" : "Catálogo General";
             }
         }
     </script>

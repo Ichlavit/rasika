@@ -93,6 +93,23 @@ const seo: SeoPage = {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <SEO {...seo} />
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <script is:inline>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+            colors: {
+              rasika: {
+                accent: '#5EA6B0',
+                dark: '#141619',
+                surface: '#1E2226',
+              },
+            },
+          },
+        },
+      };
+    </script>
     <script is:inline src="https://unpkg.com/lucide@latest"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
@@ -545,7 +562,9 @@ const seo: SeoPage = {
 
       document.getElementById("article-mentor-button")?.addEventListener("click", () => {
         setArticleContext();
-        window.mentorCustomGreetingHTML = `Veo que leíste nuestro artículo **"${articleTitle}"**. ¿Te gustaría conversar sobre cómo llevar esas ideas a la realidad de tu empresa?`;
+        window.mentorCustomGreetingHTML = document.documentElement.lang === "en"
+          ? `I see you read our article **"${articleTitle}"**. Would you like to explore how these ideas could apply to a learning challenge in your organization?`
+          : `Veo que leíste nuestro artículo **"${articleTitle}"**. ¿Te gustaría conversar sobre cómo llevar esas ideas a la realidad de tu empresa?`;
         window.mentorCustomGreetingText = window.mentorCustomGreetingHTML;
         document.getElementById("mentor-fab")?.click();
       });
@@ -555,12 +574,12 @@ const seo: SeoPage = {
         const label = button.querySelector("span");
         try {
           await navigator.clipboard.writeText(button.dataset.url || window.location.href);
-          if (label) label.textContent = "Enlace copiado";
+          if (label) label.textContent = document.documentElement.lang === "en" ? "Link copied" : "Enlace copiado";
         } catch {
-          if (label) label.textContent = "No se pudo copiar";
+          if (label) label.textContent = document.documentElement.lang === "en" ? "Could not copy" : "No se pudo copiar";
         }
         window.setTimeout(() => {
-          if (label) label.textContent = "Copiar enlace";
+          if (label) label.textContent = document.documentElement.lang === "en" ? "Copy link" : "Copiar enlace";
         }, 1800);
       });
     </script>

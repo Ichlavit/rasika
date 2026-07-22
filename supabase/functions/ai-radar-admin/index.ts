@@ -62,6 +62,11 @@ type Candidate = {
   rasika_parallelism: string | null;
   suggested_headline: string | null;
   linkedin_copy: string | null;
+  editorial_summary_en: string | null;
+  why_it_matters_en: string | null;
+  rasika_parallelism_en: string | null;
+  suggested_headline_en: string | null;
+  linkedin_copy_en: string | null;
   suggested_hashtags: string[] | null;
   thumbnail_prompt: string | null;
   thumbnail_url: string | null;
@@ -135,9 +140,21 @@ function serviceDestination(service: CandidateServiceMatch["service"]) {
   return service?.category === "saas" ? "/lms/" : "/pricing/";
 }
 
+function englishServiceName(value: unknown) {
+  return cleanText(value, 240)
+    .replace("Asistente IA", "AI Assistant")
+    .replace("Video Presentador (Estudio)", "Presenter Video (Studio)")
+    .replace("Video Role-Playing (Estudio)", "Role-Playing Video (Studio)")
+    .replace("Chroma Key con IA Generativa", "Generative AI Chroma Key")
+    .replace("Cápsulas de Video", "Video Capsules")
+    .replace("Videos de Marketing", "Marketing Videos")
+    .replace("Simulación de Software", "Software Simulation");
+}
+
 function buildRasikaServiceBridge(
   parallelism: unknown,
   rawMatches: unknown,
+  locale: "es" | "en" = "es",
 ) {
   const matches = (Array.isArray(rawMatches) ? rawMatches : [])
     .filter((match): match is CandidateServiceMatch => Boolean(match?.service?.service_name))
@@ -147,20 +164,85 @@ function buildRasikaServiceBridge(
 
   const serviceItems = matches.map((match) => {
     const service = match.service;
-    const destination = serviceDestination(service);
+    const destination = locale === "en" ? `/en${serviceDestination(service)}` : serviceDestination(service);
     const rationale = cleanText(match.rationale, 2000) || cleanText(service?.public_description, 2000);
-    return `<li><strong><a href="${destination}">${escapeHTML(service?.service_name)}</a></strong>${rationale ? `: ${escapeHTML(rationale)}` : ""}</li>`;
+    const displayName = locale === "en" ? englishServiceName(service?.service_name) : service?.service_name;
+    return `<li><strong><a href="${destination}">${escapeHTML(displayName)}</a></strong>${locale === "es" && rationale ? `: ${escapeHTML(rationale)}` : ""}</li>`;
   }).join("");
   const primaryService = matches[0]?.service || null;
-  const destination = serviceDestination(primaryService);
-  const ctaLabel = primaryService?.category === "saas"
-    ? "Conocer nuestros asistentes IA para LMS"
-    : "Revisar servicios y precios";
+  const destination = locale === "en" ? `/en${serviceDestination(primaryService)}` : serviceDestination(primaryService);
+  const ctaLabel = locale === "en"
+    ? primaryService?.category === "saas" ? "Explore our AI assistants for LMS" : "Explore services and pricing"
+    : primaryService?.category === "saas" ? "Conocer nuestros asistentes IA para LMS" : "Revisar servicios y precios";
   const serviceBlock = matches.length
-    ? `<div class="rasika-service-bridge"><h3>${matches.length === 1 ? "Servicio relacionado" : "Servicios relacionados"}</h3><ul>${serviceItems}</ul><p><a href="${destination}">${ctaLabel}</a></p></div>`
+    ? `<div class="rasika-service-bridge"><h3>${locale === "en" ? matches.length === 1 ? "Related service" : "Related services" : matches.length === 1 ? "Servicio relacionado" : "Servicios relacionados"}</h3><ul>${serviceItems}</ul><p><a href="${destination}">${ctaLabel}</a></p></div>`
     : "";
 
-  return `<h2>La mirada de Rasika</h2>${introduction ? textToParagraphs(introduction) : ""}${serviceBlock}`;
+  return `<h2>${locale === "en" ? "Rasika's perspective" : "La mirada de Rasika"}</h2>${introduction ? textToParagraphs(introduction) : ""}${serviceBlock}`;
+}
+
+function structuredOutputText(payload: any) {
+  for (const output of Array.isArray(payload?.output) ? payload.output : []) {
+    for (const content of Array.isArray(output?.content) ? output.content : []) {
+      if (content?.type === "output_text" && typeof content.text === "string") return content.text;
+    }
+  }
+  throw new Error("Translation model returned no output");
+}
+
+async function translateEditorialDraft(candidate: Candidate, openAiKey: string) {
+  if (!openAiKey) throw new Error("OPENAI_API_KEY is required to publish bilingual AI Radar articles");
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${openAiKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-5-mini",
+      store: false,
+      reasoning: { effort: "low" },
+      max_output_tokens: 6000,
+      instructions: [
+        "Translate the final human-reviewed AI Radar editorial fields from Spanish into natural professional international English.",
+        "Preserve all facts, caveats, percentages, names, product capabilities and limitations exactly. Do not add or remove claims.",
+        "Use clear EdTech language suitable for an international B2B audience. Preserve Rasika, CourseMentor, SCORM, xAPI, LMS and source names.",
+        "Return only the requested structured fields.",
+      ].join("\n"),
+      input: [{
+        role: "user",
+        content: [{
+          type: "input_text",
+          text: JSON.stringify({
+            title: candidate.suggested_headline || candidate.source_title,
+            summary: candidate.editorial_summary,
+            why_it_matters: candidate.why_it_matters,
+            rasika_parallelism: candidate.rasika_parallelism,
+            linkedin_copy: candidate.linkedin_copy,
+          }),
+        }],
+      }],
+      text: {
+        format: {
+          type: "json_schema",
+          name: "ai_radar_english_publication",
+          strict: true,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              title: { type: "string" },
+              summary: { type: "string" },
+              why_it_matters: { type: "string" },
+              rasika_parallelism: { type: "string" },
+              linkedin_copy: { type: "string" },
+            },
+            required: ["title", "summary", "why_it_matters", "rasika_parallelism", "linkedin_copy"],
+          },
+        },
+      },
+    }),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`AI Radar translation failed (${response.status})`);
+  return JSON.parse(structuredOutputText(payload));
 }
 
 async function restRequest(
@@ -537,6 +619,7 @@ async function publishCandidate(
   user: AuthUser,
   supabaseUrl: string,
   serviceRoleKey: string,
+  openAiKey: string,
 ) {
   const candidateId = cleanText(body.candidate_id, 80);
   const candidate = await getCandidate(supabaseUrl, serviceRoleKey, candidateId);
@@ -547,26 +630,43 @@ async function publishCandidate(
     throw new Response("An editorial summary is required before publishing", { status: 400 });
   }
 
+  const englishDraft = await translateEditorialDraft(candidate, openAiKey);
+  await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_candidates?id=eq.${encodeURIComponent(candidateId)}`,
+    {
+      method: "PATCH",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({
+        editorial_summary_en: cleanText(englishDraft.summary, 8000),
+        why_it_matters_en: cleanText(englishDraft.why_it_matters, 4000),
+        rasika_parallelism_en: cleanText(englishDraft.rasika_parallelism, 4000),
+        suggested_headline_en: cleanText(englishDraft.title, 240),
+        linkedin_copy_en: cleanText(englishDraft.linkedin_copy, 6000),
+      }),
+    },
+  );
+
+  const serviceMatches = await restRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `ai_radar_candidate_services?candidate_id=eq.${encodeURIComponent(candidateId)}&select=match_score,rationale,service:services(id,service_name,category,public_description)&order=match_score.desc`,
+  );
+
   const existing = await restRequest(
     supabaseUrl,
     serviceRoleKey,
-    `blog_posts?radar_candidate_id=eq.${encodeURIComponent(candidateId)}&select=id,title,slug&limit=1`,
+    `blog_posts?radar_candidate_id=eq.${encodeURIComponent(candidateId)}&select=id,title,slug,excerpt,content_html,published_at&limit=1`,
   );
   let post = Array.isArray(existing) ? existing[0] || null : null;
 
   if (!post) {
-    const [sourceRows, serviceMatches] = await Promise.all([
-      restRequest(
-        supabaseUrl,
-        serviceRoleKey,
-        `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization,publisher_name&limit=1`,
-      ),
-      restRequest(
-        supabaseUrl,
-        serviceRoleKey,
-        `ai_radar_candidate_services?candidate_id=eq.${encodeURIComponent(candidateId)}&select=match_score,rationale,service:services(id,service_name,category,public_description)&order=match_score.desc`,
-      ),
-    ]);
+    const sourceRows = await restRequest(
+      supabaseUrl,
+      serviceRoleKey,
+      `ai_radar_sources?id=eq.${encodeURIComponent(candidate.source_id)}&select=source_name,organization,publisher_name&limit=1`,
+    );
     const source = Array.isArray(sourceRows) ? sourceRows[0] || null : null;
     const title = cleanText(candidate.suggested_headline || candidate.source_title, 240);
     const summary = cleanText(candidate.editorial_summary, 8000);
@@ -606,6 +706,38 @@ async function publishCandidate(
     post = Array.isArray(inserted) ? inserted[0] : null;
   }
 
+  if (!post?.id) throw new Error("AI Radar publication did not return a blog post");
+  const englishTitle = cleanText(englishDraft.title, 240);
+  const englishSummary = cleanText(englishDraft.summary, 8000);
+  const englishContent = [
+    textToParagraphs(englishSummary),
+    englishDraft.why_it_matters
+      ? `<h2>Why it matters</h2>${textToParagraphs(englishDraft.why_it_matters)}`
+      : "",
+    buildRasikaServiceBridge(englishDraft.rasika_parallelism, serviceMatches, "en"),
+    `<p><strong>Original source:</strong> <a href="${escapeHTML(candidate.canonical_url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(candidate.source_title)}</a></p>`,
+  ].join("");
+  const englishSlug = `${slugify(englishTitle) || "ai-radar"}-${candidate.id.slice(0, 8)}`;
+  await restRequest(supabaseUrl, serviceRoleKey, "blog_post_translations?on_conflict=blog_post_id,locale", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({
+      blog_post_id: post.id,
+      locale: "en",
+      title: englishTitle,
+      slug: englishSlug,
+      excerpt: buildExcerpt(englishSummary),
+      content_html: englishContent,
+      status: "published",
+      source_title: post.title,
+      source_slug: post.slug,
+      source_excerpt: post.excerpt,
+      generated_by: "gpt-5-mini",
+      translated_at: new Date().toISOString(),
+      published_at: post.published_at || new Date().toISOString(),
+    }),
+  });
+
   if (candidate.status !== "published") {
     await restRequest(
       supabaseUrl,
@@ -635,6 +767,7 @@ async function publishCandidate(
   return {
     post,
     blog_url: post?.slug ? `/blog/${post.slug}/` : post?.id ? `/blog/?article=${post.id}` : "/blog/",
+    blog_url_en: `/en/blog/${englishSlug}/`,
   };
 }
 
@@ -644,6 +777,7 @@ serve(async (request) => {
   const supabaseUrl = String(Deno.env.get("SUPABASE_URL") || "").replace(/\/$/, "");
   const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+  const openAiKey = Deno.env.get("OPENAI_API_KEY") || "";
   if (!supabaseUrl || !anonKey || !serviceRoleKey) {
     return jsonResponse({ error: "AI Radar backend is not configured" }, 500);
   }
@@ -700,7 +834,7 @@ serve(async (request) => {
         return jsonResponse(await updateDraft(body, user, supabaseUrl, serviceRoleKey));
       }
       if (action === "publish") {
-        return jsonResponse(await publishCandidate(body, user, supabaseUrl, serviceRoleKey));
+        return jsonResponse(await publishCandidate(body, user, supabaseUrl, serviceRoleKey, openAiKey));
       }
       if (action === "set_source_enabled") {
         return jsonResponse(await setSourceEnabled(body, supabaseUrl, serviceRoleKey));
