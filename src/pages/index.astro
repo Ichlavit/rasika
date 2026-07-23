@@ -304,11 +304,9 @@ document.addEventListener('DOMContentLoaded', () => {
             mobileMenu.classList.toggle('flex');
             
             // Swap hamburger icon for 'X' icon
-            const icon = mobileBtn.querySelector('i');
-            if (mobileMenu.classList.contains('hidden')) {
-                icon.setAttribute('data-lucide', 'menu');
-            } else {
-                icon.setAttribute('data-lucide', 'x');
+            const icon = mobileBtn.querySelector('[data-lucide]');
+            if (icon) {
+                icon.setAttribute('data-lucide', mobileMenu.classList.contains('hidden') ? 'menu' : 'x');
             }
             if(window.lucide) lucide.createIcons();
         });
@@ -460,6 +458,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let currentLang = "es";
             const toggleBtn = document.getElementById('lang-toggle');
+
+            if (!toggleBtn) return;
 
             toggleBtn.addEventListener('click', () => {
                 currentLang = currentLang === "es" ? "en" : "es";

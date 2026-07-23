@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { createHash } from "node:crypto";
 import { load } from "cheerio";
 
 const root = process.cwd();
@@ -26,6 +27,11 @@ const sourceFiles = new Map([
   ["/newsletter/unsubscribe/", path.join(dist, "newsletter/unsubscribe/index.html")],
 ]);
 const siteOrigin = "https://www.rasika.cl";
+const localeScriptPath = path.join(root, "public/locale.js");
+const localeScriptVersion = createHash("sha256")
+  .update(fs.readFileSync(localeScriptPath))
+  .digest("hex")
+  .slice(0, 12);
 
 function readJson(filePath, fallback) {
   if (!fs.existsSync(filePath)) return fallback;
@@ -159,9 +165,9 @@ function localeSwitcherMarkup(locale, alternateUrl, id = "") {
 
 function installLocaleUi($, locale, alternateUrl) {
   const existing = $("#lang-toggle");
-  if (existing.length) existing.replaceWith(localeSwitcherMarkup(locale, alternateUrl, "lang-toggle"));
+  if (existing.length) existing.replaceWith(localeSwitcherMarkup(locale, alternateUrl, "rasika-locale-switcher"));
   else if ($(".article-nav-inner").length) {
-    $(".article-nav-inner .mobile-menu-button").before(localeSwitcherMarkup(locale, alternateUrl, "lang-toggle"));
+    $(".article-nav-inner .mobile-menu-button").before(localeSwitcherMarkup(locale, alternateUrl, "rasika-locale-switcher"));
   }
 
   const mobileMenu = $("#mobile-menu");
@@ -170,10 +176,12 @@ function installLocaleUi($, locale, alternateUrl) {
   }
 
   $("html").attr("data-locale", locale).attr("data-alternate-url", alternateUrl);
-  if (!$("script[src='/locale.js']").length) $("head").append('<script src="/locale.js" defer></script>');
+  if (!$("script[src^='/locale.js']").length) {
+    $("head").append(`<script src="/locale.js?v=${localeScriptVersion}" defer></script>`);
+  }
   $("head").append(`<style>
-    .rasika-locale-switcher{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 10px;color:#9ca3af;font:700 12px/1 "Plus Jakarta Sans",sans-serif;letter-spacing:0}
-    .rasika-locale-switcher a{color:inherit;text-decoration:none}.rasika-locale-switcher a[aria-current="page"]{color:#88d6e0}.rasika-locale-switcher a:hover{color:#fff}
+    .rasika-locale-switcher{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:78px;min-width:78px;height:32px;box-sizing:border-box;flex:0 0 78px;white-space:nowrap;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:0;color:#9ca3af;font:700 12px/1 "Plus Jakarta Sans",sans-serif;letter-spacing:0}
+    .rasika-locale-switcher a{display:inline-flex;align-items:center;justify-content:center;color:inherit;text-decoration:none}.rasika-locale-switcher a[aria-current="page"]{color:#88d6e0}.rasika-locale-switcher a:hover{color:#fff}
     .rasika-language-prompt{position:fixed;right:20px;bottom:20px;z-index:1000;width:min(360px,calc(100vw - 40px));padding:18px;border:1px solid rgba(136,214,224,.35);border-radius:8px;background:#1e2226;color:#fff;box-shadow:0 18px 55px rgba(0,0,0,.45);font-family:"Plus Jakarta Sans",sans-serif}
     .rasika-language-prompt p{margin:0 0 14px;font-size:16px;font-weight:700}.rasika-language-prompt div{display:flex;gap:8px}.rasika-language-prompt a,.rasika-language-prompt button{min-height:40px;padding:0 13px;border-radius:6px;font:700 12px/1 inherit;cursor:pointer}
     .rasika-language-prompt a{display:inline-flex;align-items:center;background:#5ea6b0;color:#081012;text-decoration:none}.rasika-language-prompt button{border:1px solid rgba(255,255,255,.15);background:#141619;color:#d1d5db}
