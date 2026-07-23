@@ -488,7 +488,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('rasika_referred_by', referredBy);
             }
 
-            loadBlogData();
+            const pageLocale = document.documentElement.dataset.locale || document.documentElement.lang;
+            if (pageLocale !== 'en') loadBlogData();
         });
 
         async function loadBlogData() {
