@@ -452,6 +452,8 @@ const formatArticleDate = (value: string) => new Date(value).toLocaleDateString(
         const blogConfigDiv = document.getElementById('blog-config');
         const GLOBAL_SUPA_URL = blogConfigDiv ? blogConfigDiv.getAttribute('data-url') : null;
         const GLOBAL_SUPA_KEY = blogConfigDiv ? blogConfigDiv.getAttribute('data-key') : null;
+        const pageLocale = document.documentElement.dataset.locale || document.documentElement.lang;
+        const isEnglishBlog = pageLocale === 'en';
 
         let articles = {};
         let currentArticleId = null;
@@ -488,8 +490,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('rasika_referred_by', referredBy);
             }
 
-            const pageLocale = document.documentElement.dataset.locale || document.documentElement.lang;
-            if (pageLocale !== 'en') loadBlogData();
+            loadBlogData();
         });
 
         async function loadBlogData() {
@@ -499,12 +500,30 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await fetch(GLOBAL_SUPA_URL.replace(/\/$/, '') + '/rest/v1/blog_posts?published_at=not.is.null&slug=not.is.null&order=published_at.desc', {
-                    headers: { 'apikey': GLOBAL_SUPA_KEY, 'Authorization': 'Bearer ' + GLOBAL_SUPA_KEY }
-                });
+                const apiBase = GLOBAL_SUPA_URL.replace(/\/$/, '');
+                const headers = { 'apikey': GLOBAL_SUPA_KEY, 'Authorization': 'Bearer ' + GLOBAL_SUPA_KEY };
+                const requests = [
+                    fetch(apiBase + '/rest/v1/blog_posts?published_at=not.is.null&slug=not.is.null&order=published_at.desc', { headers })
+                ];
+                if (isEnglishBlog) {
+                    requests.push(fetch(apiBase + '/rest/v1/blog_post_translations?select=blog_post_id,title,slug,excerpt,content_html&locale=eq.en&status=eq.published', { headers }));
+                }
+                const [res, translationsRes] = await Promise.all(requests);
                 
                 if (res.ok) {
-                    const data = await res.json();
+                    let data = await res.json();
+                    if (isEnglishBlog) {
+                        if (!translationsRes || !translationsRes.ok) return;
+                        const translatedRows = await translationsRes.json();
+                        const translatedByPost = new Map(translatedRows.map(row => [row.blog_post_id, row]));
+                        data = data
+                            .map(post => {
+                                const translation = translatedByPost.get(post.id);
+                                return translation ? { ...post, ...translation, id: post.id } : null;
+                            })
+                            .filter(Boolean);
+                        if (!data.length) return;
+                    }
                     
                     const humanContainer = document.getElementById('human-articles-container');
                     const aiContainer = document.getElementById('ai-radar-container');
@@ -514,8 +533,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     data.forEach(post => {
                         const dateObj = new Date(post.created_at);
-                        const dateString = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                        const dateString = dateObj.toLocaleDateString(isEnglishBlog ? 'en-GB' : 'es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
                         const readTime = post.read_time || '5 min read';
+                        const category = isEnglishBlog && post.category === 'Diseño Instruccional'
+                            ? 'Instructional Design'
+                            : (isEnglishBlog && post.category === 'Radar de tendencias en EdTech'
+                                ? 'EdTech Trends Radar'
+                                : (post.category || 'General'));
+                        const articleHref = `${isEnglishBlog ? '/en' : ''}/blog/${post.slug}/`;
                         
                         // Save into memory dictionary
                         articles[post.id] = {
@@ -523,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             author: post.author,
                             icon: post.type === 'agent' ? 'radar' : (post.icon || 'user'),
                             date: dateString + ' • ' + readTime,
-                            category: post.category || 'General',
+                            category: category,
                             isRadar: post.type === 'agent',
                             views: post.views || 0,
                             likes: post.likes || 0,
@@ -544,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             humanContainer.innerHTML += `
                                 <article class="group mb-5">
-                                  <a href="/blog/${post.slug}/" class="block cursor-pointer no-underline" onclick="openReader('${post.id}'); return false;">
+                                  <a href="${articleHref}" class="block cursor-pointer no-underline" onclick="openReader('${post.id}'); return false;">
                                     <div class="relative w-full aspect-[21/9] rounded-2xl overflow-hidden mb-5 bg-[#0f1114] ring-1 ring-white/10 group-hover:ring-rasika-accent/50 transition-all">
                                         ${coverHtml}
                                     </div>
@@ -570,11 +595,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             `;
                         } else if (post.type === 'agent') {
                             aiContainer.innerHTML += `
-                                <a href="/blog/${post.slug}/" class="ai-border block p-5 group cursor-pointer mb-4 no-underline" onclick="openReader('${post.id}'); return false;">
+                                <a href="${articleHref}" class="ai-border block p-5 group cursor-pointer mb-4 no-underline" onclick="openReader('${post.id}'); return false;">
                                     <div class="flex items-center gap-2 mb-3">
                                         <i data-lucide="radar" class="w-4 h-4 text-rasika-accent"></i>
                                         <span class="text-xs font-bold text-rasika-accent tracking-widest uppercase">${post.author || 'Rasika Agent'}</span>
-                                        <span class="text-xs text-gray-500 ml-auto">Nuevo</span>
+                                        <span class="text-xs text-gray-500 ml-auto">${isEnglishBlog ? 'New' : 'Nuevo'}</span>
                                     </div>
                                     <h4 class="text-base font-bold text-white mb-2 leading-snug">${post.title}</h4>
                                 </a>
@@ -762,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function getTrackableUrl() {
             const article = articles[currentArticleId];
             let url = article?.slug
-                ? new URL('/blog/' + article.slug + '/', window.location.origin)
+                ? new URL((isEnglishBlog ? '/en/blog/' : '/blog/') + article.slug + '/', window.location.origin)
                 : new URL(window.location.href);
             if (window.mentorLeadId) url.searchParams.set('ref', window.mentorLeadId);
             return url.toString();
@@ -800,14 +825,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const tooltip = btn.querySelector('.copy-tooltip');
             
             iconContainer.innerHTML = '<i data-lucide="check" class="w-4 h-4 text-green-400 scale-125 transition-transform"></i>';
-            if(tooltip) tooltip.innerText = "¡Copiado!";
+            if(tooltip) tooltip.innerText = isEnglishBlog ? "Copied!" : "¡Copiado!";
             if (window.lucide) lucide.createIcons();
             
             trackShareAction('clipboard');
             
             setTimeout(() => {
                 iconContainer.innerHTML = '<i data-lucide="link" class="w-4 h-4 transition-transform duration-300"></i>';
-                if(tooltip) tooltip.innerText = "Copiar enlace";
+                if(tooltip) tooltip.innerText = isEnglishBlog ? "Copy link" : "Copiar enlace";
                 if (window.lucide) lucide.createIcons();
             }, 2000);
         }
@@ -827,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.shareTwitter = function() {
             const url = encodeURIComponent(getTrackableUrl());
-            const text = encodeURIComponent(`Muy interesante: ${articles[currentArticleId]?.title || "Rasika Insights"}`);
+            const text = encodeURIComponent(`${isEnglishBlog ? 'Worth reading' : 'Muy interesante'}: ${articles[currentArticleId]?.title || "Rasika Insights"}`);
             window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank', 'width=600,height=400');
             trackShareAction('twitter');
         }
@@ -928,7 +953,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         const toggleBtn = document.getElementById('lang-toggle');
-        let currentLang = "es";
+        let currentLang = pageLocale;
 
         if(toggleBtn) {
             toggleBtn.addEventListener('click', () => {
