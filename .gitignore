@@ -27,6 +27,9 @@ supabase/.temp/
 deno.lock
 .playwright-cli/
 
+# local source archives (expanded assets are committed instead)
+Demo_BW_2021.zip
+
 # macOS-specific files
 .DS_Store
 

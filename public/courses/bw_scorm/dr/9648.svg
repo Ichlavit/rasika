@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" onmouseup="{ if(window.parent.document.onmouseup) window.parent.document.onmouseup(arguments[0]);}" xml:space="preserve" style="enable-background:new 0 0 36 36;" viewBox="0 0 36 36" y="0px" x="0px" id="S_Checkmark_18_N_2x" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink"><style type="text/css">
+	.st0{fill:#00FF00;}
+</style><path data-cppathid="10000" d="M31.3,7.7l-1.5-1.1c-0.4-0.3-1.1-0.3-1.4,0.2L14.8,24.3l-6.6-6.6c-0.4-0.4-1-0.4-1.4,0L5.4,19  c-0.4,0.4-0.4,1,0,1.4l8.9,8.9c0.4,0.4,1,0.4,1.4,0c0,0,0.1-0.1,0.1-0.1L31.5,9.1C31.8,8.7,31.7,8.1,31.3,7.7z" class="st0"/></svg>
