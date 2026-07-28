@@ -368,7 +368,7 @@ const sectionConfigs = [
             
             const urlParams = new URLSearchParams(window.location.search);
             const referredBy = urlParams.get('ref');
-            if (referredBy && referredBy !== window.mentorLeadId) {
+            if (/^[A-Za-z0-9_-]{8}$/.test(referredBy || '') && referredBy !== window.mentorReferralCode) {
                 localStorage.setItem('rasika_referred_by', referredBy);
             }
 

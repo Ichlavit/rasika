@@ -873,6 +873,19 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     window.mentorDemoCatalog = "Cargando demos...";
     window.mentorDemoCatalogData = [];
     window.mentorLeadId = localStorage.getItem('mentorLeadId') || null;
+    var MENTOR_REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{8}$/;
+    var mentorInboundReferralCode = new URLSearchParams(window.location.search).get('ref') || '';
+    mentorInboundReferralCode = MENTOR_REFERRAL_CODE_PATTERN.test(mentorInboundReferralCode)
+        ? mentorInboundReferralCode
+        : '';
+    window.mentorReferralCode = localStorage.getItem('mentorReferralCode') || '';
+    if (!MENTOR_REFERRAL_CODE_PATTERN.test(window.mentorReferralCode)) {
+        window.mentorReferralCode = '';
+        localStorage.removeItem('mentorReferralCode');
+    }
+    if (mentorInboundReferralCode && mentorInboundReferralCode !== window.mentorReferralCode) {
+        localStorage.setItem('rasika_referred_by', mentorInboundReferralCode);
+    }
     window.mentorUserName = cleanKnownValue(localStorage.getItem('mentorUserName')) || "Visitante Anónimo";
     window.mentorCompanyKnown = localStorage.getItem('mentorCompanyKnown') === 'true';
     window.mentorEmailKnown = localStorage.getItem('mentorEmailKnown') === 'true';
@@ -886,6 +899,60 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     if (!window.mentorLeadId && window.mentorQuoteRequested) {
         window.mentorQuoteRequested = false;
         localStorage.removeItem('mentorQuoteRequested');
+    }
+
+    window.ensureMentorReferralCode = async function () {
+        var ownCode = MENTOR_REFERRAL_CODE_PATTERN.test(window.mentorReferralCode || '')
+            ? window.mentorReferralCode
+            : '';
+        var referredByCode = localStorage.getItem('rasika_referred_by') || '';
+        if (!MENTOR_REFERRAL_CODE_PATTERN.test(referredByCode)) {
+            referredByCode = '';
+            localStorage.removeItem('rasika_referred_by');
+        }
+        if (referredByCode && referredByCode === ownCode) {
+            referredByCode = '';
+            localStorage.removeItem('rasika_referred_by');
+        }
+        if (!window.mentorLeadId || (ownCode && !referredByCode)) return ownCode || null;
+
+        try {
+            var response = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/contact-capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({
+                    action: 'sync_referral',
+                    lead_id: window.mentorLeadId,
+                    referral_code: referredByCode || null,
+                    website: ''
+                })
+            });
+            if (!response.ok) return ownCode || null;
+
+            var data = await response.json();
+            if (MENTOR_REFERRAL_CODE_PATTERN.test(data.referral_code || '')) {
+                ownCode = data.referral_code;
+                window.mentorReferralCode = ownCode;
+                localStorage.setItem('mentorReferralCode', ownCode);
+            }
+            if (data.referred || referredByCode === ownCode) {
+                localStorage.removeItem('rasika_referred_by');
+            }
+            return ownCode || null;
+        } catch (error) {
+            console.warn('Referral sync failed:', error);
+            return ownCode || null;
+        }
+    };
+
+    if (window.mentorLeadId) {
+        window.setTimeout(function () {
+            window.ensureMentorReferralCode().catch(function () {});
+        }, 0);
     }
 
     var _mentorActiveCourse = "Catálogo General";
@@ -2475,6 +2542,7 @@ async function createAnonymousSession() {
     language: INTERFACE_LOCALE,
     session_id: window.rasikaAnalytics?.sessionId || null,
     page_path: window.location.pathname,
+    referral_code: localStorage.getItem('rasika_referred_by') || null,
     website: ''
     };
 
@@ -2499,6 +2567,11 @@ async function createAnonymousSession() {
             if (data && data.lead_id) {
                 window.mentorLeadId = data.lead_id;
                 localStorage.setItem('mentorLeadId', window.mentorLeadId);
+                if (MENTOR_REFERRAL_CODE_PATTERN.test(data.referral_code || '')) {
+                    window.mentorReferralCode = data.referral_code;
+                    localStorage.setItem('mentorReferralCode', window.mentorReferralCode);
+                }
+                if (data.referred) localStorage.removeItem('rasika_referred_by');
                 if (!hasPriorConversation || customGreetingHTML) saveChatMessage('assistant', greetingText);
             }
         } catch (e) {

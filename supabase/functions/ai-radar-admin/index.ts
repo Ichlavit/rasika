@@ -675,7 +675,7 @@ async function publishCandidate(
     const contentHTML = [
       textToParagraphs(summary),
       candidate.why_it_matters
-        ? `<h2>Por que importa</h2>${textToParagraphs(candidate.why_it_matters)}`
+        ? `<h2>Por qué importa</h2>${textToParagraphs(candidate.why_it_matters)}`
         : "",
       buildRasikaServiceBridge(candidate.rasika_parallelism, serviceMatches),
       `<p><strong>Fuente original:</strong> <a href="${sourceUrl}" target="_blank" rel="noopener noreferrer">${sourceLabel}</a></p>`,

@@ -505,13 +505,13 @@ const seo: SeoPage = {
 
           <aside class="article-share" aria-label="Compartir artículo">
             <div class="article-share-label">Compartir</div>
-            <a href={`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}&title=${shareTitle}`} target="_blank" rel="noopener noreferrer">
+            <a data-share-platform="linkedin" href={`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}&title=${shareTitle}`} target="_blank" rel="noopener noreferrer">
               <i data-lucide="linkedin"></i><span>LinkedIn</span>
             </a>
-            <a href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">
+            <a data-share-platform="twitter" href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">
               <i data-lucide="message-circle"></i><span>X</span>
             </a>
-            <a href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">
+            <a data-share-platform="facebook" href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">
               <i data-lucide="facebook"></i><span>Facebook</span>
             </a>
             <button id="copy-article-link" type="button" data-url={articleUrl}>
@@ -569,11 +569,46 @@ const seo: SeoPage = {
         document.getElementById("mentor-fab")?.click();
       });
 
+      async function getShareableArticleUrl() {
+        const canonical = document.querySelector('link[rel="canonical"]')?.href || window.location.href;
+        const url = new URL(canonical);
+        const referralCode = window.ensureMentorReferralCode
+          ? await window.ensureMentorReferralCode()
+          : window.mentorReferralCode;
+        if (/^[A-Za-z0-9_-]{8}$/.test(referralCode || "")) {
+          url.searchParams.set("ref", referralCode);
+        }
+        return url.toString();
+      }
+
+      document.querySelectorAll("[data-share-platform]").forEach((link) => {
+        link.addEventListener("click", (event) => {
+          event.preventDefault();
+          const popup = window.open("about:blank", "_blank");
+          if (popup) popup.opener = null;
+          void (async () => {
+            const url = encodeURIComponent(await getShareableArticleUrl());
+            const title = encodeURIComponent(articleTitle);
+            const platform = link.dataset.sharePlatform;
+            const destination = platform === "linkedin"
+              ? `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`
+              : platform === "twitter"
+                ? `https://twitter.com/intent/tweet?url=${url}&text=${title}`
+                : `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+            if (popup) {
+              popup.location.replace(destination);
+            } else {
+              window.location.assign(destination);
+            }
+          })();
+        });
+      });
+
       document.getElementById("copy-article-link")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;
         const label = button.querySelector("span");
         try {
-          await navigator.clipboard.writeText(button.dataset.url || window.location.href);
+          await navigator.clipboard.writeText(await getShareableArticleUrl());
           if (label) label.textContent = document.documentElement.lang === "en" ? "Link copied" : "Enlace copiado";
         } catch {
           if (label) label.textContent = document.documentElement.lang === "en" ? "Could not copy" : "No se pudo copiar";
