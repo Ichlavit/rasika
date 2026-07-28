@@ -2952,6 +2952,24 @@ async function createAnonymousSession() {
             send.onclick = sendMessage;
         }
 
+        var mentorIntent = new URLSearchParams(window.location.search).get('mentor');
+        if (mentorIntent === 'contact' && fab) {
+            window.mentorCustomGreetingHTML = INTERFACE_IS_ENGLISH
+                ? "Hi! Tell me about the learning challenge you want to solve. I can help you explore Rasika's options and, once we have enough context, coordinate a conversation with our team."
+                : "¡Hola! Cuéntame qué desafío de aprendizaje quieres resolver. Puedo orientarte sobre las alternativas de Rasika y, cuando tengamos el contexto necesario, coordinar una conversación con nuestro equipo.";
+            window.mentorCustomGreetingText = window.mentorCustomGreetingHTML;
+
+            var cleanContactUrl = new URL(window.location.href);
+            cleanContactUrl.searchParams.delete('mentor');
+            window.history.replaceState({}, '', cleanContactUrl.pathname + cleanContactUrl.search + cleanContactUrl.hash);
+
+            setTimeout(function () {
+                var chatWindow = document.getElementById('mentor-window');
+                if (!chatWindow || chatWindow.style.display === 'none') fab.click();
+            }, 100);
+            return;
+        }
+
         if (localStorage.getItem('rasika_chat_open') === 'true' && fab) {
             setTimeout(function () {
                 if (!window.mentorSuppressAutoOpen) fab.click();
