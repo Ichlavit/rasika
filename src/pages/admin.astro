@@ -908,6 +908,27 @@ const seo = seoPages.admin;
             if (window.lucide) lucide.createIcons();
         }
 
+        window.reviewCampaignDraft = async function(button) {
+            const original = button?.innerHTML || '';
+            if (button) {
+                button.disabled = true;
+                button.innerHTML = '<i data-lucide="loader-circle" class="w-4 h-4 animate-spin"></i> Preparando';
+                if (window.lucide) lucide.createIcons();
+            }
+            try {
+                if (!campaignDraftLoaded || !campaignPreviewHtml) await window.loadCampaignDraft(true);
+                window.openCampaignPreview();
+            } catch (error) {
+                alert(error.message || 'No pudimos abrir el borrador.');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = original;
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
+        }
+
         window.closeCampaignPreview = function() {
             const modal = document.getElementById('campaign-preview-modal');
             modal.classList.replace('flex', 'hidden');
@@ -1090,10 +1111,14 @@ const seo = seoPages.admin;
         function renderCampaignHistory(items) {
             const rows = Array.isArray(items) ? items : [];
             document.getElementById('campaign-history').innerHTML = rows.length ? rows.map(item => `
-                <div class="px-5 py-4 flex items-center gap-3">
+                <div class="px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
                     <span class="min-w-0 flex-1"><span class="block text-sm font-bold text-white">${escapeAdminHTML(item.name)}</span><span class="block text-xs text-gray-500 mt-1">${escapeAdminHTML(item.subject || 'Sin asunto')} · ${escapeAdminHTML(formatMarketingDate(item.created_at))}</span></span>
-                    <span class="px-2.5 py-1.5 rounded-md border border-white/10 text-xs font-bold text-gray-400">${escapeAdminHTML(item.status)}</span>
+                    <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <span class="px-2.5 py-1.5 rounded-md border border-white/10 text-xs font-bold text-gray-400">${escapeAdminHTML(item.status)}</span>
+                        ${item.status === 'draft' ? `<button type="button" onclick="reviewCampaignDraft(this)" class="min-h-9 px-3 rounded-lg border border-[#5EA6B0]/30 text-xs font-bold text-[#88d6e0] hover:text-white hover:bg-[#5EA6B0]/10 disabled:opacity-60 flex items-center gap-2"><i data-lucide="eye" class="w-4 h-4"></i> Revisar borrador</button>` : ''}
+                    </div>
                 </div>`).join('') : '<p class="px-5 py-8 text-sm text-gray-600 text-center">Aún no hay campañas.</p>';
+            if (window.lucide) lucide.createIcons();
         }
 
         function renderMarketingOverview(data) {

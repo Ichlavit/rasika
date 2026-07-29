@@ -2,6 +2,16 @@ RewriteEngine On
 RewriteCond %{HTTP_HOST} ^rasika\.cl$ [NC]
 RewriteRule ^ https://www.rasika.cl%{REQUEST_URI} [R=301,L,NE]
 
+<IfModule mod_setenvif.c>
+  SetEnvIf Request_URI "^/admin(/|$)" RASIKA_ADMIN_NOCACHE=1
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set Cache-Control "private, no-store, no-cache, must-revalidate, max-age=0" env=RASIKA_ADMIN_NOCACHE
+  Header always set Pragma "no-cache" env=RASIKA_ADMIN_NOCACHE
+  Header always set Expires "0" env=RASIKA_ADMIN_NOCACHE
+</IfModule>
+
 RedirectMatch 301 ^/nosotros/?$ /demos/
 RedirectMatch 301 ^/chroma-key-ia/?$ /demos/?demo=video-enhance-ia
 RedirectMatch 301 ^/contacto/?$ /?mentor=contact
