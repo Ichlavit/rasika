@@ -65,6 +65,28 @@ async function findLeadByReferralCode(
   return cleanText(Array.isArray(rows) ? rows[0]?.id : "", 36);
 }
 
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function findCampaignRecipient(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  token: string,
+) {
+  if (!/^[A-Za-z0-9_-]{20,120}$/.test(token)) return "";
+  const tokenHash = await sha256(token);
+  const response = await serviceRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `marketing_campaign_recipients?tracking_token_hash=eq.${tokenHash}&select=id&limit=1`,
+  );
+  if (!response.ok) return "";
+  const rows = await response.json();
+  return cleanText(Array.isArray(rows) ? rows[0]?.id : "", 36);
+}
+
 serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
@@ -82,6 +104,7 @@ serve(async (request) => {
     const action = cleanText(body.action, 32);
     const requestedLeadId = cleanText(body.lead_id, 36);
     const incomingReferralCode = cleanText(body.referral_code, 64);
+    const campaignToken = cleanText(body.campaign_token, 120);
 
     if (action === "sync_referral") {
       if (!UUID_REGEX.test(requestedLeadId)) {
@@ -150,6 +173,11 @@ serve(async (request) => {
       serviceRoleKey,
       incomingReferralCode,
     );
+    const campaignRecipientId = await findCampaignRecipient(
+      supabaseUrl,
+      serviceRoleKey,
+      campaignToken,
+    );
 
     const payload: Record<string, unknown> = {
       name,
@@ -158,6 +186,7 @@ serve(async (request) => {
       traffic_source: trafficSource,
       language,
     };
+    if (campaignRecipientId) payload.marketing_campaign_recipient_id = campaignRecipientId;
 
     let leadId = "";
     let referralCode = "";
@@ -173,6 +202,7 @@ serve(async (request) => {
 
       if (existing && (existingEmail === email || isPlaceholderEmail(existingEmail))) {
         const updatePayload = { ...payload };
+        if (!campaignRecipientId) delete updatePayload.marketing_campaign_recipient_id;
         if (
           resolvedReferralLeadId &&
           resolvedReferralLeadId !== requestedLeadId &&
@@ -224,7 +254,7 @@ serve(async (request) => {
           page_path: pagePath.startsWith("/") ? pagePath : "/",
           source: "website_form",
           referrer: trafficSource,
-          metadata: { lead_id: leadId },
+          metadata: { lead_id: leadId, marketing_campaign_recipient_id: campaignRecipientId || null },
         }),
       }).catch(() => null);
     }
@@ -234,6 +264,7 @@ serve(async (request) => {
       lead_id: leadId,
       referral_code: referralCode,
       referred: Boolean(resolvedReferralLeadId && resolvedReferralLeadId !== leadId),
+      campaign_attributed: Boolean(campaignRecipientId),
     }, 201);
   } catch (error) {
     console.error("Contact capture error", error);

@@ -54,3 +54,13 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/localization-admin/deno.json"
 entrypoint = "./functions/localization-admin/index.ts"
+
+[functions.campaign-admin]
+enabled = true
+verify_jwt = true
+entrypoint = "./functions/campaign-admin/index.ts"
+
+[functions.resend-webhook]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/resend-webhook/index.ts"

@@ -288,6 +288,50 @@ serve(async (request) => {
     const body = await request.json().catch(() => ({})) as Record<string, unknown>;
     const action = cleanText(body.action, 20) || "subscribe";
 
+    if (action === "feedback") {
+      const token = cleanText(body.token, 200);
+      const reasonCode = cleanText(body.reason_code, 40);
+      const feedback = cleanText(body.feedback, 1000);
+      const campaignKey = cleanText(body.campaign_key, 80);
+      if (token.length < 30) return jsonResponse({ error: "Invalid feedback token" }, 400);
+      if (reasonCode && !["too_frequent", "not_relevant", "not_requested", "other"].includes(reasonCode)) {
+        return jsonResponse({ error: "Invalid feedback reason" }, 400);
+      }
+      const tokenHash = await sha256(token);
+      const contactResponse = await serviceRequest(
+        supabaseUrl,
+        serviceRoleKey,
+        `contacts?unsubscribe_token_hash=eq.${tokenHash}&select=id,newsletter_status&limit=1`,
+      );
+      const contacts = contactResponse.ok ? await contactResponse.json() : [];
+      const contact = contacts?.[0] as ContactRow | undefined;
+      if (!contact || contact.newsletter_status !== "unsubscribed") {
+        return jsonResponse({ error: "Feedback link is not available" }, 404);
+      }
+      let campaignId: string | null = null;
+      if (campaignKey) {
+        const campaignResponse = await serviceRequest(
+          supabaseUrl,
+          serviceRoleKey,
+          `marketing_campaigns?campaign_key=eq.${encodeURIComponent(campaignKey)}&select=id&limit=1`,
+        );
+        const campaigns = campaignResponse.ok ? await campaignResponse.json() : [];
+        campaignId = cleanText(campaigns?.[0]?.id, 36) || null;
+      }
+      const feedbackResponse = await serviceRequest(supabaseUrl, serviceRoleKey, "newsletter_unsubscribe_feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({
+          contact_id: contact.id,
+          campaign_id: campaignId,
+          reason_code: reasonCode || null,
+          feedback: feedback || null,
+        }),
+      });
+      if (!feedbackResponse.ok) throw new Error(`Feedback write failed (${feedbackResponse.status})`);
+      return jsonResponse({ status: "feedback_received" }, 201);
+    }
+
     if (action === "unsubscribe") {
       const token = cleanText(body.token, 200);
       if (token.length < 30) return jsonResponse({ error: "Invalid unsubscribe token" }, 400);
@@ -307,7 +351,6 @@ serve(async (request) => {
         body: JSON.stringify({
           newsletter_status: "unsubscribed",
           newsletter_unsubscribed_at: new Date().toISOString(),
-          unsubscribe_token_hash: null,
         }),
       });
       if (!unsubscribeResponse.ok) throw new Error(`Contact unsubscribe failed (${unsubscribeResponse.status})`);

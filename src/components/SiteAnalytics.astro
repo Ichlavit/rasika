@@ -32,6 +32,35 @@ const { articleSlug = '' } = Astro.props;
     const startedAt = Date.now();
     let engagementSent = false;
     const params = new URLSearchParams(location.search);
+    const campaignStorageKey = 'rasikaCampaignAttribution';
+    const campaignKeyPattern = /^[a-z0-9][a-z0-9-]{2,79}$/;
+    const campaignTokenPattern = /^[A-Za-z0-9_-]{20,120}$/;
+    const incomingCampaignKey = (params.get('utm_campaign') || '').slice(0, 80);
+    const incomingCampaignToken = (params.get('rc') || '').slice(0, 120);
+    const incomingLinkKey = (params.get('ck') || '').slice(0, 80);
+    if (campaignKeyPattern.test(incomingCampaignKey) && campaignTokenPattern.test(incomingCampaignToken)) {
+      localStorage.setItem(campaignStorageKey, JSON.stringify({
+        campaignKey: incomingCampaignKey,
+        token: incomingCampaignToken,
+        capturedAt: Date.now(),
+      }));
+    }
+    let campaignAttribution = null;
+    try {
+      const stored = JSON.parse(localStorage.getItem(campaignStorageKey) || 'null');
+      if (
+        stored &&
+        campaignKeyPattern.test(stored.campaignKey || '') &&
+        campaignTokenPattern.test(stored.token || '') &&
+        Date.now() - Number(stored.capturedAt || 0) < 30 * 86400000
+      ) {
+        campaignAttribution = stored;
+      } else {
+        localStorage.removeItem(campaignStorageKey);
+      }
+    } catch {
+      localStorage.removeItem(campaignStorageKey);
+    }
     const referringHost = (() => {
       try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch { return ''; }
     })();
@@ -44,7 +73,14 @@ const { articleSlug = '' } = Astro.props;
         page_path: location.pathname,
         source,
         referrer: document.referrer || null,
-        metadata: { locale, ...metadata },
+        metadata: {
+          locale,
+          ...(campaignAttribution ? {
+            campaign_key: campaignAttribution.campaignKey,
+            campaign_token: campaignAttribution.token,
+          } : {}),
+          ...metadata,
+        },
       };
       return fetch(`${url}/functions/v1/analytics-capture`, {
         method: 'POST',
@@ -58,8 +94,10 @@ const { articleSlug = '' } = Astro.props;
       }).catch(() => null);
     };
 
-    window.rasikaAnalytics = { sessionId, track };
+    window.rasikaCampaignAttribution = campaignAttribution;
+    window.rasikaAnalytics = { sessionId, track, campaignAttribution };
     track('page_view');
+    if (incomingCampaignKey) track('campaign_landing', { link_key: incomingLinkKey || 'email' });
     if (articleSlug) track('article_view', { article_slug: articleSlug });
 
     document.addEventListener('click', (event) => {
@@ -69,6 +107,11 @@ const { articleSlug = '' } = Astro.props;
       const label = (target.getAttribute('aria-label') || target.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 160);
       const isChat = target.id === 'mentor-fab' || target.closest('#mentor-cta-tooltip');
       if (isChat) track('chatbot_open', { label: 'CourseMentor' });
+      if (campaignAttribution) track('campaign_click', {
+        label: label || target.id || target.tagName.toLowerCase(),
+        href: href ? new URL(href, location.href).pathname : '',
+        link_key: target.dataset.campaignLink || '',
+      });
       track('click', {
         label: label || target.id || target.tagName.toLowerCase(),
         href: href ? new URL(href, location.href).pathname : '',

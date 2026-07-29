@@ -1128,6 +1128,8 @@ if (
           updatePayload.language ||
           existingLead.language ||
           "es",
+        marketing_campaign_recipient_id:
+          existingLead.marketing_campaign_recipient_id || null,
       },
     );
   } else {

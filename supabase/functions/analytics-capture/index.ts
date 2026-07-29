@@ -15,6 +15,9 @@ const EVENT_TYPES = new Set([
   "article_view",
   "chatbot_open",
   "quote_requested",
+  "campaign_landing",
+  "campaign_click",
+  "meeting_scheduled",
 ]);
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -34,7 +37,10 @@ function sanitizeMetadata(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const source = value as Record<string, unknown>;
   const safe: Record<string, string | number | boolean> = {};
-  const allowed = ["label", "href", "duration_seconds", "article_slug", "element", "outbound"];
+  const allowed = [
+    "label", "href", "duration_seconds", "article_slug", "element", "outbound",
+    "campaign_key", "campaign_token", "link_key",
+  ];
   for (const key of allowed) {
     const item = source[key];
     if (typeof item === "boolean") safe[key] = item;
