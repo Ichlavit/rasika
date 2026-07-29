@@ -72,19 +72,19 @@ function contentBlock(
   return `
     <tr>
       <td style="padding:0 28px 24px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;background:#ffffff;border:1px solid #d8e0e3;border-radius:8px;overflow:hidden;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;background:#1e2226;border:1px solid #343a40;border-radius:8px;overflow:hidden;">
           <tr>
             <td>
               <a href="${escapeHtml(url)}" style="text-decoration:none;">
-                <img src="${escapeHtml(item.image_url)}" width="584" alt="" style="display:block;width:100%;max-width:584px;height:auto;border:0;" />
+                <img src="${escapeHtml(item.image_url)}" width="544" alt="" style="display:block;width:100%;max-width:544px;height:auto;border:0;" />
               </a>
             </td>
           </tr>
           <tr>
             <td style="padding:24px;">
-              <p style="margin:0 0 10px;color:#27727c;font-size:12px;line-height:1.4;font-weight:700;text-transform:uppercase;">${eyebrow}</p>
-              <h2 style="margin:0 0 12px;color:#111417;font-size:22px;line-height:1.3;font-weight:800;">${escapeHtml(item.title)}</h2>
-              <p style="margin:0 0 20px;color:#53606b;font-size:15px;line-height:1.7;">${escapeHtml(item.summary)}</p>
+              <p style="margin:0 0 10px;color:#88d6e0;font-size:12px;line-height:1.4;font-weight:700;text-transform:uppercase;">${eyebrow}</p>
+              <h2 style="margin:0 0 12px;color:#ffffff;font-size:22px;line-height:1.3;font-weight:800;">${escapeHtml(item.title)}</h2>
+              <p style="margin:0 0 20px;color:#c5cbd3;font-size:15px;line-height:1.7;">${escapeHtml(item.summary)}</p>
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
                   <td style="border-radius:6px;background:#66b8c2;">
@@ -111,7 +111,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
     options.recipientToken,
   );
   const previewNotice = options.testMode
-    ? `<tr><td style="padding:10px 28px;background:#dff3f5;color:#245b62;font-size:12px;line-height:1.5;text-align:center;">Vista de prueba. No corresponde a un envío de campaña.</td></tr>`
+    ? `<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;margin:0 0 12px;"><tr><td style="padding:10px 28px;background:#dff3f5;border-radius:8px;color:#245b62;font-size:12px;line-height:1.5;text-align:center;">Vista de prueba. No corresponde a un envío de campaña.</td></tr></table>`
     : "";
 
   return `<!doctype html>
@@ -123,17 +123,17 @@ export function renderNewsletterHtml(options: RenderOptions) {
     <meta name="supported-color-schemes" content="light" />
     <title>El blog de Rasika</title>
   </head>
-  <body style="margin:0;padding:0;background:#eef2f3;color:#111417;font-family:Arial,Helvetica,sans-serif;">
+  <body style="margin:0;padding:0;background:#f4f6f8;color:#111417;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Ideas y soluciones para equipos de capacitación que quieren llevar la IA a la práctica.</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#eef2f3;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#f4f6f8;">
       <tr>
-        <td align="center" style="padding:28px 12px;">
-          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate;background:#ffffff;border:1px solid #d8e0e3;border-radius:8px;overflow:hidden;">
-            ${previewNotice}
+        <td align="center" style="padding:40px 20px;">
+          ${previewNotice}
+          <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;border-collapse:separate;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.05);">
             <tr>
-              <td style="padding:28px;background:#111417;border-bottom:4px solid #66b8c2;">
+              <td align="center" style="padding:40px 20px;background:#141619;border-bottom:4px solid #5ea6b0;">
                 <a href="${siteUrl}" style="text-decoration:none;color:#ffffff;">
-                  <img src="${siteUrl}/images/svg/rasika_logo.svg" width="154" alt="Rasika Producciones" style="display:block;width:154px;max-width:100%;height:auto;border:0;" />
+                  <img src="${siteUrl}/images/svg/rasika_logo.svg" width="180" alt="Rasika Producciones" style="display:block;width:180px;max-width:100%;height:auto;border:0;" />
                 </a>
               </td>
             </tr>
@@ -150,19 +150,19 @@ export function renderNewsletterHtml(options: RenderOptions) {
             ${services.map((item) => contentBlock(item, "service", options.campaignKey, options.recipientToken)).join("")}
             <tr>
               <td style="padding:8px 28px 32px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f7f8;border:1px solid #c5dfe3;border-radius:8px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#1e2226;border:1px solid #343a40;border-radius:8px;">
                   <tr>
                     <td style="padding:26px;text-align:center;">
-                      <h2 style="margin:0 0 9px;color:#111417;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
-                      <p style="margin:0 0 20px;color:#53606b;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
+                      <h2 style="margin:0 0 9px;color:#ffffff;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
+                      <p style="margin:0 0 20px;color:#c5cbd3;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
                       <table role="presentation" cellspacing="0" cellpadding="0" align="center">
                         <tr>
-                          <td style="border-radius:6px;background:#ffffff;border:1px solid #0a66c2;">
-                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:10px 18px;color:#0a66c2;text-decoration:none;font-size:14px;font-weight:800;">
+                          <td align="center" style="border-radius:6px;background:#141619;border:1px solid #5ea6b0;">
+                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 18px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:800;">
                               <table role="presentation" cellspacing="0" cellpadding="0">
                                 <tr>
-                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
-                                  <td style="color:#0a66c2;font-size:14px;font-weight:800;vertical-align:middle;">Seguir a Rasika en LinkedIn</td>
+                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin-outline.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
+                                  <td style="color:#ffffff;font-size:14px;font-weight:800;vertical-align:middle;">Seguir a Rasika en LinkedIn</td>
                                 </tr>
                               </table>
                             </a>
