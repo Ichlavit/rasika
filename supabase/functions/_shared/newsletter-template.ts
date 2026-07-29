@@ -72,7 +72,7 @@ function contentBlock(
   return `
     <tr>
       <td style="padding:0 28px 24px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;background:#1e2226;border:1px solid #343a40;border-radius:8px;overflow:hidden;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;background:#ffffff;border:1px solid #d8e0e3;border-radius:8px;overflow:hidden;">
           <tr>
             <td>
               <a href="${escapeHtml(url)}" style="text-decoration:none;">
@@ -82,12 +82,12 @@ function contentBlock(
           </tr>
           <tr>
             <td style="padding:24px;">
-              <p style="margin:0 0 10px;color:#88d6e0;font-size:12px;line-height:1.4;font-weight:700;text-transform:uppercase;">${eyebrow}</p>
-              <h2 style="margin:0 0 12px;color:#ffffff;font-size:22px;line-height:1.3;font-weight:800;">${escapeHtml(item.title)}</h2>
-              <p style="margin:0 0 20px;color:#c5cbd3;font-size:15px;line-height:1.7;">${escapeHtml(item.summary)}</p>
+              <p style="margin:0 0 10px;color:#27727c;font-size:12px;line-height:1.4;font-weight:700;text-transform:uppercase;">${eyebrow}</p>
+              <h2 style="margin:0 0 12px;color:#111417;font-size:22px;line-height:1.3;font-weight:800;">${escapeHtml(item.title)}</h2>
+              <p style="margin:0 0 20px;color:#53606b;font-size:15px;line-height:1.7;">${escapeHtml(item.summary)}</p>
               <table role="presentation" cellspacing="0" cellpadding="0">
                 <tr>
-                  <td style="border-radius:6px;background:#5ea6b0;">
+                  <td style="border-radius:6px;background:#66b8c2;">
                     <a href="${escapeHtml(url)}" style="display:inline-block;padding:12px 18px;color:#071013;text-decoration:none;font-size:14px;font-weight:800;">${label}</a>
                   </td>
                 </tr>
@@ -111,7 +111,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
     options.recipientToken,
   );
   const previewNotice = options.testMode
-    ? `<tr><td style="padding:10px 28px;background:#26343a;color:#bcecf2;font-size:12px;line-height:1.5;text-align:center;">Vista de prueba. No corresponde a un envío de campaña.</td></tr>`
+    ? `<tr><td style="padding:10px 28px;background:#dff3f5;color:#245b62;font-size:12px;line-height:1.5;text-align:center;">Vista de prueba. No corresponde a un envío de campaña.</td></tr>`
     : "";
 
   return `<!doctype html>
@@ -119,18 +119,19 @@ export function renderNewsletterHtml(options: RenderOptions) {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <title>Rasika Insights</title>
+    <meta name="color-scheme" content="light" />
+    <meta name="supported-color-schemes" content="light" />
+    <title>El blog de Rasika</title>
   </head>
-  <body style="margin:0;padding:0;background:#0a0c0e;color:#e5e7eb;font-family:Arial,Helvetica,sans-serif;">
+  <body style="margin:0;padding:0;background:#eef2f3;color:#111417;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Ideas y soluciones para equipos de capacitación que quieren llevar la IA a la práctica.</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#0a0c0e;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;background:#eef2f3;">
       <tr>
         <td align="center" style="padding:28px 12px;">
-          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate;background:#111417;border:1px solid #2b3035;border-radius:8px;overflow:hidden;">
+          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="width:100%;max-width:640px;border-collapse:separate;background:#ffffff;border:1px solid #d8e0e3;border-radius:8px;overflow:hidden;">
             ${previewNotice}
             <tr>
-              <td style="padding:30px 28px 20px;border-bottom:1px solid #2b3035;">
+              <td style="padding:28px;background:#111417;border-bottom:4px solid #66b8c2;">
                 <a href="${siteUrl}" style="text-decoration:none;color:#ffffff;">
                   <img src="${siteUrl}/images/svg/rasika_logo.svg" width="154" alt="Rasika Producciones" style="display:block;width:154px;max-width:100%;height:auto;border:0;" />
                 </a>
@@ -138,24 +139,35 @@ export function renderNewsletterHtml(options: RenderOptions) {
             </tr>
             <tr>
               <td style="padding:40px 28px 30px;">
-                <p style="margin:0 0 12px;color:#88d6e0;font-size:12px;line-height:1.4;font-weight:700;text-transform:uppercase;">${escapeHtml(content.eyebrow || "Rasika Insights")} · ${escapeHtml(content.edition_label || "Nueva edición")}</p>
-                <h1 style="margin:0 0 18px;color:#ffffff;font-size:34px;line-height:1.16;font-weight:800;">${escapeHtml(content.headline || "Aprendizaje, tecnología y producción")}</h1>
-                <p style="margin:0;color:#c5cbd3;font-size:17px;line-height:1.7;">${escapeHtml(content.intro)}</p>
+                <p style="margin:0 0 12px;color:#27727c;font-size:13px;line-height:1.4;font-weight:800;">${escapeHtml(content.eyebrow || "El blog de Rasika")} · ${escapeHtml(content.edition_label || "Nueva edición")}</p>
+                <h1 style="margin:0 0 18px;color:#111417;font-size:34px;line-height:1.16;font-weight:800;">${escapeHtml(content.headline || "Aprendizaje, tecnología y producción")}</h1>
+                <p style="margin:0;color:#53606b;font-size:17px;line-height:1.7;">${escapeHtml(content.intro)}</p>
               </td>
             </tr>
-            <tr><td style="padding:0 28px 18px;"><p style="margin:0;color:#ffffff;font-size:18px;font-weight:800;">Dos lecturas seleccionadas</p></td></tr>
+            <tr><td style="padding:0 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos lecturas seleccionadas</p></td></tr>
             ${articles.map((item) => contentBlock(item, "article", options.campaignKey, options.recipientToken)).join("")}
-            <tr><td style="padding:12px 28px 18px;"><p style="margin:0;color:#ffffff;font-size:18px;font-weight:800;">Dos formas de llevarlo a la práctica</p></td></tr>
+            <tr><td style="padding:12px 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos formas de llevarlo a la práctica</p></td></tr>
             ${services.map((item) => contentBlock(item, "service", options.campaignKey, options.recipientToken)).join("")}
             <tr>
               <td style="padding:8px 28px 32px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#151b1e;border:1px solid #33545a;border-radius:8px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f7f8;border:1px solid #c5dfe3;border-radius:8px;">
                   <tr>
                     <td style="padding:26px;text-align:center;">
-                      <h2 style="margin:0 0 9px;color:#ffffff;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
-                      <p style="margin:0 0 20px;color:#aeb6c0;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
+                      <h2 style="margin:0 0 9px;color:#111417;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
+                      <p style="margin:0 0 20px;color:#53606b;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
                       <table role="presentation" cellspacing="0" cellpadding="0" align="center">
-                        <tr><td style="border-radius:6px;background:#5ea6b0;"><a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:12px 18px;color:#071013;text-decoration:none;font-size:14px;font-weight:800;">Seguir a Rasika en LinkedIn</a></td></tr>
+                        <tr>
+                          <td style="border-radius:6px;background:#ffffff;border:1px solid #0a66c2;">
+                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:10px 18px;color:#0a66c2;text-decoration:none;font-size:14px;font-weight:800;">
+                              <table role="presentation" cellspacing="0" cellpadding="0">
+                                <tr>
+                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
+                                  <td style="color:#0a66c2;font-size:14px;font-weight:800;vertical-align:middle;">Seguir a Rasika en LinkedIn</td>
+                                </tr>
+                              </table>
+                            </a>
+                          </td>
+                        </tr>
                       </table>
                     </td>
                   </tr>
@@ -163,10 +175,10 @@ export function renderNewsletterHtml(options: RenderOptions) {
               </td>
             </tr>
             <tr>
-              <td style="padding:24px 28px 28px;background:#0f1214;border-top:1px solid #2b3035;text-align:center;">
-                <p style="margin:0 0 10px;color:#7f8995;font-size:12px;line-height:1.6;">Rasika Producciones · Santiago de Chile</p>
-                <p style="margin:0;color:#7f8995;font-size:12px;line-height:1.6;">Este correo informa sobre artículos, servicios y eventos de Rasika.</p>
-                <p style="margin:10px 0 0;font-size:12px;"><a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#88d6e0;text-decoration:underline;">Cancelar suscripción</a></p>
+              <td style="padding:24px 28px 28px;background:#f7f9fa;border-top:1px solid #d8e0e3;text-align:center;">
+                <p style="margin:0 0 10px;color:#6c7781;font-size:12px;line-height:1.6;">Rasika Producciones · Santiago de Chile</p>
+                <p style="margin:0;color:#6c7781;font-size:12px;line-height:1.6;">Este correo informa sobre artículos, servicios y eventos de Rasika.</p>
+                <p style="margin:10px 0 0;font-size:12px;"><a href="${escapeHtml(options.unsubscribeUrl)}" style="color:#27727c;text-decoration:underline;">Cancelar suscripción</a></p>
               </td>
             </tr>
           </table>
@@ -180,7 +192,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
 export function renderNewsletterText(options: RenderOptions) {
   const content = options.content || {};
   const sections = [
-    `${content.eyebrow || "Rasika Insights"} · ${content.edition_label || "Nueva edición"}`,
+    `${content.eyebrow || "El blog de Rasika"} · ${content.edition_label || "Nueva edición"}`,
     content.headline || "Aprendizaje, tecnología y producción",
     content.intro || "",
     ...(content.articles || []).slice(0, 2).map((item) => `${item.title}\n${item.summary}\n${item.url}`),
