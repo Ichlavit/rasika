@@ -35,13 +35,21 @@ const { articleSlug = '' } = Astro.props;
     const campaignStorageKey = 'rasikaCampaignAttribution';
     const campaignKeyPattern = /^[a-z0-9][a-z0-9-]{2,79}$/;
     const campaignTokenPattern = /^[A-Za-z0-9_-]{20,120}$/;
+    const campaignLinkKeyPattern = /^[a-z0-9][a-z0-9-]{1,79}$/;
     const incomingCampaignKey = (params.get('utm_campaign') || '').slice(0, 80);
     const incomingCampaignToken = (params.get('rc') || '').slice(0, 120);
-    const incomingLinkKey = (params.get('ck') || '').slice(0, 80);
+    const rawIncomingLinkKey = (params.get('ck') || '').slice(0, 80);
+    const incomingLinkKey = campaignLinkKeyPattern.test(rawIncomingLinkKey) ? rawIncomingLinkKey : '';
+    const incomingSource = (params.get('utm_source') || '').slice(0, 80);
+    const incomingMedium = (params.get('utm_medium') || '').slice(0, 80);
     if (campaignKeyPattern.test(incomingCampaignKey) && campaignTokenPattern.test(incomingCampaignToken)) {
       localStorage.setItem(campaignStorageKey, JSON.stringify({
         campaignKey: incomingCampaignKey,
         token: incomingCampaignToken,
+        linkKey: incomingLinkKey,
+        source: incomingSource || 'rasika_insights',
+        medium: incomingMedium || 'email',
+        landingPath: location.pathname,
         capturedAt: Date.now(),
       }));
     }
@@ -54,7 +62,17 @@ const { articleSlug = '' } = Astro.props;
         campaignTokenPattern.test(stored.token || '') &&
         Date.now() - Number(stored.capturedAt || 0) < 30 * 86400000
       ) {
-        campaignAttribution = stored;
+        campaignAttribution = {
+          campaignKey: stored.campaignKey,
+          token: stored.token,
+          linkKey: campaignLinkKeyPattern.test(stored.linkKey || '') ? stored.linkKey : '',
+          source: String(stored.source || 'rasika_insights').slice(0, 80),
+          medium: String(stored.medium || 'email').slice(0, 80),
+          landingPath: String(stored.landingPath || location.pathname).startsWith('/')
+            ? String(stored.landingPath || location.pathname).slice(0, 500)
+            : location.pathname,
+          capturedAt: Number(stored.capturedAt),
+        };
       } else {
         localStorage.removeItem(campaignStorageKey);
       }
@@ -64,7 +82,7 @@ const { articleSlug = '' } = Astro.props;
     const referringHost = (() => {
       try { return document.referrer ? new URL(document.referrer).hostname : ''; } catch { return ''; }
     })();
-    const source = (params.get('utm_source') || referringHost || 'direct').slice(0, 80);
+    const source = (incomingSource || referringHost || 'direct').slice(0, 80);
 
     const track = (eventType, metadata = {}, options = {}) => {
       const payload = {

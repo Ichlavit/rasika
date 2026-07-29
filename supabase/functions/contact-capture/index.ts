@@ -156,6 +156,57 @@ serve(async (request) => {
       });
     }
 
+    if (action === "sync_campaign") {
+      if (!UUID_REGEX.test(requestedLeadId)) {
+        return jsonResponse({ error: "A valid lead is required" }, 400);
+      }
+
+      const campaignRecipientId = await findCampaignRecipient(
+        supabaseUrl,
+        serviceRoleKey,
+        campaignToken,
+      );
+      if (!campaignRecipientId) {
+        return jsonResponse({ status: "not_attributed", campaign_attributed: false });
+      }
+
+      const leadResponse = await serviceRequest(
+        supabaseUrl,
+        serviceRoleKey,
+        `leads?id=eq.${encodeURIComponent(requestedLeadId)}&select=id,marketing_campaign_recipient_id&limit=1`,
+      );
+      const leadRows = leadResponse.ok ? await leadResponse.json() : [];
+      const lead = Array.isArray(leadRows) ? leadRows[0] : null;
+      if (!lead) return jsonResponse({ error: "Lead not found" }, 404);
+
+      const existingCampaignRecipientId = cleanText(lead.marketing_campaign_recipient_id, 36);
+      if (existingCampaignRecipientId) {
+        return jsonResponse({
+          status: existingCampaignRecipientId === campaignRecipientId ? "already_attributed" : "preserved",
+          campaign_attributed: existingCampaignRecipientId === campaignRecipientId,
+        });
+      }
+
+      const updateResponse = await serviceRequest(
+        supabaseUrl,
+        serviceRoleKey,
+        `leads?id=eq.${encodeURIComponent(requestedLeadId)}&marketing_campaign_recipient_id=is.null`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+          body: JSON.stringify({ marketing_campaign_recipient_id: campaignRecipientId }),
+        },
+      );
+      if (!updateResponse.ok) {
+        throw new Error(`Campaign attribution sync failed: ${await updateResponse.text()}`);
+      }
+      const updatedRows = await updateResponse.json();
+      return jsonResponse({
+        status: Array.isArray(updatedRows) && updatedRows.length ? "synced" : "preserved",
+        campaign_attributed: Boolean(Array.isArray(updatedRows) && updatedRows.length),
+      });
+    }
+
     const name = cleanText(body.name, 120);
     const email = cleanText(body.email, 320).toLowerCase();
     const companyName = cleanText(body.company_name, 160);

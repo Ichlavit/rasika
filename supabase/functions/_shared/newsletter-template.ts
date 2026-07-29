@@ -150,19 +150,19 @@ export function renderNewsletterHtml(options: RenderOptions) {
             ${services.map((item) => contentBlock(item, "service", options.campaignKey, options.recipientToken)).join("")}
             <tr>
               <td style="padding:8px 28px 32px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#1e2226;border:1px solid #343a40;border-radius:8px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f2f7f8;border:1px solid #c5dfe3;border-radius:8px;">
                   <tr>
                     <td style="padding:26px;text-align:center;">
-                      <h2 style="margin:0 0 9px;color:#ffffff;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
-                      <p style="margin:0 0 20px;color:#c5cbd3;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
+                      <h2 style="margin:0 0 9px;color:#111417;font-size:21px;line-height:1.3;">Sigamos la conversación</h2>
+                      <p style="margin:0 0 20px;color:#53606b;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
                       <table role="presentation" cellspacing="0" cellpadding="0" align="center">
                         <tr>
-                          <td align="center" style="border-radius:6px;background:#66b8c2;border:1px solid #66b8c2;">
-                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 22px;color:#071013;text-decoration:none;font-size:14px;font-weight:800;">
+                          <td align="center" style="border-radius:6px;background:#0a66c2;border:1px solid #0a66c2;">
+                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 22px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:800;">
                               <table role="presentation" cellspacing="0" cellpadding="0">
                                 <tr>
-                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
-                                  <td style="color:#071013;font-size:14px;font-weight:800;vertical-align:middle;">¡Síguenos!</td>
+                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin-white.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
+                                  <td style="color:#ffffff;font-size:14px;font-weight:800;vertical-align:middle;">¡Síguenos!</td>
                                 </tr>
                               </table>
                             </a>

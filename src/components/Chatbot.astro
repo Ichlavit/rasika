@@ -866,6 +866,49 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     var requestInFlight = false;
     var mentorCatalogReadyPromise = null;
     var ARTICLE_CONTEXT_STORAGE_KEY = "rasika_mentor_article_context";
+    var MENTOR_CAMPAIGN_STORAGE_KEY = "rasikaCampaignAttribution";
+    var MENTOR_CAMPAIGN_SYNC_STORAGE_KEY = "rasikaCampaignLeadSync";
+    var MENTOR_CAMPAIGN_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{2,79}$/;
+    var MENTOR_CAMPAIGN_TOKEN_PATTERN = /^[A-Za-z0-9_-]{20,120}$/;
+    var MENTOR_CAMPAIGN_LINK_PATTERN = /^[a-z0-9][a-z0-9-]{1,79}$/;
+
+    function getMentorCampaignAttribution() {
+        var raw = window.rasikaCampaignAttribution || safeJsonParse(
+            localStorage.getItem(MENTOR_CAMPAIGN_STORAGE_KEY) || 'null',
+            null
+        );
+        if (!raw || !MENTOR_CAMPAIGN_KEY_PATTERN.test(String(raw.campaignKey || ''))) return null;
+        if (!MENTOR_CAMPAIGN_TOKEN_PATTERN.test(String(raw.token || ''))) return null;
+        if (Date.now() - Number(raw.capturedAt || 0) >= 30 * 86400000) return null;
+
+        var linkKey = MENTOR_CAMPAIGN_LINK_PATTERN.test(String(raw.linkKey || ''))
+            ? String(raw.linkKey)
+            : '';
+        var landingPath = String(raw.landingPath || window.location.pathname || '/').slice(0, 500);
+        if (landingPath.charAt(0) !== '/') landingPath = '/';
+
+        return {
+            campaignKey: String(raw.campaignKey).slice(0, 80),
+            token: String(raw.token).slice(0, 120),
+            linkKey: linkKey,
+            source: String(raw.source || 'rasika_insights').slice(0, 80),
+            medium: String(raw.medium || 'email').slice(0, 80),
+            landingPath: landingPath,
+            capturedAt: Number(raw.capturedAt)
+        };
+    }
+
+    function describeMentorCampaignEntry(attribution) {
+        if (!attribution) return 'sin atribución de campaña';
+        var entryType = attribution.linkKey.indexOf('article-') === 0
+            ? 'artículo seleccionado desde el newsletter'
+            : attribution.linkKey.indexOf('service-') === 0
+                ? 'servicio seleccionado desde el newsletter'
+                : attribution.linkKey === 'social-linkedin'
+                    ? 'CTA de LinkedIn del newsletter'
+                    : 'enlace del newsletter';
+        return entryType + ' | campaña ' + attribution.campaignKey + ' | ruta de entrada ' + attribution.landingPath;
+    }
 
     window.mentorChatHistory = [];
     window.mentorServicesCatalog = "Cargando catálogo...";
@@ -873,6 +916,7 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
     window.mentorDemoCatalog = "Cargando demos...";
     window.mentorDemoCatalogData = [];
     window.mentorLeadId = localStorage.getItem('mentorLeadId') || null;
+    window.mentorCampaignAttribution = getMentorCampaignAttribution();
     var MENTOR_REFERRAL_CODE_PATTERN = /^[A-Za-z0-9_-]{8}$/;
     var mentorInboundReferralCode = new URLSearchParams(window.location.search).get('ref') || '';
     mentorInboundReferralCode = MENTOR_REFERRAL_CODE_PATTERN.test(mentorInboundReferralCode)
@@ -947,6 +991,41 @@ Prioriza: claridad, cercanía, una sola pregunta, exactitud de precios, extracci
             console.warn('Referral sync failed:', error);
             return ownCode || null;
         }
+    };
+
+    window.syncMentorCampaignAttribution = async function () {
+        var attribution = getMentorCampaignAttribution();
+        var leadId = String(window.mentorLeadId || localStorage.getItem('mentorLeadId') || '');
+        if (!attribution || !leadId) return false;
+
+        var syncMarker = leadId + ':' + attribution.campaignKey;
+        if (localStorage.getItem(MENTOR_CAMPAIGN_SYNC_STORAGE_KEY) === syncMarker) return true;
+
+        try {
+            var response = await fetch(SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/contact-capture', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+                },
+                body: JSON.stringify({
+                    action: 'sync_campaign',
+                    lead_id: leadId,
+                    campaign_token: attribution.token,
+                    website: ''
+                })
+            });
+            if (!response.ok) return false;
+            var data = await response.json();
+            if (data && data.campaign_attributed) {
+                localStorage.setItem(MENTOR_CAMPAIGN_SYNC_STORAGE_KEY, syncMarker);
+                return true;
+            }
+        } catch (error) {
+            console.warn('Campaign attribution sync failed:', error);
+        }
+        return false;
     };
 
     if (window.mentorLeadId) {
@@ -2307,6 +2386,7 @@ if (quoteRequested && quoteIntent) {
         var tutorIntent = detectTutorIntent(userText);
         var salesIntent = detectSalesIntent(userText);
         var activeArticle = getActiveArticleContext();
+        var campaignAttribution = getMentorCampaignAttribution();
         var modeHint = activeArticle && !userAskedForQuote(userText)
             ? "article"
             : tutorIntent && !salesIntent
@@ -2319,11 +2399,13 @@ if (quoteRequested && quoteIntent) {
             "Empresa conocida: " + (cleanKnownValue(localStorage.getItem('mentorCompanyName')) || "Desconocida") + "\n" +
             "Email conocido: " + (cleanKnownValue(localStorage.getItem('mentorEmail')) || "Desconocido") + "\n" +
             "Ruta actual del visitante: " + normalizePathname(window.location.pathname) + "\n" +
+            "Origen de campaña implícito: " + describeMentorCampaignEntry(campaignAttribution) + "\n" +
             "Acción UI pendiente de confirmación: " + (window.mentorPendingUiAction ? JSON.stringify(window.mentorPendingUiAction) : "no") + "\n" +
             "Etiqueta visible de página/demo: " + (window.mentorActiveCourse || "Catálogo General") + "\n" +
             "Artículo activo: " + (activeArticle ? activeArticle.title : "ninguno") + "\n" +
             "Servicio activo canónico: " + (activeService ? (activeService.service_name + " | ID: " + activeService.id + " | CATEGORIA: " + (activeService.category || "")) : "no resuelto") + "\n" +
             "Modo sugerido para este turno: " + modeHint + "\n" +
+            "Regla de atribución: usa el origen de campaña solo para orientar la conversación de forma natural. Nunca menciones seguimiento, tokens, códigos internos ni supongas el nombre, email o empresa del visitante.\n" +
             "Regla: si Servicio activo canónico = no resuelto, no infieras servicio/categoría desde la etiqueta visible. Usa solo el catálogo y lo que el usuario diga.\n\n" +
             "Nombre canónico obligatorio: expresa siempre el alias histórico 'Video Enhance con IA' como 'Chroma Key con IA Generativa'.\n\n" +
             "--- CATÁLOGO COMPACTO DE SERVICIOS Y PRECIOS ---\n" +
@@ -2430,6 +2512,7 @@ async function createAnonymousSession() {
 
     if (storedLeadId) {
         window.mentorLeadId = storedLeadId;
+        await window.syncMentorCampaignAttribution();
     }
 
     if (storedName) {
@@ -2532,18 +2615,21 @@ async function createAnonymousSession() {
         localStorage.removeItem('mentorFormRequestSubmitted');
     }
 
+    var campaignAttribution = getMentorCampaignAttribution();
     var payload = {
     name: cleanKnownValue(window.mentorUserName) || (INTERFACE_IS_ENGLISH ? "Anonymous Visitor" : "Visitante Anónimo"),
     email: "pendiente@rasika.cl",
     company_name: INTERFACE_IS_ENGLISH ? "Pending" : "Pendiente",
     traffic_source: formSubmitted
         ? "Website Form: Quote Request"
-        : (document.referrer || "Direct Traffic"),
+        : campaignAttribution
+            ? "Newsletter: " + campaignAttribution.campaignKey + " / " + (campaignAttribution.linkKey || "email")
+            : (document.referrer || "Direct Traffic"),
     language: INTERFACE_LOCALE,
     session_id: window.rasikaAnalytics?.sessionId || null,
     page_path: window.location.pathname,
     referral_code: localStorage.getItem('rasika_referred_by') || null,
-    campaign_token: window.rasikaCampaignAttribution?.token || null,
+    campaign_token: campaignAttribution ? campaignAttribution.token : null,
     website: ''
     };
 
@@ -2568,6 +2654,12 @@ async function createAnonymousSession() {
             if (data && data.lead_id) {
                 window.mentorLeadId = data.lead_id;
                 localStorage.setItem('mentorLeadId', window.mentorLeadId);
+                if (data.campaign_attributed && campaignAttribution) {
+                    localStorage.setItem(
+                        MENTOR_CAMPAIGN_SYNC_STORAGE_KEY,
+                        window.mentorLeadId + ':' + campaignAttribution.campaignKey
+                    );
+                }
                 if (MENTOR_REFERRAL_CODE_PATTERN.test(data.referral_code || '')) {
                     window.mentorReferralCode = data.referral_code;
                     localStorage.setItem('mentorReferralCode', window.mentorReferralCode);
