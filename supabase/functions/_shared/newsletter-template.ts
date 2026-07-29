@@ -105,7 +105,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
   const articles = Array.isArray(content.articles) ? content.articles.slice(0, 2) : [];
   const services = Array.isArray(content.services) ? content.services.slice(0, 2) : [];
   const linkedinUrl = trackedUrl(
-    String(content.linkedin_url || "https://www.linkedin.com/"),
+    String(content.linkedin_url || "https://www.linkedin.com/company/135814277"),
     options.campaignKey,
     String(content.linkedin_link_key || "social-linkedin"),
     options.recipientToken,
@@ -121,7 +121,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light" />
     <meta name="supported-color-schemes" content="light" />
-    <title>El blog de Rasika</title>
+    <title>Newsletter Rasika</title>
   </head>
   <body style="margin:0;padding:0;background:#f4f6f8;color:#111417;font-family:Arial,Helvetica,sans-serif;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">Ideas y soluciones para equipos de capacitación que quieren llevar la IA a la práctica.</div>
@@ -139,12 +139,12 @@ export function renderNewsletterHtml(options: RenderOptions) {
             </tr>
             <tr>
               <td style="padding:40px 28px 30px;">
-                <p style="margin:0 0 12px;color:#27727c;font-size:13px;line-height:1.4;font-weight:800;">${escapeHtml(content.eyebrow || "El blog de Rasika")} · ${escapeHtml(content.edition_label || "Nueva edición")}</p>
+                <p style="margin:0 0 12px;color:#27727c;font-size:13px;line-height:1.4;font-weight:800;">${escapeHtml(content.eyebrow || "Newsletter Rasika")} · ${escapeHtml(content.edition_label || "Nueva edición")}</p>
                 <h1 style="margin:0 0 18px;color:#111417;font-size:34px;line-height:1.16;font-weight:800;">${escapeHtml(content.headline || "Aprendizaje, tecnología y producción")}</h1>
                 <p style="margin:0;color:#53606b;font-size:17px;line-height:1.7;">${escapeHtml(content.intro)}</p>
               </td>
             </tr>
-            <tr><td style="padding:0 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos lecturas seleccionadas</p></td></tr>
+            <tr><td style="padding:0 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos artículos seleccionados</p></td></tr>
             ${articles.map((item) => contentBlock(item, "article", options.campaignKey, options.recipientToken)).join("")}
             <tr><td style="padding:12px 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos formas de llevarlo a la práctica</p></td></tr>
             ${services.map((item) => contentBlock(item, "service", options.campaignKey, options.recipientToken)).join("")}
@@ -157,12 +157,12 @@ export function renderNewsletterHtml(options: RenderOptions) {
                       <p style="margin:0 0 20px;color:#c5cbd3;font-size:14px;line-height:1.6;">Publicamos ideas, casos y nuevas formas de diseñar experiencias de aprendizaje.</p>
                       <table role="presentation" cellspacing="0" cellpadding="0" align="center">
                         <tr>
-                          <td align="center" style="border-radius:6px;background:#141619;border:1px solid #5ea6b0;">
-                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 18px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:800;">
+                          <td align="center" style="border-radius:6px;background:#66b8c2;border:1px solid #66b8c2;">
+                            <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 22px;color:#071013;text-decoration:none;font-size:14px;font-weight:800;">
                               <table role="presentation" cellspacing="0" cellpadding="0">
                                 <tr>
                                   <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
-                                  <td style="color:#ffffff;font-size:14px;font-weight:800;vertical-align:middle;">Seguir a Rasika en LinkedIn</td>
+                                  <td style="color:#071013;font-size:14px;font-weight:800;vertical-align:middle;">¡Síguenos!</td>
                                 </tr>
                               </table>
                             </a>
@@ -192,12 +192,12 @@ export function renderNewsletterHtml(options: RenderOptions) {
 export function renderNewsletterText(options: RenderOptions) {
   const content = options.content || {};
   const sections = [
-    `${content.eyebrow || "El blog de Rasika"} · ${content.edition_label || "Nueva edición"}`,
+    `${content.eyebrow || "Newsletter Rasika"} · ${content.edition_label || "Nueva edición"}`,
     content.headline || "Aprendizaje, tecnología y producción",
     content.intro || "",
     ...(content.articles || []).slice(0, 2).map((item) => `${item.title}\n${item.summary}\n${item.url}`),
     ...(content.services || []).slice(0, 2).map((item) => `${item.title}\n${item.summary}\n${item.url}`),
-    `LinkedIn: ${content.linkedin_url || "https://www.linkedin.com/"}`,
+    `LinkedIn: ${content.linkedin_url || "https://www.linkedin.com/company/135814277"}`,
     `Cancelar suscripción: ${options.unsubscribeUrl}`,
   ];
   return sections.filter(Boolean).join("\n\n");
