@@ -1,5 +1,16 @@
 # Next Session
 
+## First mailing campaign
+
+- Import the client/contact database into the Supabase marketing contact foundation.
+- Begin with a dry-run import that maps columns, validates email addresses, previews errors, detects duplicates, and reports how many records would be created, updated, skipped, or rejected.
+- Preserve each contact's source, consent status, consent date, language, organization, tags, and any available relationship history. Do not treat an imported address as subscribed unless its consent basis supports marketing email.
+- Define the initial audience segment, campaign objective, sender identity, subject line, Spanish/English content requirements, and measurable conversion action.
+- Prepare the first campaign in the admin dashboard using the existing Resend integration, with recipient count, exclusions, preview, test email, and explicit human approval before any production send.
+- Confirm unsubscribe handling, suppression-list behavior, bounce/complaint processing, and campaign attribution before launch.
+- Add a clear option to follow Rasika on LinkedIn in the campaign template. Use the canonical Rasika LinkedIn company-page URL once confirmed.
+- Consider the same LinkedIn follow action for newsletter confirmation and other relevant subscription-success surfaces, without making it a condition of subscribing.
+
 ## Remaining client demo
 
 - Buffalo Waffles now launches internally from `/courses/bw_scorm/index_scorm.html?StandAlone=true`; preserve its MP4 card preview.
