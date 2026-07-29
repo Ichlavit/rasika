@@ -24,6 +24,23 @@ function cleanText(value: unknown, maxLength = 500) {
   return String(value ?? "").replace(/\u0000/g, "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
 
+function cleanTextList(value: unknown, maxItems = 20, maxLength = 80) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.map((item) => cleanText(item, maxLength)).filter(Boolean))].slice(0, maxItems);
+}
+
+function cleanMetadata(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value as JsonRow)
+      .slice(0, 30)
+      .map(([key, item]) => [cleanText(key, 80), typeof item === "number" || typeof item === "boolean"
+        ? item
+        : cleanText(item, 500)])
+      .filter(([key]) => Boolean(key)),
+  );
+}
+
 async function restRequest(
   supabaseUrl: string,
   serviceRoleKey: string,
@@ -49,6 +66,29 @@ async function restJson(
   if (!response.ok) throw new Error(`Database request failed (${response.status})`);
   const result = await response.json();
   return Array.isArray(result) ? result : [];
+}
+
+async function restJsonAll(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  path: string,
+  pageSize = 1000,
+): Promise<JsonRow[]> {
+  const rows: JsonRow[] = [];
+  const basePath = path
+    .replace(/([?&])limit=\d+(&?)/, (_match, prefix, suffix) => suffix ? prefix : "")
+    .replace(/[?&]$/, "");
+  for (let offset = 0; offset < 100000; offset += pageSize) {
+    const separator = basePath.includes("?") ? "&" : "?";
+    const page = await restJson(
+      supabaseUrl,
+      serviceRoleKey,
+      `${basePath}${separator}limit=${pageSize}&offset=${offset}`,
+    );
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
 }
 
 async function requireAdmin(
@@ -166,6 +206,7 @@ function buildOverview(
       subscribers: contacts.filter((contact) => contact.newsletter_status === "subscribed").length,
       opportunities: contacts.filter((contact) => contact.lifecycle_stage === "opportunity").length,
       clients: contacts.filter((contact) => contact.lifecycle_stage === "client").length,
+      otec_contacts: contacts.filter((contact) => Array.isArray(contact.tags) && contact.tags.includes("OTEC")).length,
     },
     daily,
     top_pages: countBy(pageViews, (event) => String(event.page_path || "/")),
@@ -190,7 +231,7 @@ async function getOverview(
   const days = Math.max(7, Math.min(90, Number(url.searchParams.get("days")) || 30));
   const since = new Date(Date.now() - days * 86400000).toISOString();
   const [contacts, events, leads, quotes, queue, campaigns, imports, integrations] = await Promise.all([
-    restJson(supabaseUrl, serviceRoleKey, "contacts?select=id,email,full_name,company_name,lifecycle_stage,source_type,newsletter_status,newsletter_consented_at,resend_sync_status,created_at,last_seen_at&order=created_at.desc&limit=10000"),
+    restJsonAll(supabaseUrl, serviceRoleKey, "contacts?select=id,email,full_name,company_name,lifecycle_stage,source_type,tags,newsletter_status,newsletter_consented_at,resend_sync_status,created_at,last_seen_at&order=created_at.desc"),
     restJson(supabaseUrl, serviceRoleKey, `site_events?occurred_at=gte.${encodeURIComponent(since)}&select=session_id,event_type,page_path,source,metadata,occurred_at&order=occurred_at.asc&limit=20000`),
     restJson(supabaseUrl, serviceRoleKey, `leads?created_at=gte.${encodeURIComponent(since)}&select=id,created_at,status&limit=10000`),
     restJson(supabaseUrl, serviceRoleKey, `quotes?created_at=gte.${encodeURIComponent(since)}&select=id,created_at,status,quoted_price,quoted_currency&limit=10000`),
@@ -206,16 +247,18 @@ async function getContacts(url: URL, supabaseUrl: string, serviceRoleKey: string
   const search = cleanText(url.searchParams.get("search"), 100).toLowerCase();
   const stage = cleanText(url.searchParams.get("stage"), 30);
   const newsletter = cleanText(url.searchParams.get("newsletter"), 30);
-  const rows = await restJson(
+  const tag = cleanText(url.searchParams.get("tag"), 80);
+  const rows = await restJsonAll(
     supabaseUrl,
     serviceRoleKey,
-    "contacts?select=id,email,full_name,company_name,phone,lifecycle_stage,source_type,source_detail,newsletter_status,newsletter_consented_at,resend_sync_status,created_at,last_seen_at&order=last_seen_at.desc&limit=10000",
+    "contacts?select=id,email,full_name,company_name,phone,lifecycle_stage,source_type,source_detail,tags,newsletter_status,newsletter_consented_at,resend_sync_status,created_at,last_seen_at&order=last_seen_at.desc",
   );
   return rows.filter((row) => {
     const haystack = `${row.email || ""} ${row.full_name || ""} ${row.company_name || ""}`.toLowerCase();
     return (!search || haystack.includes(search)) && (!stage || row.lifecycle_stage === stage) &&
-      (!newsletter || row.newsletter_status === newsletter);
-  }).slice(0, 500);
+      (!newsletter || row.newsletter_status === newsletter) &&
+      (!tag || (Array.isArray(row.tags) && row.tags.includes(tag)));
+  }).slice(0, 1000);
 }
 
 async function updateQueue(
@@ -247,8 +290,11 @@ async function importContacts(
   serviceRoleKey: string,
 ) {
   const fileName = cleanText(body.file_name, 200) || "contactos.csv";
-  const inputRows = Array.isArray(body.rows) ? body.rows.slice(0, 1000) as JsonRow[] : [];
+  const inputRows = Array.isArray(body.rows) ? body.rows.slice(0, 5000) as JsonRow[] : [];
   if (!inputRows.length) return jsonResponse({ error: "No valid rows supplied" }, 400);
+  if (inputRows.some((row) => cleanText(row.organization_external_id, 80))) {
+    return await importOrganizationContacts(body, inputRows, user, supabaseUrl, serviceRoleKey);
+  }
   const importResponse = await restRequest(supabaseUrl, serviceRoleKey, "contact_imports", {
     method: "POST",
     headers: { "Content-Type": "application/json", Prefer: "return=representation" },
@@ -256,7 +302,7 @@ async function importContacts(
   });
   if (!importResponse.ok) throw new Error(`Unable to create import (${importResponse.status})`);
   const importRow = (await importResponse.json())?.[0];
-  const existing = await restJson(supabaseUrl, serviceRoleKey, "contacts?select=id,email,lifecycle_stage,newsletter_status,source_type,source_detail&limit=10000");
+  const existing = await restJsonAll(supabaseUrl, serviceRoleKey, "contacts?select=id,email,lifecycle_stage,newsletter_status,source_type,source_detail");
   const byEmail = new Map(existing.map((row) => [String(row.email || "").toLowerCase(), row]));
   let inserted = 0;
   let updated = 0;
@@ -331,6 +377,183 @@ async function importContacts(
     }),
   });
   return jsonResponse({ status, inserted, updated, skipped, consented, errors: errors.slice(0, 20) });
+}
+
+async function importOrganizationContacts(
+  body: JsonRow,
+  inputRows: JsonRow[],
+  user: AuthUser,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+) {
+  const fileName = cleanText(body.file_name, 200) || "organizaciones.csv";
+  const label = cleanText(body.label, 80) || "Organizaciones";
+  const sourceFileSha256 = cleanText(body.source_file_sha256, 64).toLowerCase();
+  const sourceRowCount = Math.max(0, Math.min(100000, Number(body.source_row_count) || inputRows.length));
+  const dryRun = body.dry_run === true;
+  const errors: JsonRow[] = [];
+  const normalized: JsonRow[] = [];
+  const dedupeKeys = new Set<string>();
+
+  for (let index = 0; index < inputRows.length; index += 1) {
+    const row = inputRows[index];
+    const sourceRow = Math.max(2, Number(row.source_row) || index + 2);
+    const externalId = cleanText(row.organization_external_id, 80).toUpperCase().replace(/[^0-9K]/g, "");
+    const legalName = cleanText(row.organization_legal_name, 240);
+    const email = cleanText(row.email, 320).toLowerCase();
+    if (externalId.length < 3 || !legalName) {
+      errors.push({ row: sourceRow, error: "RUT o razón social inválidos" });
+      continue;
+    }
+    if (email && !EMAIL_REGEX.test(email)) {
+      errors.push({ row: sourceRow, error: "Correo inválido" });
+      continue;
+    }
+
+    const dedupeKey = `${cleanText(row.organization_source_type, 80) || "registry_import"}:${externalId}:${email || "no-email"}`;
+    if (dedupeKeys.has(dedupeKey)) continue;
+    dedupeKeys.add(dedupeKey);
+    if (!email) errors.push({ row: sourceRow, error: "Organización sin correo válido" });
+
+    normalized.push({
+      source_row: sourceRow,
+      email,
+      language: cleanText(row.language, 2) === "en" ? "en" : "es",
+      contact_source_type: cleanText(row.contact_source_type, 80) || "registry_import",
+      contact_tags: cleanTextList(row.contact_tags),
+      contact_metadata: cleanMetadata(row.contact_metadata),
+      organization_type: cleanText(row.organization_type, 80) || "company",
+      organization_external_id: externalId,
+      organization_legal_name: legalName,
+      organization_display_name: cleanText(row.organization_display_name, 240),
+      organization_phone: cleanText(row.organization_phone, 60),
+      organization_address: cleanText(row.organization_address, 300),
+      organization_municipality: cleanText(row.organization_municipality, 120),
+      organization_region: cleanText(row.organization_region, 160),
+      organization_country_code: cleanText(row.organization_country_code, 2).toUpperCase() || "CL",
+      organization_status: ["active", "inactive", "unknown"].includes(cleanText(row.organization_status, 20))
+        ? cleanText(row.organization_status, 20)
+        : "unknown",
+      organization_source_type: cleanText(row.organization_source_type, 80) || "registry_import",
+      organization_tags: cleanTextList(row.organization_tags),
+      organization_metadata: cleanMetadata(row.organization_metadata),
+      relationship_type: cleanText(row.relationship_type, 80) || "general",
+      is_primary: row.is_primary === true,
+      source_detail: cleanText(row.source_detail, 200) || fileName,
+    });
+  }
+
+  if (!normalized.length) return jsonResponse({ error: "No importable organization rows supplied" }, 400);
+
+  const [existingContacts, existingOrganizations, previousImports] = await Promise.all([
+    restJsonAll(supabaseUrl, serviceRoleKey, "contacts?select=email,newsletter_status"),
+    restJsonAll(supabaseUrl, serviceRoleKey, "organizations?select=source_type,external_id"),
+    sourceFileSha256
+      ? restJson(supabaseUrl, serviceRoleKey, `contact_imports?source_file_sha256=eq.${encodeURIComponent(sourceFileSha256)}&select=id,status,created_at&limit=5`)
+      : Promise.resolve([]),
+  ]);
+  const existingEmails = new Set(existingContacts.map((row) => cleanText(row.email, 320).toLowerCase()));
+  const existingOrganizationKeys = new Set(existingOrganizations.map((row) => `${row.source_type}:${row.external_id}`));
+  const incomingEmails = new Set(normalized.map((row) => cleanText(row.email, 320)).filter(Boolean));
+  const incomingOrganizationKeys = new Set(normalized.map((row) => `${row.organization_source_type}:${row.organization_external_id}`));
+  const preview = {
+    source_rows: sourceRowCount,
+    normalized_rows: normalized.length,
+    organizations: incomingOrganizationKeys.size,
+    new_organizations: [...incomingOrganizationKeys].filter((key) => !existingOrganizationKeys.has(key)).length,
+    existing_organizations: [...incomingOrganizationKeys].filter((key) => existingOrganizationKeys.has(key)).length,
+    valid_unique_contacts: incomingEmails.size,
+    new_contacts: [...incomingEmails].filter((email) => !existingEmails.has(email)).length,
+    existing_contacts: [...incomingEmails].filter((email) => existingEmails.has(email)).length,
+    unresolved_source_rows: new Set(errors.filter((item) => item.error === "Organización sin correo válido").map((item) => item.row)).size,
+    newsletter_subscriptions: 0,
+    resend_syncs: 0,
+    previous_matching_imports: previousImports.length,
+  };
+  if (dryRun) return jsonResponse({ status: "preview", preview, errors: errors.slice(0, 100) });
+
+  const importResponse = await restRequest(supabaseUrl, serviceRoleKey, "contact_imports", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+    body: JSON.stringify({
+      file_name: fileName,
+      label,
+      source_file_sha256: sourceFileSha256 || null,
+      total_rows: sourceRowCount,
+      consented_rows: 0,
+      created_by: user.id,
+      metadata: { ...preview, import_mode: "organization_registry" },
+    }),
+  });
+  if (!importResponse.ok) throw new Error(`Unable to create import (${importResponse.status})`);
+  const importRow = (await importResponse.json())?.[0];
+  let processed = 0;
+  let organizationsWritten = 0;
+  let contactsWritten = 0;
+  let relationshipsWritten = 0;
+  let skippedContacts = 0;
+
+  try {
+    for (let index = 0; index < normalized.length; index += 250) {
+      const response = await restRequest(supabaseUrl, serviceRoleKey, "rpc/import_organization_contacts_batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Prefer: "return=representation" },
+        body: JSON.stringify({ batch: normalized.slice(index, index + 250) }),
+      });
+      if (!response.ok) throw new Error(`Organization import batch failed (${response.status})`);
+      const result = (await response.json())?.[0] || {};
+      processed += Number(result.processed_rows || 0);
+      organizationsWritten += Number(result.organizations_written || 0);
+      contactsWritten += Number(result.contacts_written || 0);
+      relationshipsWritten += Number(result.relationships_written || 0);
+      skippedContacts += Number(result.skipped_contacts || 0);
+    }
+
+    const status = errors.length ? "completed_with_errors" : "completed";
+    await restRequest(supabaseUrl, serviceRoleKey, `contact_imports?id=eq.${importRow.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({
+        status,
+        inserted_rows: preview.new_contacts,
+        updated_rows: preview.existing_contacts,
+        skipped_rows: preview.unresolved_source_rows,
+        consented_rows: 0,
+        errors: errors.slice(0, 100),
+        metadata: {
+          ...preview,
+          import_mode: "organization_registry",
+          processed,
+          organizations_written: organizationsWritten,
+          contacts_written: contactsWritten,
+          relationships_written: relationshipsWritten,
+          skipped_contacts: skippedContacts,
+        },
+        completed_at: new Date().toISOString(),
+      }),
+    });
+    return jsonResponse({
+      status,
+      inserted: preview.new_contacts,
+      updated: preview.existing_contacts,
+      skipped: preview.unresolved_source_rows,
+      consented: 0,
+      preview,
+      errors: errors.slice(0, 20),
+    });
+  } catch (error) {
+    await restRequest(supabaseUrl, serviceRoleKey, `contact_imports?id=eq.${importRow.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify({
+        status: "failed",
+        errors: [{ error: error instanceof Error ? error.message : "Import failed" }],
+        metadata: { ...preview, import_mode: "organization_registry", processed },
+        completed_at: new Date().toISOString(),
+      }),
+    });
+    throw error;
+  }
 }
 
 serve(async (request) => {

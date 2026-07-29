@@ -263,9 +263,18 @@ const seo = seoPages.admin;
 
         <section id="contacts-panel" class="hidden flex-1 flex-col min-h-0 gap-4" role="tabpanel">
             <div class="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-                <div class="relative flex-1 max-w-xl">
-                    <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
-                    <input id="contacts-search" type="search" placeholder="Buscar por nombre, empresa o correo" class="w-full bg-[#141619] border border-white/10 rounded-lg pl-10 pr-4 py-3 outline-none text-sm focus:border-[#5EA6B0]">
+                <div class="flex flex-col sm:flex-row gap-2 flex-1 max-w-3xl">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                        <input id="contacts-search" type="search" placeholder="Buscar por nombre, empresa o correo" class="w-full bg-[#141619] border border-white/10 rounded-lg pl-10 pr-4 py-3 outline-none text-sm focus:border-[#5EA6B0]">
+                    </div>
+                    <div class="relative min-w-44">
+                        <select id="contacts-tag" class="w-full appearance-none bg-[#141619] border border-white/10 rounded-lg pl-4 pr-10 py-3 outline-none text-sm text-gray-300 focus:border-[#5EA6B0]">
+                            <option value="">Todos los grupos</option>
+                            <option value="OTEC">OTEC</option>
+                        </select>
+                        <i data-lucide="chevron-down" class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+                    </div>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <input id="contacts-csv" type="file" accept=".csv,text/csv" class="hidden">
@@ -277,7 +286,7 @@ const seo = seoPages.admin;
                     </button>
                 </div>
             </div>
-            <div id="contacts-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+            <div id="contacts-summary" class="grid grid-cols-2 md:grid-cols-5 gap-3"></div>
             <div class="bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
                 <div class="overflow-x-auto">
                     <table class="w-full min-w-[880px] text-sm">
@@ -538,24 +547,24 @@ const seo = seoPages.admin;
             <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
                 <div>
                     <h2 id="csv-import-title" class="font-bold text-white">Revisar importación</h2>
-                    <p id="csv-import-file" class="text-xs text-gray-500 mt-1"></p>
+                    <p class="text-xs text-gray-500 mt-1"><span id="csv-import-file"></span><span id="csv-import-label" class="hidden ml-2 px-2 py-0.5 rounded-md border border-[#5EA6B0]/30 text-[#88d6e0]"></span></p>
                 </div>
                 <button type="button" onclick="closeCsvImport()" class="w-9 h-9 rounded-lg text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" aria-label="Cerrar"><i data-lucide="x" class="w-4 h-4"></i></button>
             </div>
             <div class="p-5">
-                <div id="csv-import-summary" class="grid grid-cols-3 gap-3 mb-5"></div>
+                <div id="csv-import-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5"></div>
                 <div class="border border-white/10 rounded-lg overflow-x-auto max-h-64">
                     <table class="w-full min-w-[640px] text-xs">
-                        <thead class="bg-[#141619] text-gray-500 uppercase"><tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Nombre</th><th class="px-3 py-2 text-left">Empresa</th><th class="px-3 py-2 text-left">Consentimiento</th></tr></thead>
+                        <thead id="csv-import-preview-head" class="bg-[#141619] text-gray-500 uppercase"><tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Nombre</th><th class="px-3 py-2 text-left">Empresa</th><th class="px-3 py-2 text-left">Consentimiento</th></tr></thead>
                         <tbody id="csv-import-preview" class="divide-y divide-white/10"></tbody>
                     </table>
                 </div>
-                <p class="mt-4 text-xs leading-relaxed text-gray-500">Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.</p>
+                <p id="csv-import-policy" class="mt-4 text-xs leading-relaxed text-gray-500">Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.</p>
                 <p id="csv-import-status" class="mt-3 min-h-5 text-xs text-gray-400" role="status" aria-live="polite"></p>
             </div>
             <div class="px-5 py-4 border-t border-white/10 flex justify-end gap-3">
                 <button type="button" onclick="closeCsvImport()" class="px-4 py-2.5 rounded-lg border border-white/10 text-sm font-bold text-gray-300 hover:bg-white/5">Cancelar</button>
-                <button id="csv-import-confirm" type="button" onclick="confirmCsvImport()" class="px-4 py-2.5 rounded-lg bg-[#5EA6B0] text-black text-sm font-bold hover:bg-[#88d6e0] flex items-center gap-2"><i data-lucide="database-zap" class="w-4 h-4"></i> Importar contactos</button>
+                <button id="csv-import-confirm" type="button" onclick="confirmCsvImport()" disabled class="px-4 py-2.5 rounded-lg bg-[#5EA6B0] text-black text-sm font-bold hover:bg-[#88d6e0] disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"><i data-lucide="database-zap" class="w-4 h-4"></i> Importar contactos</button>
             </div>
         </div>
     </div>
@@ -995,6 +1004,7 @@ const seo = seoPages.admin;
         function renderContactsSummary(metrics = {}) {
             const values = [
                 ['Contactos', metrics.contacts_total || 0],
+                ['OTEC', metrics.otec_contacts || 0],
                 ['Suscriptores', metrics.subscribers || 0],
                 ['Oportunidades', metrics.opportunities || 0],
                 ['Clientes', metrics.clients || 0]
@@ -1010,7 +1020,7 @@ const seo = seoPages.admin;
             const contacts = Array.isArray(rows) ? rows : [];
             document.getElementById('contacts-table').innerHTML = contacts.length ? contacts.map(contact => `
                 <tr class="hover:bg-white/[0.02]">
-                    <td class="px-4 py-3"><span class="block font-bold text-white">${escapeAdminHTML(contact.full_name || 'Sin nombre')}</span><span class="block mt-1 text-xs text-gray-500">${escapeAdminHTML(contact.email)}</span></td>
+                    <td class="px-4 py-3"><span class="block font-bold text-white">${escapeAdminHTML(contact.full_name || contact.company_name || 'Sin nombre')}</span><span class="block mt-1 text-xs text-gray-500">${escapeAdminHTML(contact.email)}</span>${(contact.tags || []).map(tag => `<span class="inline-flex mt-2 mr-1 px-2 py-0.5 rounded-md border border-[#5EA6B0]/30 bg-[#5EA6B0]/10 text-[10px] font-bold text-[#88d6e0]">${escapeAdminHTML(tag)}</span>`).join('')}</td>
                     <td class="px-4 py-3 text-gray-300">${escapeAdminHTML(contact.company_name || '—')}</td>
                     <td class="px-4 py-3"><span class="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-gray-300">${escapeAdminHTML(contactStageLabel(contact.lifecycle_stage))}</span></td>
                     <td class="px-4 py-3"><span class="text-xs font-bold ${contact.newsletter_status === 'subscribed' ? 'text-emerald-300' : contact.newsletter_status === 'unsubscribed' ? 'text-gray-500' : 'text-amber-300'}">${contact.newsletter_status === 'subscribed' ? 'Suscrito' : contact.newsletter_status === 'unsubscribed' ? 'Cancelado' : 'Sin suscripción'}</span></td>
@@ -1020,12 +1030,13 @@ const seo = seoPages.admin;
         }
 
         window.loadMarketingContacts = async function(force = false) {
-            if (marketingContactsLoaded && !force && !document.getElementById('contacts-search').value) return;
+            const tag = document.getElementById('contacts-tag').value;
+            if (marketingContactsLoaded && !force && !document.getElementById('contacts-search').value && !tag) return;
             const search = document.getElementById('contacts-search').value.trim();
             document.getElementById('contacts-table').innerHTML = '<tr><td colspan="6" class="px-4 py-12 text-center text-gray-500"><i data-lucide="loader-circle" class="w-5 h-5 animate-spin mx-auto"></i></td></tr>';
             if (window.lucide) lucide.createIcons();
             try {
-                const result = await marketingRequest(`?resource=contacts&search=${encodeURIComponent(search)}`);
+                const result = await marketingRequest(`?resource=contacts&search=${encodeURIComponent(search)}&tag=${encodeURIComponent(tag)}`);
                 marketingContactsLoaded = true;
                 renderContacts(result.contacts || []);
             } catch (error) {
@@ -1061,10 +1072,68 @@ const seo = seoPages.admin;
             return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
         }
 
+        function validCsvEmails(value) {
+            const matches = String(value || '').toLowerCase().match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/g) || [];
+            return [...new Set(matches.filter(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))];
+        }
+
         function csvContactRows(text) {
             const parsed = parseCsv(text);
-            if (parsed.length < 2) return [];
+            if (parsed.length < 2) return { rows: [], sourceRowCount: 0, label: '', isOrganizationImport: false };
             const headers = parsed[0].map(normalizeCsvHeader);
+            const isOtecRegistry = ['rut_organismo', 'razonsocial', 'email'].every(header => headers.includes(header));
+            if (isOtecRegistry) {
+                const indexOf = header => headers.indexOf(header);
+                const cell = (cells, header) => String(cells[indexOf(header)] || '').trim();
+                const rows = [];
+                let unresolvedRows = 0;
+                parsed.slice(1).forEach((cells, sourceIndex) => {
+                    const legalName = cell(cells, 'razonsocial') || cell(cells, 'nombre_fantasia');
+                    const displayName = cell(cells, 'nombre_fantasia') || legalName;
+                    const emails = validCsvEmails(cell(cells, 'email'));
+                    if (!emails.length) unresolvedRows += 1;
+                    (emails.length ? emails : ['']).forEach((email, emailIndex) => rows.push({
+                        source_row: sourceIndex + 2,
+                        email,
+                        language: 'es',
+                        contact_source_type: 'registry_import',
+                        contact_tags: ['OTEC'],
+                        contact_metadata: {
+                            organization_type: 'OTEC',
+                            email_verification_status: email ? 'syntax_valid' : 'missing_or_invalid',
+                            source_snapshot_year: 2020
+                        },
+                        organization_type: 'otec',
+                        organization_external_id: cell(cells, 'rut_organismo'),
+                        organization_legal_name: legalName,
+                        organization_display_name: displayName,
+                        organization_phone: cell(cells, 'telefono'),
+                        organization_address: cell(cells, 'direccion'),
+                        organization_municipality: cell(cells, 'comuna'),
+                        organization_region: cell(cells, 'region'),
+                        organization_country_code: 'CL',
+                        organization_status: cell(cells, 'estado').toLowerCase() === 'vigente' ? 'active' : 'unknown',
+                        organization_source_type: 'sence_otec_registry',
+                        organization_tags: ['OTEC'],
+                        organization_metadata: {
+                            registry_status: cell(cells, 'estado'),
+                            representative_type: cell(cells, 'tipo_representante'),
+                            source_snapshot_year: 2020,
+                            organization_type: cell(cells, 'tipo_organismo') || 'OTEC'
+                        },
+                        relationship_type: 'registry_contact',
+                        is_primary: emailIndex === 0,
+                        source_detail: 'Registro SENCE OTEC 2020'
+                    }));
+                });
+                return {
+                    rows,
+                    sourceRowCount: parsed.length - 1,
+                    label: 'OTEC',
+                    isOrganizationImport: true,
+                    unresolvedRows
+                };
+            }
             const aliases = {
                 email: ['email', 'correo', 'correo_electronico'],
                 full_name: ['full_name', 'nombre', 'name', 'nombre_completo'],
@@ -1076,7 +1145,7 @@ const seo = seoPages.admin;
                 newsletter_consent: ['newsletter_consent', 'consentimiento_newsletter', 'consentimiento', 'suscrito']
             };
             const indexFor = key => aliases[key].map(alias => headers.indexOf(alias)).find(index => index >= 0);
-            return parsed.slice(1).map(cells => {
+            const rows = parsed.slice(1).map(cells => {
                 const row = {};
                 Object.keys(aliases).forEach(key => {
                     const index = indexFor(key);
@@ -1085,26 +1154,89 @@ const seo = seoPages.admin;
                 row.newsletter_consent = ['true', '1', 'yes', 'si', 'sí', 'opt_in'].includes(String(row.newsletter_consent).toLowerCase());
                 return row;
             }).filter(row => row.email);
+            return { rows, sourceRowCount: parsed.length - 1, label: '', isOrganizationImport: false };
         }
 
-        function renderCsvImport(file, rows) {
-            pendingCsvImport = { file_name: file.name, rows };
+        async function sha256Hex(file) {
+            const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+            return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('');
+        }
+
+        function showCsvImportModal(file, parsed, sourceFileSha256) {
+            const rows = parsed.rows;
+            pendingCsvImport = {
+                file_name: file.name,
+                source_file_sha256: sourceFileSha256,
+                source_row_count: parsed.sourceRowCount,
+                label: parsed.label,
+                rows,
+                isOrganizationImport: parsed.isOrganizationImport
+            };
             const consented = rows.filter(row => row.newsletter_consent).length;
             document.getElementById('csv-import-file').textContent = file.name;
-            document.getElementById('csv-import-summary').innerHTML = [
-                ['Filas', rows.length], ['Con consentimiento', consented], ['Sin suscripción', rows.length - consented]
-            ].map(([label, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${label}</span><strong class="block mt-1 text-lg text-white">${value}</strong></div>`).join('');
-            document.getElementById('csv-import-preview').innerHTML = rows.slice(0, 12).map(row => `<tr><td class="px-3 py-2 text-gray-300">${escapeAdminHTML(row.email)}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.full_name || '—')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.company_name || '—')}</td><td class="px-3 py-2 ${row.newsletter_consent ? 'text-emerald-300' : 'text-gray-600'}">${row.newsletter_consent ? 'Sí' : 'No'}</td></tr>`).join('');
-            document.getElementById('csv-import-status').textContent = '';
+            const label = document.getElementById('csv-import-label');
+            label.textContent = parsed.label;
+            label.classList.toggle('hidden', !parsed.label);
+            if (parsed.isOrganizationImport) {
+                document.getElementById('csv-import-preview-head').innerHTML = '<tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Organización</th><th class="px-3 py-2 text-left">Región</th><th class="px-3 py-2 text-left">Grupo</th></tr>';
+                document.getElementById('csv-import-preview').innerHTML = rows.slice(0, 12).map(row => `<tr><td class="px-3 py-2 text-gray-300">${escapeAdminHTML(row.email || 'Sin correo válido')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.organization_display_name || row.organization_legal_name || '—')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.organization_region || '—')}</td><td class="px-3 py-2 text-[#88d6e0]">OTEC</td></tr>`).join('');
+                document.getElementById('csv-import-summary').innerHTML = [
+                    ['Filas fuente', parsed.sourceRowCount], ['Registros procesables', rows.length], ['Sin correo válido', parsed.unresolvedRows], ['Suscripciones', 0]
+                ].map(([summaryLabel, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${summaryLabel}</span><strong class="block mt-1 text-lg text-white">${formatMarketingNumber(value)}</strong></div>`).join('');
+                document.getElementById('csv-import-policy').textContent = 'El registro se importará como organizaciones OTEC y contactos institucionales. Ningún correo quedará suscrito al newsletter ni sincronizado con Resend.';
+                document.getElementById('csv-import-status').textContent = 'Validando organizaciones, correos y duplicados…';
+            } else {
+                document.getElementById('csv-import-preview-head').innerHTML = '<tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Nombre</th><th class="px-3 py-2 text-left">Empresa</th><th class="px-3 py-2 text-left">Consentimiento</th></tr>';
+                document.getElementById('csv-import-summary').innerHTML = [
+                    ['Filas', rows.length], ['Con consentimiento', consented], ['Sin suscripción', rows.length - consented], ['Omitidas', Math.max(0, parsed.sourceRowCount - rows.length)]
+                ].map(([summaryLabel, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${summaryLabel}</span><strong class="block mt-1 text-lg text-white">${formatMarketingNumber(value)}</strong></div>`).join('');
+                document.getElementById('csv-import-preview').innerHTML = rows.slice(0, 12).map(row => `<tr><td class="px-3 py-2 text-gray-300">${escapeAdminHTML(row.email)}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.full_name || '—')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.company_name || '—')}</td><td class="px-3 py-2 ${row.newsletter_consent ? 'text-emerald-300' : 'text-gray-600'}">${row.newsletter_consent ? 'Sí' : 'No'}</td></tr>`).join('');
+                document.getElementById('csv-import-policy').textContent = 'Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.';
+                document.getElementById('csv-import-status').textContent = '';
+            }
+            document.getElementById('csv-import-status').className = 'mt-3 min-h-5 text-xs text-gray-400';
+            document.getElementById('csv-import-confirm').disabled = true;
             document.getElementById('csv-import-modal').classList.remove('hidden');
             document.getElementById('csv-import-modal').classList.add('flex');
             if (window.lucide) lucide.createIcons();
+        }
+
+        async function renderCsvImport(file, parsed) {
+            const sourceFileSha256 = await sha256Hex(file);
+            showCsvImportModal(file, parsed, sourceFileSha256);
+            const button = document.getElementById('csv-import-confirm');
+            if (!parsed.isOrganizationImport) {
+                button.disabled = false;
+                return;
+            }
+            const status = document.getElementById('csv-import-status');
+            try {
+                const result = await marketingRequest('', {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'import_contacts', dry_run: true, ...pendingCsvImport })
+                });
+                const preview = result.preview || {};
+                document.getElementById('csv-import-summary').innerHTML = [
+                    ['Organizaciones', preview.organizations || 0],
+                    ['Correos únicos', preview.valid_unique_contacts || 0],
+                    ['Sin correo válido', preview.unresolved_source_rows || 0],
+                    ['Suscripciones', preview.newsletter_subscriptions || 0]
+                ].map(([summaryLabel, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${summaryLabel}</span><strong class="block mt-1 text-lg text-white">${formatMarketingNumber(value)}</strong></div>`).join('');
+                const previous = preview.previous_matching_imports ? ` · ${preview.previous_matching_imports} importación(es) previa(s) del mismo archivo` : '';
+                status.textContent = `${preview.new_organizations || 0} organizaciones nuevas · ${preview.existing_organizations || 0} existentes · ${preview.new_contacts || 0} contactos nuevos · ${preview.existing_contacts || 0} existentes${previous}`;
+                status.className = 'mt-3 min-h-5 text-xs text-emerald-300';
+                button.disabled = false;
+            } catch (error) {
+                status.textContent = `No se puede importar todavía: ${error.message}`;
+                status.className = 'mt-3 min-h-5 text-xs text-red-300';
+            }
         }
 
         window.closeCsvImport = function() {
             document.getElementById('csv-import-modal').classList.add('hidden');
             document.getElementById('csv-import-modal').classList.remove('flex');
             document.getElementById('contacts-csv').value = '';
+            document.getElementById('csv-import-confirm').disabled = true;
             pendingCsvImport = null;
         }
 
@@ -1115,14 +1247,18 @@ const seo = seoPages.admin;
             button.disabled = true;
             status.textContent = 'Importando contactos…';
             try {
+                const isOrganizationImport = pendingCsvImport.isOrganizationImport;
+                const payload = { ...pendingCsvImport, action: 'import_contacts', dry_run: false };
+                delete payload.isOrganizationImport;
                 const result = await marketingRequest('', {
                     method: 'POST',
-                    body: JSON.stringify({ action: 'import_contacts', ...pendingCsvImport })
+                    body: JSON.stringify(payload)
                 });
-                status.textContent = `${result.inserted || 0} creados · ${result.updated || 0} actualizados · ${result.skipped || 0} omitidos`;
+                status.textContent = `${result.inserted || 0} creados · ${result.updated || 0} actualizados · ${result.skipped || 0} omitidos${isOrganizationImport ? ' · 0 suscripciones' : ''}`;
                 status.className = 'mt-3 min-h-5 text-xs text-emerald-300';
                 marketingContactsLoaded = false;
                 marketingOverviewLoaded = false;
+                if (isOrganizationImport) document.getElementById('contacts-tag').value = 'OTEC';
                 await window.loadMarketingContacts(true);
                 setTimeout(window.closeCsvImport, 1200);
             } catch (error) {
@@ -1151,13 +1287,14 @@ const seo = seoPages.admin;
                 clearTimeout(contactsSearchTimer);
                 contactsSearchTimer = setTimeout(() => window.loadMarketingContacts(true), 250);
             });
+            document.getElementById('contacts-tag').addEventListener('change', () => window.loadMarketingContacts(true));
             document.getElementById('contacts-csv').addEventListener('change', async event => {
                 const file = event.target.files?.[0];
                 if (!file) return;
-                if (file.size > 2_000_000) return alert('El CSV supera el límite de 2 MB.');
-                const rows = csvContactRows(await file.text());
-                if (!rows.length) return alert('No se encontraron filas con una columna de correo válida.');
-                renderCsvImport(file, rows.slice(0, 1000));
+                if (file.size > 5_000_000) return alert('El CSV supera el límite de 5 MB.');
+                const parsed = csvContactRows(await file.text());
+                if (!parsed.rows.length) return alert('No se encontraron filas importables.');
+                await renderCsvImport(file, parsed);
             });
         }
 

@@ -30,6 +30,9 @@ deno.lock
 # local source archives (expanded assets are committed instead)
 Demo_BW_2021.zip
 
+# private contact datasets (local import sources only)
+DB_OTEC_2020.csv
+
 # macOS-specific files
 .DS_Store
 
