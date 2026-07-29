@@ -161,7 +161,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
                             <a href="${escapeHtml(linkedinUrl)}" style="display:inline-block;padding:11px 18px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:800;">
                               <table role="presentation" cellspacing="0" cellpadding="0">
                                 <tr>
-                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin-outline.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
+                                  <td style="padding-right:9px;vertical-align:middle;"><img src="${siteUrl}/images/newsletter/linkedin.png" width="22" height="22" alt="LinkedIn" style="display:block;width:22px;height:22px;border:0;" /></td>
                                   <td style="color:#ffffff;font-size:14px;font-weight:800;vertical-align:middle;">Seguir a Rasika en LinkedIn</td>
                                 </tr>
                               </table>
