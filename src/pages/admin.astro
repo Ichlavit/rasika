@@ -317,12 +317,20 @@ const seo = seoPages.admin;
 
             <div class="grid grid-cols-1 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,.75fr)] gap-4 items-start">
                 <section class="bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden">
-                    <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between gap-3">
-                        <h2 class="font-bold text-white">Vista previa del correo</h2>
-                        <button type="button" onclick="loadCampaignDraft(true)" class="w-9 h-9 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" title="Actualizar vista previa" aria-label="Actualizar vista previa"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                    <div class="px-5 py-4 border-b border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 class="font-bold text-white">Cuerpo HTML completo</h2>
+                            <p class="mt-1 text-xs text-gray-500">Desplázate dentro del correo para revisar todos sus bloques. Los enlaces están desactivados en esta vista.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openCampaignPreview()" class="min-h-9 px-3 rounded-lg border border-[#5EA6B0]/30 text-xs font-bold text-[#88d6e0] hover:text-white hover:bg-[#5EA6B0]/10 flex items-center gap-2">
+                                <i data-lucide="expand" class="w-4 h-4"></i> Revisar completo
+                            </button>
+                            <button type="button" onclick="loadCampaignDraft(true)" class="w-9 h-9 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" title="Reiniciar vista previa" aria-label="Reiniciar vista previa"><i data-lucide="refresh-cw" class="w-4 h-4"></i></button>
+                        </div>
                     </div>
                     <div class="p-3 md:p-5 bg-[#0f1113]">
-                        <iframe id="campaign-preview-frame" title="Vista previa de Rasika Insights" class="w-full h-[720px] rounded-lg border border-white/10 bg-[#0a0c0e]"></iframe>
+                        <iframe id="campaign-preview-frame" sandbox="" loading="eager" title="Cuerpo HTML completo de Rasika Insights" class="w-full h-[900px] rounded-lg border border-white/10 bg-[#0a0c0e]"></iframe>
                     </div>
                 </section>
 
@@ -601,6 +609,23 @@ const seo = seoPages.admin;
         </div>
     </div>
 
+    <div id="campaign-preview-modal" class="hidden fixed inset-0 z-[100] bg-black/90 p-3 md:p-6" role="dialog" aria-modal="true" aria-labelledby="campaign-preview-modal-title">
+        <div class="w-full h-full max-w-6xl mx-auto bg-[#1E2226] border border-white/10 rounded-lg overflow-hidden flex flex-col">
+            <div class="px-4 md:px-6 py-4 border-b border-white/10 flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <h2 id="campaign-preview-modal-title" class="font-bold text-white">Correo completo: Rasika Insights</h2>
+                    <p class="mt-1 text-xs text-gray-500">Vista visual del mismo HTML que recibirá el destinatario. Los enlaces están desactivados durante la revisión.</p>
+                </div>
+                <button type="button" onclick="closeCampaignPreview()" class="w-10 h-10 shrink-0 rounded-lg border border-white/10 text-gray-400 hover:text-white hover:bg-white/5 flex items-center justify-center" title="Cerrar vista completa" aria-label="Cerrar vista completa">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex-1 min-h-0 p-2 md:p-4 bg-[#0f1113]">
+                <iframe id="campaign-preview-modal-frame" sandbox="" loading="eager" title="Vista completa de Rasika Insights" class="w-full h-full rounded-lg border border-white/10 bg-[#0a0c0e]"></iframe>
+            </div>
+        </div>
+    </div>
+
     <script is:inline>
         if (window.lucide) lucide.createIcons();
         
@@ -623,6 +648,7 @@ const seo = seoPages.admin;
         let marketingPeriodDays = 30;
         let campaignDraft = null;
         let campaignDraftLoaded = false;
+        let campaignPreviewHtml = '';
         let pendingCsvImport = null;
         let contactsSearchTimer = null;
 
@@ -865,6 +891,35 @@ const seo = seoPages.admin;
             return result;
         }
 
+        function prepareCampaignPreview(html) {
+            const source = String(html || '<p style="color:white">Vista previa no disponible.</p>');
+            const previewStyles = '<style data-admin-preview>a{pointer-events:none!important;cursor:default!important}html{scroll-behavior:auto!important}</style>';
+            return source.includes('</head>')
+                ? source.replace('</head>', `${previewStyles}</head>`)
+                : `${previewStyles}${source}`;
+        }
+
+        window.openCampaignPreview = function() {
+            const modal = document.getElementById('campaign-preview-modal');
+            const modalFrame = document.getElementById('campaign-preview-modal-frame');
+            modalFrame.srcdoc = campaignPreviewHtml || prepareCampaignPreview('');
+            modal.classList.replace('hidden', 'flex');
+            document.body.style.overflow = 'hidden';
+            if (window.lucide) lucide.createIcons();
+        }
+
+        window.closeCampaignPreview = function() {
+            const modal = document.getElementById('campaign-preview-modal');
+            modal.classList.replace('flex', 'hidden');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !document.getElementById('campaign-preview-modal').classList.contains('hidden')) {
+                window.closeCampaignPreview();
+            }
+        });
+
         function renderCampaignDraft(data) {
             campaignDraft = data;
             const campaign = data.campaign || {};
@@ -903,7 +958,12 @@ const seo = seoPages.admin;
                 ? `${formatMarketingNumber(consentExcluded)} contactos importados requieren una base de consentimiento aprobada antes de cualquier envío. La base no fue sincronizada con Resend.`
                 : (campaign.safety_notes || 'La campaña requiere revisión editorial y aprobación antes de programarse.')} ${webhookNote}`;
 
-            document.getElementById('campaign-preview-frame').srcdoc = data.preview_html || '<p style="color:white">Vista previa no disponible.</p>';
+            campaignPreviewHtml = prepareCampaignPreview(data.preview_html);
+            document.getElementById('campaign-preview-frame').srcdoc = campaignPreviewHtml;
+            const modalFrame = document.getElementById('campaign-preview-modal-frame');
+            if (!document.getElementById('campaign-preview-modal').classList.contains('hidden')) {
+                modalFrame.srcdoc = campaignPreviewHtml;
+            }
             const metricValues = [
                 ['Entregados', metrics.delivered || 0],
                 ['Aperturas únicas', metrics.unique_opens || 0],
