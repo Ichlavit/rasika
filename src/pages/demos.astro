@@ -336,7 +336,7 @@ const sectionConfigs = [
     </footer>
 
     <!-- CINEMATIC MODAL (THEATER MODE) -->
-    <div id="demo-modal" class="fixed inset-0 z-[200] hidden items-center justify-center opacity-0 transition-opacity duration-300">
+    <div id="demo-modal" class="fixed inset-0 z-[200] hidden items-center justify-center overflow-y-auto overscroll-contain p-4 sm:p-8 opacity-0 transition-opacity duration-300">
         <!-- Fullscreen backdrop -->
         <div class="absolute inset-0 bg-[#0a0b0d]/95 backdrop-blur-md" onclick="closeDemo()"></div>
         
@@ -346,14 +346,16 @@ const sectionConfigs = [
         </button>
         
         <!-- The Floating Player Container -->
-        <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col items-center" id="player-container">
-            <!-- Content gets injected here -->
-        </div>
-        
-        <!-- Title and Category -->
-        <div class="absolute bottom-8 md:bottom-12 left-1/2 -translate-x-1/2 z-20 text-center w-full px-6 pointer-events-none">
-            <h3 id="demo-title" class="text-2xl md:text-3xl font-bold text-white mb-2 drop-shadow-lg"></h3>
-            <p id="demo-category" class="text-rasika-accent text-sm md:text-base font-bold uppercase tracking-widest drop-shadow"></p>
+        <div class="relative z-10 w-full max-w-7xl min-h-full mx-auto py-14 sm:py-10 flex flex-col items-center justify-center">
+            <div id="player-container" class="w-full flex items-center justify-center">
+                <!-- Content gets injected here -->
+            </div>
+
+            <!-- Title and Category stay in normal flow so they never overlap the player. -->
+            <div class="mt-5 sm:mt-6 text-center w-full max-w-5xl px-3 pointer-events-none">
+                <h3 id="demo-title" class="text-2xl md:text-3xl font-bold leading-tight text-white mb-2 drop-shadow-lg"></h3>
+                <p id="demo-category" class="text-rasika-accent text-sm md:text-base font-bold uppercase tracking-widest drop-shadow"></p>
+            </div>
         </div>
     </div>
 
@@ -1031,13 +1033,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // SMART SIZING: Use exact dimensions if requested, otherwise default to massive 16:9
-            let containerStyle = customWidth 
-                ? `max-width: ${customWidth}; aspect-ratio: 1024/627;` 
-                : `max-width: calc(75vh * 16 / 9); aspect-ratio: 16/9;`;
+            const availablePlayerHeight = 'calc(100dvh - 12rem)';
+            let containerStyle = customWidth
+                ? `max-width: ${customWidth}; max-height: ${availablePlayerHeight}; aspect-ratio: 1024/627;`
+                : `max-width: min(100%, calc(${availablePlayerHeight} * 16 / 9)); max-height: ${availablePlayerHeight}; aspect-ratio: 16/9;`;
 
             // Removed 'aspect-video' from Tailwind classes to allow the dynamic aspect-ratio to override it
             playerArea.innerHTML = `
-                <div class="w-full max-h-[75vh] lg:max-h-[85vh] rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 bg-[#0f1114] shadow-2xl flex items-center justify-center relative transition-all duration-500" style="${containerStyle}">
+                <div class="w-full rounded-3xl overflow-hidden ring-1 ring-inset ring-white/10 bg-[#0f1114] shadow-2xl flex items-center justify-center relative transition-all duration-500" style="${containerStyle}">
                     ${contentHtml}
                 </div>
             `;
