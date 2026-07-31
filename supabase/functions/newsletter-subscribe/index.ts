@@ -17,6 +17,7 @@ type ContactRow = {
   lifecycle_stage: string;
   newsletter_status: string;
   resend_sync_status: string;
+  metadata?: Record<string, unknown> | null;
 };
 
 type ResendResources = {
@@ -383,12 +384,14 @@ serve(async (request) => {
     const source = cleanText(body.source, 120) || "blog_newsletter";
     const sessionId = cleanText(body.session_id, 36);
     const pagePath = cleanText(body.page_path, 500) || "/blog/";
+    const consentNotice = cleanText(body.consent_notice, 500);
+    const consentNoticeVersion = cleanText(body.consent_notice_version, 80) || "rasika-newsletter-v1";
     if (!EMAIL_REGEX.test(email)) return jsonResponse({ error: "A valid email is required" }, 400);
 
     const existingResponse = await serviceRequest(
       supabaseUrl,
       serviceRoleKey,
-      `contacts?email=eq.${encodeURIComponent(email)}&select=id,email,full_name,lifecycle_stage,newsletter_status,resend_sync_status&limit=1`,
+      `contacts?email=eq.${encodeURIComponent(email)}&select=id,email,full_name,lifecycle_stage,newsletter_status,resend_sync_status,metadata&limit=1`,
     );
     if (!existingResponse.ok) throw new Error(`Contact lookup failed (${existingResponse.status})`);
     const existingRows = await existingResponse.json();
@@ -400,6 +403,18 @@ serve(async (request) => {
     const nextLifecycle = existing?.lifecycle_stage && !["contact", "subscriber", "inactive"].includes(existing.lifecycle_stage)
       ? existing.lifecycle_stage
       : "subscriber";
+    const metadata = {
+      ...(existing?.metadata && typeof existing.metadata === "object" ? existing.metadata : {}),
+      newsletter_consent_evidence: {
+        notice_version: consentNoticeVersion,
+        notice_text: consentNotice,
+        source,
+        page_path: pagePath,
+        session_id: UUID_REGEX.test(sessionId) ? sessionId : undefined,
+        captured_at: now,
+        capture_method: "unchecked_checkbox_form_submit",
+      },
+    };
     const contactPayload = {
       email,
       full_name: fullName || existing?.full_name || null,
@@ -413,6 +428,7 @@ serve(async (request) => {
       newsletter_consent_source: source,
       newsletter_unsubscribed_at: null,
       unsubscribe_token_hash: wasSubscribed ? undefined : tokenHash,
+      metadata,
       last_seen_at: now,
     };
     const sanitizedPayload = Object.fromEntries(

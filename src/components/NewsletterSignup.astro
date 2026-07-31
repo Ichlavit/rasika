@@ -36,6 +36,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
     const key = config?.dataset.key;
     const email = document.getElementById('newsletter-email')?.value?.trim();
     const consent = document.getElementById('newsletter-consent')?.checked === true;
+    const consentNotice = document.querySelector('[data-i18n="newsletter-consent"]')?.textContent?.trim() || '';
     const submit = document.getElementById('newsletter-submit');
     const status = document.getElementById('newsletter-status');
     const language = document.documentElement.lang === 'en' ? 'en' : 'es';
@@ -55,6 +56,8 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         body: JSON.stringify({
           email,
           consent,
+          consent_notice: consentNotice,
+          consent_notice_version: 'rasika-newsletter-v1',
           language,
           source: 'blog_newsletter',
           page_path: location.pathname,
