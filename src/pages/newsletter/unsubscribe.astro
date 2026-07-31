@@ -21,7 +21,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
       <a href="/" class="block w-40 mb-10">
         <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones" class="w-full h-auto" />
       </a>
-      <p class="text-xs font-bold uppercase text-[#88d6e0] mb-3">Rasika Insights</p>
+      <p class="text-xs font-bold uppercase text-[#88d6e0] mb-3">Newsletter Rasika</p>
       <h1 id="unsubscribe-title" class="text-3xl font-extrabold text-white mb-4">Cancelar suscripción</h1>
       <p id="unsubscribe-status" class="text-gray-400 leading-relaxed" role="status" aria-live="polite">Procesando tu solicitud…</p>
       <form id="unsubscribe-feedback" class="hidden mt-7 pt-7 border-t border-white/10">
@@ -39,7 +39,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         <button id="unsubscribe-feedback-submit" type="submit" class="inline-flex mt-4 px-5 py-3 rounded-lg border border-[#5EA6B0]/40 text-[#88d6e0] font-bold hover:bg-[#5EA6B0]/10 transition-colors">Enviar comentario</button>
         <p id="unsubscribe-feedback-status" class="mt-3 min-h-5 text-sm text-gray-400" role="status" aria-live="polite"></p>
       </form>
-      <a href="/blog/" class="inline-flex mt-8 px-5 py-3 rounded-lg bg-[#5EA6B0] text-[#0a0c0e] font-bold hover:bg-[#88d6e0] transition-colors">Volver a Rasika Insights</a>
+      <a href="/blog/" class="inline-flex mt-8 px-5 py-3 rounded-lg bg-[#5EA6B0] text-[#0a0c0e] font-bold hover:bg-[#88d6e0] transition-colors">Volver al Newsletter</a>
     </main>
 
     <div id="unsubscribe-config" class="hidden" data-url={supabaseUrl} data-key={supabaseAnonKey}></div>
@@ -51,18 +51,23 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
         const token = params.get('token');
         const campaignKey = params.get('campaign') || '';
         const preview = params.get('preview') === '1';
+        const isEnglish = location.pathname.startsWith('/en/');
         const url = config?.dataset.url?.replace(/\/$/, '');
         const key = config?.dataset.key;
         const title = document.getElementById('unsubscribe-title');
         const feedbackForm = document.getElementById('unsubscribe-feedback');
         if (preview) {
-          title.textContent = 'Lamentamos verte partir';
-          status.textContent = 'Esta es la vista de prueba de la página de cancelación. Ninguna suscripción fue modificada.';
+          title.textContent = isEnglish ? 'Sorry to see you go' : 'Lamentamos verte partir';
+          status.textContent = isEnglish
+            ? 'You are about to unsubscribe from our newsletter.'
+            : 'Estás a punto de eliminar tu suscripción a nuestro Newsletter.';
           feedbackForm.classList.remove('hidden');
           return;
         }
         if (!token || !url || !key) {
-          status.textContent = 'El enlace no es válido o está incompleto.';
+          status.textContent = isEnglish
+            ? 'This link is invalid or incomplete.'
+            : 'El enlace no es válido o está incompleto.';
           return;
         }
         try {
@@ -77,11 +82,15 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
           });
           const result = await response.json().catch(() => ({}));
           if (!response.ok) throw new Error(result.error || 'Unsubscribe failed');
-          title.textContent = 'Lamentamos verte partir';
-          status.textContent = 'Tu suscripción fue cancelada. No recibirás nuevos envíos de marketing.';
+          title.textContent = isEnglish ? 'Sorry to see you go' : 'Lamentamos verte partir';
+          status.textContent = isEnglish
+            ? 'Your subscription was canceled. You will not receive new marketing emails.'
+            : 'Tu suscripción fue cancelada. No recibirás nuevos envíos de marketing.';
           feedbackForm.classList.remove('hidden');
         } catch {
-          status.textContent = 'No pudimos procesar el enlace. La suscripción puede haber sido cancelada anteriormente.';
+          status.textContent = isEnglish
+            ? 'We could not process this link. The subscription may already have been canceled.'
+            : 'No pudimos procesar el enlace. La suscripción puede haber sido cancelada anteriormente.';
         }
 
         feedbackForm?.addEventListener('submit', async (event) => {
@@ -91,7 +100,7 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
           const reason = feedbackForm.querySelector('[name="reason"]:checked')?.value || '';
           const feedback = document.getElementById('unsubscribe-comment')?.value?.trim() || '';
           submit.disabled = true;
-          feedbackStatus.textContent = 'Enviando…';
+          feedbackStatus.textContent = isEnglish ? 'Sending…' : 'Enviando…';
           try {
             const response = await fetch(`${url}/functions/v1/newsletter-subscribe`, {
               method: 'POST',
@@ -103,10 +112,14 @@ const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
               body: JSON.stringify({ action: 'feedback', token, campaign_key: campaignKey, reason_code: reason, feedback }),
             });
             if (!response.ok) throw new Error('Feedback failed');
-            feedbackStatus.textContent = 'Gracias. Tu comentario fue recibido.';
+            feedbackStatus.textContent = isEnglish
+              ? 'Thank you. We received your feedback.'
+              : 'Gracias. Tu comentario fue recibido.';
             feedbackForm.querySelectorAll('input,textarea,button').forEach(element => { element.disabled = true; });
           } catch {
-            feedbackStatus.textContent = 'No pudimos guardar el comentario. Tu cancelación sigue vigente.';
+            feedbackStatus.textContent = isEnglish
+              ? 'We could not save your feedback. Your cancellation remains effective.'
+              : 'No pudimos guardar el comentario. Tu cancelación sigue vigente.';
             submit.disabled = false;
           }
         });

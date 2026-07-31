@@ -146,7 +146,7 @@ export function renderNewsletterHtml(options: RenderOptions) {
             </tr>
             <tr><td style="padding:0 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos artículos seleccionados</p></td></tr>
             ${articles.map((item) => contentBlock(item, "article", options.campaignKey, options.recipientToken)).join("")}
-            <tr><td style="padding:12px 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Dos formas de llevarlo a la práctica</p></td></tr>
+            <tr><td style="padding:12px 28px 18px;"><p style="margin:0;color:#111417;font-size:18px;font-weight:800;">Conoce nuestros servicios</p></td></tr>
             ${services.map((item) => contentBlock(item, "service", options.campaignKey, options.recipientToken)).join("")}
             <tr>
               <td style="padding:8px 28px 32px;">
