@@ -40,7 +40,7 @@ export const VIDEO_ENHANCE_SEO = {
   pricingPath: "/pricing/#video-enhance",
   thumbnailPath: "/images/demos/video-enhance-ia.jpg",
   contentPath:
-    "/videos/standalone/video_enhance_result.mp4?v=ec0150223449",
+    "/videos/standalone/video_enhance_result.mp4?v=ef52afa0939e",
   uploadDate: "2026-07-21T17:28:05-04:00",
   duration: "PT19.33S",
 } as const;
