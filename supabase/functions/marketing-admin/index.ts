@@ -295,14 +295,22 @@ async function importContacts(
   if (inputRows.some((row) => cleanText(row.organization_external_id, 80))) {
     return await importOrganizationContacts(body, inputRows, user, supabaseUrl, serviceRoleKey);
   }
+  const label = cleanText(body.label, 80);
+  const sourceFileSha256 = cleanText(body.source_file_sha256, 64).toLowerCase();
   const importResponse = await restRequest(supabaseUrl, serviceRoleKey, "contact_imports", {
     method: "POST",
     headers: { "Content-Type": "application/json", Prefer: "return=representation" },
-    body: JSON.stringify({ file_name: fileName, total_rows: inputRows.length, created_by: user.id }),
+    body: JSON.stringify({
+      file_name: fileName,
+      total_rows: inputRows.length,
+      created_by: user.id,
+      label: label || undefined,
+      source_file_sha256: /^[a-f0-9]{64}$/.test(sourceFileSha256) ? sourceFileSha256 : undefined,
+    }),
   });
   if (!importResponse.ok) throw new Error(`Unable to create import (${importResponse.status})`);
   const importRow = (await importResponse.json())?.[0];
-  const existing = await restJsonAll(supabaseUrl, serviceRoleKey, "contacts?select=id,email,lifecycle_stage,newsletter_status,source_type,source_detail");
+  const existing = await restJsonAll(supabaseUrl, serviceRoleKey, "contacts?select=id,email,lifecycle_stage,newsletter_status,source_type,source_detail,tags,metadata");
   const byEmail = new Map(existing.map((row) => [String(row.email || "").toLowerCase(), row]));
   let inserted = 0;
   let updated = 0;
@@ -324,21 +332,42 @@ async function importContacts(
     const hasConsent = row.newsletter_consent === true;
     if (hasConsent) consented += 1;
     const now = new Date().toISOString();
+    const requestedSourceType = cleanText(row.source_type, 80);
+    const sourceType = requestedSourceType === "google_contacts_csv" ? requestedSourceType : "csv_import";
+    const incomingTags = cleanTextList(row.tags);
+    const tags = [...new Set([
+      ...(Array.isArray(current?.tags) ? current.tags.map((tag: unknown) => cleanText(tag, 80)).filter(Boolean) : []),
+      ...incomingTags,
+    ])].slice(0, 30);
+    const incomingMetadata = cleanMetadata(row.metadata);
+    const metadata = {
+      ...(current?.metadata && typeof current.metadata === "object" ? current.metadata : {}),
+      ...incomingMetadata,
+    };
+    const consentedAtValue = cleanText(row.newsletter_consented_at, 80);
+    const consentedAt = consentedAtValue && !Number.isNaN(new Date(consentedAtValue).getTime())
+      ? new Date(consentedAtValue).toISOString()
+      : now;
+    const consentSource = cleanText(row.newsletter_consent_source, 200) || `csv:${fileName}`;
     const payload: JsonRow = {
       email,
       full_name: cleanText(row.full_name, 160) || undefined,
+      first_name: cleanText(row.first_name, 100) || undefined,
+      last_name: cleanText(row.last_name, 100) || undefined,
       company_name: cleanText(row.company_name, 160) || undefined,
       phone: cleanText(row.phone, 60) || undefined,
       lifecycle_stage: stage,
       language: cleanText(row.language, 2) ? (cleanText(row.language, 2) === "en" ? "en" : "es") : undefined,
-      source_type: current ? undefined : "csv_import",
+      source_type: current ? undefined : sourceType,
       source_detail: current?.source_detail || cleanText(row.source_detail, 160) || fileName,
+      tags,
+      metadata,
       last_seen_at: now,
     };
     if (hasConsent) {
       payload.newsletter_status = "subscribed";
-      payload.newsletter_consented_at = now;
-      payload.newsletter_consent_source = `csv:${fileName}`;
+      payload.newsletter_consented_at = consentedAt;
+      payload.newsletter_consent_source = consentSource;
       payload.resend_sync_status = "not_synced";
     }
     const response = await restRequest(

@@ -1325,7 +1325,7 @@ const seo = seoPages.admin;
 
         function csvContactRows(text) {
             const parsed = parseCsv(text);
-            if (parsed.length < 2) return { rows: [], sourceRowCount: 0, label: '', isOrganizationImport: false };
+            if (parsed.length < 2) return { rows: [], sourceRowCount: 0, label: '', isOrganizationImport: false, isGoogleContactsImport: false };
             const headers = parsed[0].map(normalizeCsvHeader);
             const isOtecRegistry = ['rut_organismo', 'razonsocial', 'email'].every(header => headers.includes(header));
             if (isOtecRegistry) {
@@ -1377,18 +1377,100 @@ const seo = seoPages.admin;
                     sourceRowCount: parsed.length - 1,
                     label: 'OTEC',
                     isOrganizationImport: true,
+                    isGoogleContactsImport: false,
                     unresolvedRows
+                };
+            }
+            const googleEmailIndexes = headers.reduce((indexes, header, index) => {
+                if (/^e_mail_\d+_value$/.test(header)) indexes.push(index);
+                return indexes;
+            }, []);
+            const isGoogleContacts = googleEmailIndexes.length > 0
+                && ['name', 'given_name', 'family_name'].some(header => headers.includes(header));
+            if (isGoogleContacts) {
+                const indexOf = header => headers.indexOf(header);
+                const cell = (cells, header) => {
+                    const index = indexOf(header);
+                    return index < 0 ? '' : String(cells[index] || '').trim();
+                };
+                const firstMatchingCell = (cells, pattern) => {
+                    const index = headers.findIndex(header => pattern.test(header));
+                    return index < 0 ? '' : String(cells[index] || '').trim();
+                };
+                const consentIndex = ['newsletter_consent', 'consentimiento_newsletter', 'consentimiento', 'suscrito']
+                    .map(header => headers.indexOf(header))
+                    .find(index => index >= 0);
+                const consentAtIndex = ['newsletter_consented_at', 'consentimiento_fecha', 'fecha_consentimiento']
+                    .map(header => headers.indexOf(header))
+                    .find(index => index >= 0);
+                const consentSourceIndex = ['newsletter_consent_source', 'consentimiento_fuente', 'fuente_consentimiento']
+                    .map(header => headers.indexOf(header))
+                    .find(index => index >= 0);
+                const seenEmails = new Set();
+                let unresolvedRows = 0;
+                let duplicateEmails = 0;
+                const rows = [];
+                parsed.slice(1).forEach((cells, sourceIndex) => {
+                    const emails = [...new Set(googleEmailIndexes.flatMap(index => validCsvEmails(cells[index])))];
+                    if (!emails.length) unresolvedRows += 1;
+                    const firstName = cell(cells, 'given_name');
+                    const lastName = cell(cells, 'family_name');
+                    const fullName = cell(cells, 'name') || [firstName, lastName].filter(Boolean).join(' ');
+                    const rawConsent = consentIndex === undefined ? '' : String(cells[consentIndex] || '').trim().toLowerCase();
+                    const newsletterConsent = ['true', '1', 'yes', 'si', 'sí', 'opt_in'].includes(rawConsent);
+                    emails.forEach(email => {
+                        const normalizedEmail = email.toLowerCase();
+                        if (seenEmails.has(normalizedEmail)) {
+                            duplicateEmails += 1;
+                            return;
+                        }
+                        seenEmails.add(normalizedEmail);
+                        rows.push({
+                            source_row: sourceIndex + 2,
+                            email: normalizedEmail,
+                            full_name: fullName,
+                            first_name: firstName,
+                            last_name: lastName,
+                            company_name: firstMatchingCell(cells, /^organization_\d+_name$/),
+                            phone: firstMatchingCell(cells, /^phone_\d+_value$/),
+                            lifecycle_stage: 'contact',
+                            language: 'es',
+                            source_type: 'google_contacts_csv',
+                            source_detail: 'Google Contacts CSV',
+                            tags: ['GOOGLE_CONTACTS'],
+                            metadata: {
+                                google_contact_labels: cell(cells, 'labels'),
+                                imported_source_row: sourceIndex + 2
+                            },
+                            newsletter_consent: newsletterConsent,
+                            newsletter_consented_at: consentAtIndex === undefined ? '' : String(cells[consentAtIndex] || '').trim(),
+                            newsletter_consent_source: consentSourceIndex === undefined ? '' : String(cells[consentSourceIndex] || '').trim()
+                        });
+                    });
+                });
+                return {
+                    rows,
+                    sourceRowCount: parsed.length - 1,
+                    label: 'Google Contacts',
+                    isOrganizationImport: false,
+                    isGoogleContactsImport: true,
+                    unresolvedRows,
+                    duplicateEmails
                 };
             }
             const aliases = {
                 email: ['email', 'correo', 'correo_electronico'],
                 full_name: ['full_name', 'nombre', 'name', 'nombre_completo'],
+                first_name: ['first_name', 'nombre_pila'],
+                last_name: ['last_name', 'apellido', 'apellidos'],
                 company_name: ['company_name', 'empresa', 'company', 'organizacion'],
                 phone: ['phone', 'telefono', 'celular'],
                 lifecycle_stage: ['lifecycle_stage', 'etapa', 'estado'],
                 language: ['language', 'idioma'],
                 source_detail: ['source_detail', 'origen', 'fuente'],
-                newsletter_consent: ['newsletter_consent', 'consentimiento_newsletter', 'consentimiento', 'suscrito']
+                newsletter_consent: ['newsletter_consent', 'consentimiento_newsletter', 'consentimiento', 'suscrito'],
+                newsletter_consented_at: ['newsletter_consented_at', 'consentimiento_fecha', 'fecha_consentimiento'],
+                newsletter_consent_source: ['newsletter_consent_source', 'consentimiento_fuente', 'fuente_consentimiento']
             };
             const indexFor = key => aliases[key].map(alias => headers.indexOf(alias)).find(index => index >= 0);
             const rows = parsed.slice(1).map(cells => {
@@ -1400,7 +1482,7 @@ const seo = seoPages.admin;
                 row.newsletter_consent = ['true', '1', 'yes', 'si', 'sí', 'opt_in'].includes(String(row.newsletter_consent).toLowerCase());
                 return row;
             }).filter(row => row.email);
-            return { rows, sourceRowCount: parsed.length - 1, label: '', isOrganizationImport: false };
+            return { rows, sourceRowCount: parsed.length - 1, label: '', isOrganizationImport: false, isGoogleContactsImport: false };
         }
 
         async function sha256Hex(file) {
@@ -1416,7 +1498,8 @@ const seo = seoPages.admin;
                 source_row_count: parsed.sourceRowCount,
                 label: parsed.label,
                 rows,
-                isOrganizationImport: parsed.isOrganizationImport
+                isOrganizationImport: parsed.isOrganizationImport,
+                isGoogleContactsImport: parsed.isGoogleContactsImport
             };
             const consented = rows.filter(row => row.newsletter_consent).length;
             document.getElementById('csv-import-file').textContent = file.name;
@@ -1433,11 +1516,14 @@ const seo = seoPages.admin;
                 document.getElementById('csv-import-status').textContent = 'Validando organizaciones, correos y duplicados…';
             } else {
                 document.getElementById('csv-import-preview-head').innerHTML = '<tr><th class="px-3 py-2 text-left">Correo</th><th class="px-3 py-2 text-left">Nombre</th><th class="px-3 py-2 text-left">Empresa</th><th class="px-3 py-2 text-left">Consentimiento</th></tr>';
-                document.getElementById('csv-import-summary').innerHTML = [
-                    ['Filas', rows.length], ['Con consentimiento', consented], ['Sin suscripción', rows.length - consented], ['Omitidas', Math.max(0, parsed.sourceRowCount - rows.length)]
-                ].map(([summaryLabel, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${summaryLabel}</span><strong class="block mt-1 text-lg text-white">${formatMarketingNumber(value)}</strong></div>`).join('');
+                const summaryValues = parsed.isGoogleContactsImport
+                    ? [['Contactos fuente', parsed.sourceRowCount], ['Correos únicos', rows.length], ['Sin correo', parsed.unresolvedRows || 0], ['Duplicados', parsed.duplicateEmails || 0]]
+                    : [['Filas', rows.length], ['Con consentimiento', consented], ['Sin suscripción', rows.length - consented], ['Omitidas', Math.max(0, parsed.sourceRowCount - rows.length)]];
+                document.getElementById('csv-import-summary').innerHTML = summaryValues.map(([summaryLabel, value]) => `<div class="p-3 rounded-lg bg-[#141619] border border-white/10"><span class="block text-[10px] uppercase font-bold text-gray-500">${summaryLabel}</span><strong class="block mt-1 text-lg text-white">${formatMarketingNumber(value)}</strong></div>`).join('');
                 document.getElementById('csv-import-preview').innerHTML = rows.slice(0, 12).map(row => `<tr><td class="px-3 py-2 text-gray-300">${escapeAdminHTML(row.email)}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.full_name || '—')}</td><td class="px-3 py-2 text-gray-400">${escapeAdminHTML(row.company_name || '—')}</td><td class="px-3 py-2 ${row.newsletter_consent ? 'text-emerald-300' : 'text-gray-600'}">${row.newsletter_consent ? 'Sí' : 'No'}</td></tr>`).join('');
-                document.getElementById('csv-import-policy').textContent = 'Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.';
+                document.getElementById('csv-import-policy').textContent = parsed.isGoogleContactsImport
+                    ? 'Los contactos de Google se importarán con su nombre, empresa, teléfono y procedencia, pero sin suscripción. Estar en una libreta de direcciones no prueba consentimiento de marketing.'
+                    : 'Solo las filas que declaren consentimiento explícito serán suscritas al newsletter. El resto se importará como contacto sin suscripción.';
                 document.getElementById('csv-import-status').textContent = '';
             }
             document.getElementById('csv-import-status').className = 'mt-3 min-h-5 text-xs text-gray-400';
@@ -1496,6 +1582,7 @@ const seo = seoPages.admin;
                 const isOrganizationImport = pendingCsvImport.isOrganizationImport;
                 const payload = { ...pendingCsvImport, action: 'import_contacts', dry_run: false };
                 delete payload.isOrganizationImport;
+                delete payload.isGoogleContactsImport;
                 const result = await marketingRequest('', {
                     method: 'POST',
                     body: JSON.stringify(payload)
