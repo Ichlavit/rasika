@@ -393,6 +393,29 @@ const sectionConfigs = [
                 });
             });
 
+            const comparisonDemo = window.rasikaDemoCatalog?.find((demo) => demo.slug === 'video-enhance-ia');
+            const comparisonCard = document.querySelector('[data-demo-slug="video-enhance-ia"]');
+            if (comparisonDemo?.source_url && comparisonDemo?.comparison_source_url) {
+                let prefetchStarted = false;
+                const prefetchComparison = () => {
+                    if (prefetchStarted) return;
+                    prefetchStarted = true;
+                    preloadVideoEnhancePair(comparisonDemo.source_url, comparisonDemo.comparison_source_url).catch(() => {
+                        prefetchStarted = false;
+                    });
+                };
+
+                comparisonCard?.addEventListener('pointerenter', prefetchComparison, { once: true });
+                comparisonCard?.addEventListener('focusin', prefetchComparison, { once: true });
+                comparisonCard?.addEventListener('touchstart', prefetchComparison, { once: true, passive: true });
+
+                if ('requestIdleCallback' in window) {
+                    window.requestIdleCallback(prefetchComparison, { timeout: 3500 });
+                } else {
+                    window.setTimeout(prefetchComparison, 2500);
+                }
+            }
+
             const requestedDemo = urlParams.get('demo');
             if (requestedDemo) {
                 setTimeout(() => window.openDemoBySlug(requestedDemo), 250);
@@ -590,7 +613,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 pause: 'Pause comparison',
                 soundOn: 'Turn sound on',
                 soundOff: 'Mute audio',
-                loading: 'Loading comparison',
+                loading: 'Preparing both videos...',
+                loadError: 'The comparison could not be loaded.',
+                retry: 'Try again',
+                playing: 'Comparison playing',
+                manualStart: 'Press play to start the comparison',
                 instruction: 'Slide to compare',
                 mobileInstruction: 'Slide without holding',
                 sweepInstruction: 'Watch the comparison, then slide',
@@ -606,7 +633,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 pause: 'Pausar comparación',
                 soundOn: 'Activar audio',
                 soundOff: 'Silenciar audio',
-                loading: 'Cargando comparación',
+                loading: 'Preparando ambos videos...',
+                loadError: 'No pudimos cargar la comparación.',
+                retry: 'Reintentar',
+                playing: 'Comparación reproduciéndose',
+                manualStart: 'Presiona reproducir para iniciar la comparación',
                 instruction: 'Desliza para comparar',
                 mobileInstruction: 'Desliza sin mantener presionado',
                 sweepInstruction: 'Mira la comparación · luego desliza',
@@ -614,6 +645,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 originalValue: 'original',
                 resultValue: 'resultado IA',
             };
+
+        const videoEnhanceBlobCache = new Map();
+
+        const fetchVideoEnhanceBlob = (url) => {
+            if (!url) return Promise.reject(new Error('Missing comparison video URL'));
+            if (videoEnhanceBlobCache.has(url)) return videoEnhanceBlobCache.get(url);
+
+            const request = fetch(url, { cache: 'force-cache' })
+                .then((response) => {
+                    if (!response.ok) throw new Error(`Video request failed (${response.status})`);
+                    return response.blob();
+                })
+                .catch((error) => {
+                    videoEnhanceBlobCache.delete(url);
+                    throw error;
+                });
+
+            videoEnhanceBlobCache.set(url, request);
+            return request;
+        };
+
+        const preloadVideoEnhancePair = (resultUrl, originalUrl) => Promise.all([
+            fetchVideoEnhanceBlob(resultUrl),
+            fetchVideoEnhanceBlob(originalUrl),
+        ]);
 
         function initVideoEnhancePlayer(player) {
             const resultVideo = player.querySelector('[data-enhance-result]');
@@ -627,6 +683,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const fullscreenButton = player.querySelector('[data-enhance-fullscreen]');
             const startButton = player.querySelector('[data-enhance-start]');
             const loading = player.querySelector('[data-enhance-loading]');
+            const loadingLabel = player.querySelector('[data-enhance-loading-label]');
+            const retryButton = player.querySelector('[data-enhance-retry]');
             const status = player.querySelector('[data-enhance-status]');
             const instruction = player.querySelector('[data-enhance-instruction]');
 
@@ -638,12 +696,14 @@ document.addEventListener('DOMContentLoaded', () => {
             let pointerDragging = false;
             let touchDragging = false;
             let userInteracted = false;
-            let readyHandled = false;
+            let assetsReady = false;
             let playbackStarted = false;
             let autoSweepCompleted = false;
             let autoSweepTimer = 0;
             let autoSweepRequest = 0;
             let resizeObserver = null;
+            let loadAttempt = 0;
+            let objectUrls = [];
             const usesPointerEvents = 'PointerEvent' in window;
 
             const updateIcons = () => {
@@ -656,6 +716,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     muteButton.innerHTML = `<i data-lucide="${resultVideo.muted ? 'volume-x' : 'volume-2'}" class="w-4 h-4"></i>`;
                 }
                 if (window.lucide) lucide.createIcons();
+            };
+
+            const setControlsLocked = (locked) => {
+                player.setAttribute('aria-busy', locked ? 'true' : 'false');
+                if (scrubSurface) scrubSurface.style.pointerEvents = locked ? 'none' : '';
+                range.disabled = locked;
+                [playButton, muteButton, fullscreenButton].forEach((button) => {
+                    if (!button) return;
+                    button.disabled = locked;
+                    button.classList.toggle('opacity-40', locked);
+                    button.classList.toggle('cursor-not-allowed', locked);
+                });
             };
 
             const setComparisonPosition = (value) => {
@@ -691,14 +763,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const setPositionFromClientX = (clientX) => {
-                if (!scrubSurface) return;
+                if (!assetsReady || !scrubSurface) return;
                 const bounds = scrubSurface.getBoundingClientRect();
                 if (!bounds.width) return;
                 setComparisonPosition(((clientX - bounds.left) / bounds.width) * 100);
             };
 
             const startAutoSweep = () => {
-                if (destroyed || userInteracted || autoSweepCompleted || autoSweepRequest) return;
+                if (destroyed || !assetsReady || userInteracted || autoSweepCompleted || autoSweepRequest) return;
 
                 autoSweepTimer = 0;
                 const startedAt = performance.now();
@@ -745,7 +817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const onPointerDown = (event) => {
-                if (!scrubSurface) return;
+                if (!assetsReady || !scrubSurface) return;
                 markUserInteraction();
                 pointerDragging = true;
                 setPositionFromClientX(event.clientX);
@@ -761,6 +833,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const onTouchStart = (event) => {
+                if (!assetsReady) return;
                 const touch = event.touches[0];
                 if (!touch) return;
                 markUserInteraction();
@@ -785,7 +858,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const alignOriginal = (force = false) => {
-                if (originalVideo.readyState < 2 || resultVideo.readyState < 2) return;
+                if (!assetsReady || originalVideo.readyState < 2 || resultVideo.readyState < 2) return;
                 const offset = originalVideo.currentTime - resultVideo.currentTime;
                 const drift = Math.abs(offset);
 
@@ -807,6 +880,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const resumeOriginal = () => {
                 if (
                     destroyed ||
+                    !assetsReady ||
                     resultVideo.paused ||
                     !originalVideo.paused ||
                     originalVideo.readyState < 2 ||
@@ -831,6 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             const startPlayback = async () => {
+                if (!assetsReady || destroyed) return;
                 if (playbackStarted && !resultVideo.paused) return;
                 originalVideo.muted = true;
                 alignOriginal(true);
@@ -840,17 +915,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     alignOriginal();
                     startButton?.classList.add('hidden');
                     startButton?.classList.remove('flex');
-                    if (status) status.textContent = 'Comparación reproduciéndose';
+                    if (status) status.textContent = enhanceCopy.playing;
                 } catch (error) {
+                    resultVideo.pause();
+                    originalVideo.pause();
                     playbackStarted = false;
                     startButton?.classList.remove('hidden');
                     startButton?.classList.add('flex');
-                    if (status) status.textContent = 'Presiona reproducir para iniciar la comparación';
+                    if (status) status.textContent = enhanceCopy.manualStart;
                 }
                 updateIcons();
             };
 
             const togglePlayback = () => {
+                if (!assetsReady) return;
                 if (resultVideo.paused) {
                     startPlayback();
                 } else {
@@ -859,17 +937,111 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             };
 
-            const markReady = () => {
-                if (readyHandled || resultVideo.readyState < 2 || originalVideo.readyState < 2) return;
+            const releaseObjectUrls = () => {
+                [resultVideo, originalVideo].forEach((video) => {
+                    video.pause();
+                    video.removeAttribute('src');
+                    video.load();
+                });
+                objectUrls.forEach((url) => URL.revokeObjectURL(url));
+                objectUrls = [];
+            };
 
-                readyHandled = true;
-                loading?.classList.add('hidden');
-                alignOriginal(true);
-                scheduleAutoSweep();
-                startPlayback();
+            const waitForDecodedFrame = (video) => new Promise((resolve, reject) => {
+                let settled = false;
+                const timeout = window.setTimeout(() => finish(new Error('Video decoding timed out')), 30000);
+
+                const cleanup = () => {
+                    window.clearTimeout(timeout);
+                    video.removeEventListener('loadeddata', checkReady);
+                    video.removeEventListener('canplay', checkReady);
+                    video.removeEventListener('canplaythrough', checkReady);
+                    video.removeEventListener('error', onError);
+                };
+
+                const finish = (error = null) => {
+                    if (settled) return;
+                    settled = true;
+                    cleanup();
+                    if (error) reject(error);
+                    else resolve();
+                };
+
+                const checkReady = () => {
+                    if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && Number.isFinite(video.duration)) {
+                        finish();
+                    }
+                };
+
+                const onError = () => finish(video.error || new Error('Video decoding failed'));
+
+                video.addEventListener('loadeddata', checkReady);
+                video.addEventListener('canplay', checkReady);
+                video.addEventListener('canplaythrough', checkReady);
+                video.addEventListener('error', onError);
+                checkReady();
+            });
+
+            const loadComparison = async () => {
+                const attempt = ++loadAttempt;
+                const resultUrl = resultVideo.getAttribute('data-src');
+                const originalUrl = originalVideo.getAttribute('data-src');
+
+                assetsReady = false;
+                playbackStarted = false;
+                setControlsLocked(true);
+                loading?.classList.remove('hidden');
+                loading?.classList.add('flex');
+                retryButton?.classList.add('hidden');
+                if (loadingLabel) loadingLabel.textContent = enhanceCopy.loading;
+                if (status) status.textContent = enhanceCopy.loading;
+                startButton?.classList.add('hidden');
+                startButton?.classList.remove('flex');
+
+                try {
+                    const [resultBlob, originalBlob] = await preloadVideoEnhancePair(resultUrl, originalUrl);
+                    if (destroyed || attempt !== loadAttempt) return;
+
+                    releaseObjectUrls();
+                    const resultObjectUrl = URL.createObjectURL(resultBlob);
+                    const originalObjectUrl = URL.createObjectURL(originalBlob);
+                    objectUrls = [resultObjectUrl, originalObjectUrl];
+                    resultVideo.src = resultObjectUrl;
+                    originalVideo.src = originalObjectUrl;
+                    resultVideo.load();
+                    originalVideo.load();
+
+                    await Promise.all([
+                        waitForDecodedFrame(resultVideo),
+                        waitForDecodedFrame(originalVideo),
+                    ]);
+                    if (destroyed || attempt !== loadAttempt) return;
+
+                    resultVideo.pause();
+                    originalVideo.pause();
+                    resultVideo.currentTime = 0;
+                    originalVideo.currentTime = 0;
+                    originalVideo.playbackRate = resultVideo.playbackRate;
+                    assetsReady = true;
+                    setControlsLocked(false);
+                    loading?.classList.add('hidden');
+                    loading?.classList.remove('flex');
+                    alignOriginal(true);
+                    scheduleAutoSweep();
+                    await startPlayback();
+                } catch (error) {
+                    if (destroyed || attempt !== loadAttempt) return;
+                    assetsReady = false;
+                    setControlsLocked(true);
+                    if (loadingLabel) loadingLabel.textContent = enhanceCopy.loadError;
+                    retryButton?.classList.remove('hidden');
+                    if (status) status.textContent = enhanceCopy.loadError;
+                    console.error('Video comparison failed to load', error);
+                }
             };
 
             range.addEventListener('input', () => {
+                if (!assetsReady) return;
                 markUserInteraction();
                 setComparisonPosition(range.value);
             });
@@ -916,10 +1088,7 @@ document.addEventListener('DOMContentLoaded', () => {
             resultVideo.addEventListener('seeked', () => alignOriginal(true));
             resultVideo.addEventListener('ratechange', () => alignOriginal());
             resultVideo.addEventListener('volumechange', updateIcons);
-            resultVideo.addEventListener('loadeddata', markReady);
-            resultVideo.addEventListener('canplay', markReady);
-            originalVideo.addEventListener('loadeddata', markReady);
-            originalVideo.addEventListener('canplay', markReady);
+            retryButton?.addEventListener('click', loadComparison);
 
             sizeOriginalVideo();
             if ('ResizeObserver' in window) {
@@ -930,14 +1099,15 @@ document.addEventListener('DOMContentLoaded', () => {
             setComparisonPosition(range.value || 50);
             resultVideo.muted = true;
             originalVideo.muted = true;
-            resultVideo.load();
-            originalVideo.load();
+            setControlsLocked(true);
             updateIcons();
             monitorSync();
-            markReady();
+            loadComparison();
 
             return () => {
                 destroyed = true;
+                assetsReady = false;
+                loadAttempt += 1;
                 stopAutoSweep();
                 cancelAnimationFrame(frameRequest);
                 if (usesPointerEvents) {
@@ -955,8 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 player.removeEventListener('gesturestart', suppressNativeGesture);
                 resizeObserver?.disconnect();
                 window.removeEventListener('resize', sizeOriginalVideo);
-                resultVideo.pause();
-                originalVideo.pause();
+                releaseObjectUrls();
             };
         }
 
@@ -991,10 +1160,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (mediaType === 'video_enhance') {
                 const comparisonSource = serviceMeta?.comparisonSourceUrl || '';
                 contentHtml = `
-                    <div data-video-enhance-player class="relative w-full h-full overflow-hidden bg-black select-none">
-                        <video data-enhance-result src="${source}" poster="/images/demos/video-enhance-ia.jpg" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
+                    <div data-video-enhance-player aria-busy="true" class="relative w-full h-full overflow-hidden bg-black select-none">
+                        <video data-enhance-result data-src="${source}" poster="/images/demos/video-enhance-ia.jpg" preload="none" loop muted playsinline webkit-playsinline draggable="false" class="absolute inset-0 w-full h-full object-cover"></video>
                         <div data-enhance-original-layer class="absolute inset-y-0 left-0 overflow-hidden" style="width: 50%; contain: paint; will-change: width;">
-                            <video data-enhance-original src="${comparisonSource}" preload="auto" loop muted playsinline webkit-playsinline draggable="false" class="absolute left-0 top-0 max-w-none object-cover"></video>
+                            <video data-enhance-original data-src="${comparisonSource}" preload="none" loop muted playsinline webkit-playsinline draggable="false" class="absolute left-0 top-0 max-w-none object-cover"></video>
                         </div>
 
                         <div class="absolute inset-x-0 top-0 z-30 flex justify-between p-4 pointer-events-none text-[10px] sm:text-xs font-extrabold uppercase tracking-widest">
@@ -1002,27 +1171,29 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="px-3 py-1.5 rounded-md bg-black/60 backdrop-blur-md text-rasika-accent">${enhanceCopy.result}</span>
                         </div>
 
-                        <div data-enhance-scrub-surface class="video-enhance-scrub-surface absolute inset-x-0 top-0 bottom-14 z-40" aria-hidden="true"></div>
-                        <input data-enhance-range type="range" min="0" max="100" value="50" step="0.1" class="video-enhance-range sr-only" aria-label="${enhanceCopy.compareLabel}" />
+                        <div data-enhance-scrub-surface class="video-enhance-scrub-surface absolute inset-x-0 top-0 bottom-14 z-40" style="pointer-events: none;" aria-hidden="true"></div>
+                        <input data-enhance-range type="range" min="0" max="100" value="50" step="0.1" class="video-enhance-range sr-only" aria-label="${enhanceCopy.compareLabel}" disabled />
                         <div data-enhance-divider class="absolute inset-y-0 left-1/2 z-30 w-px bg-white shadow-[0_0_14px_rgba(0,0,0,0.8)] pointer-events-none">
                             <span class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-[#141619]/90 border border-white/70 shadow-xl flex items-center justify-center text-white">
                                 <i data-lucide="chevrons-left-right" class="w-6 h-6"></i>
                             </span>
                         </div>
 
-                        <div data-enhance-loading class="absolute inset-0 z-20 flex items-center justify-center bg-black/30 pointer-events-none">
+                        <div data-enhance-loading class="absolute inset-0 z-[70] flex flex-col items-center justify-center gap-4 bg-black/70 cursor-wait">
                             <i data-lucide="loader-circle" class="w-9 h-9 text-rasika-accent animate-spin"></i>
+                            <p data-enhance-loading-label class="px-5 text-center text-sm sm:text-base font-bold text-white drop-shadow">${enhanceCopy.loading}</p>
+                            <button data-enhance-retry type="button" class="hidden px-5 py-2.5 rounded-lg bg-rasika-accent text-[#0a0b0d] font-extrabold cursor-pointer hover:bg-[#88d6e0] transition-colors">${enhanceCopy.retry}</button>
                         </div>
                         <button data-enhance-start type="button" class="hidden absolute inset-0 z-[60] m-auto w-16 h-16 rounded-full bg-rasika-accent text-[#0a0b0d] shadow-2xl items-center justify-center" aria-label="${enhanceCopy.play}">
                             <i data-lucide="play" class="w-7 h-7 ml-1"></i>
                         </button>
 
                         <div class="absolute inset-x-0 bottom-0 z-50 h-14 px-4 flex items-center gap-2 bg-gradient-to-t from-black/90 to-transparent">
-                            <button data-enhance-play type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.pause}"></button>
-                            <button data-enhance-mute type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.soundOff}"></button>
+                            <button data-enhance-play type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors opacity-40 cursor-not-allowed" aria-label="${enhanceCopy.pause}" disabled></button>
+                            <button data-enhance-mute type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors opacity-40 cursor-not-allowed" aria-label="${enhanceCopy.soundOff}" disabled></button>
                             <span data-enhance-status class="sr-only" aria-live="polite">${enhanceCopy.loading}</span>
                             <span data-enhance-instruction class="flex-1 text-center text-xs sm:text-sm lg:text-base text-white font-extrabold drop-shadow-[0_2px_5px_rgba(0,0,0,0.95)]">${enhanceCopy.instruction}</span>
-                            <button data-enhance-fullscreen type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors" aria-label="${enhanceCopy.fullscreen}">
+                            <button data-enhance-fullscreen type="button" class="w-9 h-9 rounded-full bg-black/50 hover:bg-white/15 border border-white/10 text-white flex items-center justify-center transition-colors opacity-40 cursor-not-allowed" aria-label="${enhanceCopy.fullscreen}" disabled>
                                 <i data-lucide="maximize" class="w-4 h-4"></i>
                             </button>
                         </div>
