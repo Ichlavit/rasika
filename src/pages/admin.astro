@@ -1431,7 +1431,7 @@ const seo = seoPages.admin;
                             full_name: fullName,
                             first_name: firstName,
                             last_name: lastName,
-                            company_name: firstMatchingCell(cells, /^organization_\d+_name$/),
+                            company_name: cell(cells, 'organization_name') || firstMatchingCell(cells, /^organization_\d+_name$/),
                             phone: firstMatchingCell(cells, /^phone_\d+_value$/),
                             lifecycle_stage: 'contact',
                             language: 'es',

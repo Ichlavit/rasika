@@ -10,8 +10,9 @@ const EVENT_TYPES: Record<string, string> = {
   "email.bounced": "bounced",
   "email.complained": "complained",
   "email.suppressed": "suppressed",
-  "email.unsubscribed": "unsubscribed",
 };
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -112,6 +113,31 @@ serve(async (request) => {
     const data = payload.data && typeof payload.data === "object"
       ? payload.data as Record<string, unknown>
       : {};
+    if (providerType === "contact.updated" && data.unsubscribed === true) {
+      const email = cleanText(data.email, 320).toLowerCase();
+      if (!EMAIL_REGEX.test(email)) return jsonResponse({ status: "ignored" }, 202);
+      const unsubscribeResponse = await fetch(
+        `${supabaseUrl.replace(/\/$/, "")}/rest/v1/contacts?email=eq.${encodeURIComponent(email)}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Prefer: "return=minimal",
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+          },
+          body: JSON.stringify({
+            newsletter_status: "unsubscribed",
+            newsletter_unsubscribed_at: new Date().toISOString(),
+            resend_sync_status: "synced",
+            resend_synced_at: new Date().toISOString(),
+            resend_last_error: null,
+          }),
+        },
+      );
+      if (!unsubscribeResponse.ok) throw new Error(`Contact unsubscribe sync failed (${unsubscribeResponse.status})`);
+      return jsonResponse({ status: "unsubscribed" });
+    }
     const emailId = cleanText(data.email_id, 200);
     if (!emailId) return jsonResponse({ status: "ignored" }, 202);
     const rawLink = cleanText(data.click && typeof data.click === "object"

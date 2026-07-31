@@ -32,6 +32,8 @@ Demo_BW_2021.zip
 
 # private contact datasets (local import sources only)
 DB_OTEC_2020.csv
+Gmail_contacts*.csv
+outputs/contact-review/
 
 # macOS-specific files
 .DS_Store
