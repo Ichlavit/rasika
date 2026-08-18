@@ -92,8 +92,7 @@ function authorizeAdminSession(string $sessionToken, string $builderRoot): void
     }
 
     curl_setopt_array($request, [
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => '{}',
+        CURLOPT_HTTPGET => true,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_TIMEOUT => 12,
