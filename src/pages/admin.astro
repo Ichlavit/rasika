@@ -173,7 +173,6 @@ const seo = seoPages.admin;
                 <h1 id="dashboard-title" class="text-xl font-bold">Editor de Artículos</h1>
             </div>
             <div class="flex flex-wrap items-center gap-4">
-                <input type="password" id="php-token" placeholder="Token Subida PHP" class="w-40 bg-[#141619] border border-white/10 rounded-lg px-3 py-1.5 outline-none text-white text-sm focus:border-[#5EA6B0]" title="La contraseña secreta de tu archivo upload.php">
                 <button onclick="logout()" class="text-sm text-gray-400 hover:text-white flex items-center gap-2">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
                 </button>
@@ -666,9 +665,9 @@ const seo = seoPages.admin;
         });
 
         async function uploadCmsImage(file, path = 'blog') {
-            const token = document.getElementById('php-token').value.trim();
-            if (!token) {
-                throw new Error('Ingresa el Token de Subida (PHP) antes de subir una imagen.');
+            const token = sessionStorage.getItem('adminToken');
+            if (!token || token === 'undefined' || token.split('.').length !== 3) {
+                throw new Error('Tu sesión de administrador expiró. Vuelve a iniciar sesión.');
             }
             if (!file || !String(file.type || '').startsWith('image/')) {
                 throw new Error('Selecciona un archivo de imagen válido.');
@@ -682,7 +681,7 @@ const seo = seoPages.admin;
             const response = await fetch('/upload.php', {
                 method: 'POST',
                 headers: {
-                    'X-Upload-Token': token,
+                    'X-Upload-Session': token,
                     'X-Upload-Path': path
                 },
                 body: formData
@@ -2044,7 +2043,6 @@ const seo = seoPages.admin;
                     : 'px-4 py-2 rounded-md text-gray-400 hover:text-white text-sm font-bold flex items-center gap-2 transition-colors';
             });
             dashboard.classList.toggle('radar-layout', view === 'radar');
-            document.getElementById('php-token').classList.toggle('hidden', view !== 'articles');
             document.getElementById('dashboard-title').textContent = {
                 overview: 'Panel de Marketing',
                 contacts: 'Base de Contactos',

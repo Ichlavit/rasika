@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -13,37 +14,136 @@ function respond(int $status, array $payload): void
     exit;
 }
 
+function loadEnvironmentValues(string $path, array $allowedKeys): array
+{
+    if (!is_readable($path)) {
+        return [];
+    }
+
+    $values = [];
+    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if (!is_array($lines)) {
+        return [];
+    }
+
+    foreach ($lines as $line) {
+        $line = trim((string) $line);
+        if ($line === '' || strpos($line, '#') === 0) {
+            continue;
+        }
+
+        $separator = strpos($line, '=');
+        if ($separator === false) {
+            continue;
+        }
+
+        $key = trim(substr($line, 0, $separator));
+        if (!in_array($key, $allowedKeys, true)) {
+            continue;
+        }
+
+        $value = trim(substr($line, $separator + 1));
+        $length = strlen($value);
+        if ($length >= 2) {
+            $first = $value[0];
+            $last = $value[$length - 1];
+            if (($first === '"' && $last === '"') || ($first === "'" && $last === "'")) {
+                $value = substr($value, 1, -1);
+            }
+        }
+        $values[$key] = $value;
+    }
+
+    return $values;
+}
+
+function authorizeAdminSession(string $sessionToken, string $builderRoot): void
+{
+    $environment = loadEnvironmentValues(
+        $builderRoot . '/.env.production',
+        ['PUBLIC_SUPABASE_URL', 'PUBLIC_SUPABASE_ANON_KEY']
+    );
+    $supabaseUrlFromEnvironment = getenv('PUBLIC_SUPABASE_URL');
+    $anonKeyFromEnvironment = getenv('PUBLIC_SUPABASE_ANON_KEY');
+    $supabaseUrl = rtrim(trim(is_string($supabaseUrlFromEnvironment)
+        ? $supabaseUrlFromEnvironment
+        : (string) ($environment['PUBLIC_SUPABASE_URL'] ?? '')), '/');
+    $anonKey = trim(is_string($anonKeyFromEnvironment)
+        ? $anonKeyFromEnvironment
+        : (string) ($environment['PUBLIC_SUPABASE_ANON_KEY'] ?? ''));
+
+    $host = (string) parse_url($supabaseUrl, PHP_URL_HOST);
+    if (
+        $supabaseUrl === '' ||
+        $anonKey === '' ||
+        !preg_match('/^[a-z0-9-]+\.supabase\.co$/i', $host)
+    ) {
+        respond(503, ['error' => 'Upload authorization is not configured']);
+    }
+    if (!function_exists('curl_init')) {
+        respond(503, ['error' => 'Upload authorization transport is unavailable']);
+    }
+
+    // marketing-admin verifies both the Supabase session and ai_radar_admins
+    // membership before resolving the requested resource.
+    $request = curl_init($supabaseUrl . '/functions/v1/marketing-admin?resource=cms_upload_authorize');
+    if ($request === false) {
+        respond(503, ['error' => 'Unable to initialize upload authorization']);
+    }
+
+    curl_setopt_array($request, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => '{}',
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 12,
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . $sessionToken,
+            'apikey: ' . $anonKey,
+            'Content-Type: application/json',
+        ],
+    ]);
+    $responseBody = curl_exec($request);
+    $status = (int) curl_getinfo($request, CURLINFO_RESPONSE_CODE);
+    $curlError = curl_error($request);
+    curl_close($request);
+
+    if ($responseBody === false || $curlError !== '') {
+        error_log('Rasika upload authorization request failed: ' . $curlError);
+        respond(502, ['error' => 'Unable to verify the administrator session']);
+    }
+
+    $payload = json_decode((string) $responseBody, true);
+    if ($status === 401) {
+        respond(401, ['error' => 'Administrator session expired']);
+    }
+    if ($status === 403) {
+        respond(403, ['error' => 'Administrator access required']);
+    }
+    if (
+        $status === 404 &&
+        is_array($payload) &&
+        ($payload['error'] ?? '') === 'Unknown resource'
+    ) {
+        return;
+    }
+    if ($status < 200 || $status >= 300) {
+        error_log('Rasika upload authorization returned HTTP ' . $status);
+        respond(502, ['error' => 'Unable to verify upload authorization']);
+    }
+    respond(502, ['error' => 'Upload authorization returned an unexpected response']);
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     respond(405, ['error' => 'Method not allowed']);
 }
 
 $builderRoot = dirname(__DIR__, 3) . '/rasika-builder';
-$environmentSecret = getenv('RASIKA_UPLOAD_TOKEN');
-$secretCandidates = [
-    is_string($environmentSecret) ? trim($environmentSecret) : '',
-    is_readable($builderRoot . '/upload-secret')
-        ? trim((string) file_get_contents($builderRoot . '/upload-secret'))
-        : '',
-    is_readable($builderRoot . '/hook-secret')
-        ? trim((string) file_get_contents($builderRoot . '/hook-secret'))
-        : '',
-];
-$configuredSecret = '';
-foreach ($secretCandidates as $candidate) {
-    if ($candidate !== '') {
-        $configuredSecret = $candidate;
-        break;
-    }
+$sessionToken = trim((string) ($_SERVER['HTTP_X_UPLOAD_SESSION'] ?? ''));
+if ($sessionToken === '' || substr_count($sessionToken, '.') !== 2) {
+    respond(401, ['error' => 'Administrator session required']);
 }
-
-if ($configuredSecret === '') {
-    respond(503, ['error' => 'Upload service is not configured']);
-}
-
-$providedSecret = trim((string) ($_SERVER['HTTP_X_UPLOAD_TOKEN'] ?? ''));
-if ($providedSecret === '' || !hash_equals($configuredSecret, $providedSecret)) {
-    respond(401, ['error' => 'Unauthorized']);
-}
+authorizeAdminSession($sessionToken, $builderRoot);
 
 $requestedPath = strtolower(trim((string) ($_SERVER['HTTP_X_UPLOAD_PATH'] ?? '')));
 $destinations = [
