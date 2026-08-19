@@ -10,7 +10,13 @@
 .rasika-article-content > :last-child { margin-bottom: 0; }
 .rasika-article-content p { margin: 0 0 .9em; }
 .rasika-article-content p:empty,
-.rasika-article-content p:has(> br:only-child) { display: none; }
+.rasika-article-content p:has(> br:only-child),
+.rasika-article-content h1:empty,
+.rasika-article-content h2:empty,
+.rasika-article-content h3:empty,
+.rasika-article-content h4:empty,
+.rasika-article-content h5:empty,
+.rasika-article-content h6:empty { display: none; }
 
 .rasika-article-content h1,
 .rasika-article-content h2,

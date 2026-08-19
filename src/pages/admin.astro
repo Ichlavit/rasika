@@ -1645,6 +1645,18 @@ const seo = seoPages.admin;
                 const hasMedia = Boolean(paragraph.querySelector('img, iframe, video, audio, embed'));
                 if (!visibleText && !hasMedia) paragraph.remove();
             });
+            template.content.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(heading => {
+                const visibleText = (heading.textContent || '').replace(/\u00a0/g, ' ').trim();
+                const hasMedia = Boolean(heading.querySelector('img, iframe, video, audio, embed'));
+                if (!visibleText && hasMedia) {
+                    const mediaBlock = document.createElement('div');
+                    mediaBlock.className = heading.className;
+                    mediaBlock.innerHTML = heading.innerHTML;
+                    heading.replaceWith(mediaBlock);
+                } else if (!visibleText) {
+                    heading.remove();
+                }
+            });
 
             return template.innerHTML.trim();
         }
