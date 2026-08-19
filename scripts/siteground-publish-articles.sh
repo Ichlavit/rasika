@@ -14,7 +14,23 @@ export RASIKA_LOW_MEMORY_BUILD=1
 
 /bin/timeout -k 5s 45s npm ci --no-audit --no-fund
 node scripts/prepare-siteground-build.mjs
-/bin/timeout -k 5s 110s npm run build
+
+build_succeeded=0
+for attempt in 1 2 3; do
+  if /bin/timeout -k 5s 60s npm run build; then
+    build_succeeded=1
+    break
+  fi
+
+  printf 'Build attempt %s failed; waiting for SiteGround memory before retrying\n' "$attempt"
+  rm -rf dist .astro
+  sleep $((attempt * 5))
+done
+
+if [[ "$build_succeeded" -ne 1 ]]; then
+  printf 'Build failed after 3 attempts\n'
+  exit 1
+fi
 
 if [[ ! -f dist/blog/index.html || ! -f dist/sitemap.xml || ! -f dist/upload.php || ! -f dist/article-admin.php ]]; then
   printf 'Build output is incomplete\n'

@@ -32,7 +32,7 @@ if (!is_executable($deployScript)) {
     exit;
 }
 
-set_time_limit(180);
+set_time_limit(240);
 $pipes = [];
 $process = proc_open(
     ['/bin/bash', $deployScript],
