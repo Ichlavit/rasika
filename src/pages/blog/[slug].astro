@@ -1,7 +1,6 @@
 ---
 import "../../styles/global.css";
 import Chatbot from "../../components/Chatbot.astro";
-import NewsletterSignup from "../../components/NewsletterSignup.astro";
 import SiteAnalytics from "../../components/SiteAnalytics.astro";
 import SEO from "../../components/SEO.astro";
 import {
@@ -14,10 +13,7 @@ import { SITE, absoluteUrl, type SeoPage } from "../../data/seo";
 
 export async function getStaticPaths() {
   const posts = await getPublishedBlogPosts();
-  return posts.map((post) => ({
-    params: { slug: post.slug },
-    props: { post },
-  }));
+  return posts.map((post) => ({ params: { slug: post.slug }, props: { post } }));
 }
 
 const { post } = Astro.props as { post: PublishedBlogPost };
@@ -27,14 +23,8 @@ const imageUrl = absoluteUrl(post.cover_image || SITE.defaultImage);
 const isRadar = post.type === "agent";
 const publishedDate = new Date(post.published_at);
 const modifiedDate = new Date(post.updated_at || post.published_at);
-const displayDate = publishedDate.toLocaleDateString("es-CL", {
-  day: "numeric",
-  month: "long",
-  year: "numeric",
-});
+const displayDate = publishedDate.toLocaleDateString("es-CL", { day: "numeric", month: "long", year: "numeric" });
 const articleTypeLabel = isRadar ? "Radar de tendencias en EdTech" : post.category || "Rasika Insights";
-const shareUrl = encodeURIComponent(articleUrl);
-const shareTitle = encodeURIComponent(post.title);
 
 const articleJsonLd = {
   "@context": "https://schema.org",
@@ -50,23 +40,10 @@ const articleJsonLd = {
   wordCount: articleWordCount(post.content_html),
   inLanguage: SITE.language,
   author: isRadar
-    ? {
-        "@type": "Organization",
-        name: "Rasika AI Radar",
-        url: absoluteUrl("/blog/"),
-      }
-    : {
-        "@type": "Person",
-        name: post.author,
-      },
-  publisher: {
-    "@id": absoluteUrl("/#organization"),
-  },
-  isPartOf: {
-    "@type": "Blog",
-    "@id": absoluteUrl("/blog/#blog"),
-    name: "Rasika Insights",
-  },
+    ? { "@type": "Organization", name: "Rasika AI Radar", url: absoluteUrl("/blog/") }
+    : { "@type": "Person", name: post.author },
+  publisher: { "@id": absoluteUrl("/#organization") },
+  isPartOf: { "@type": "Blog", "@id": absoluteUrl("/blog/#blog"), name: "Rasika Insights" },
   ...(post.source_url ? { citation: post.source_url } : {}),
 };
 
@@ -77,12 +54,7 @@ const seo: SeoPage = {
   image: post.cover_image || SITE.defaultImage,
   type: "article",
   topic: articleTypeLabel,
-  keywords: [
-    articleTypeLabel,
-    "EdTech",
-    "aprendizaje digital",
-    ...(isRadar ? ["IA educativa", "tendencias EdTech"] : []),
-  ],
+  keywords: [articleTypeLabel, "EdTech", "aprendizaje digital", ...(isRadar ? ["IA educativa", "tendencias EdTech"] : [])],
   jsonLd: [articleJsonLd],
 };
 ---
@@ -91,425 +63,92 @@ const seo: SeoPage = {
 <html lang="es-CL">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width" />
     <SEO {...seo} />
-    <link rel="stylesheet" href="/article-content.css">
+    <link rel="stylesheet" href="/article-content.css" />
     <script is:inline src="https://cdn.tailwindcss.com"></script>
     <script is:inline>
       tailwind.config = {
         theme: {
           extend: {
             fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
-            colors: {
-              rasika: {
-                accent: '#5EA6B0',
-                dark: '#141619',
-                surface: '#1E2226',
-              },
-            },
+            colors: { rasika: { accent: '#5EA6B0', dark: '#141619', surface: '#1E2226' } },
           },
         },
       };
     </script>
     <script is:inline src="https://unpkg.com/lucide@latest"></script>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style is:global>
-      :root {
-        color-scheme: dark;
-        --accent: #5ea6b0;
-        --accent-light: #88d6e0;
-        --background: #0a0c0e;
-        --surface: #141619;
-        --surface-raised: #1e2226;
-        --muted: #9ca3af;
-      }
-
-      * { box-sizing: border-box; }
-      html { background: var(--background); scroll-behavior: smooth; }
-      body {
-        min-height: 100vh;
-        margin: 0;
-        overflow-x: hidden;
-        background: var(--background);
-        color: #f8fafc;
-        font-family: "Plus Jakarta Sans", system-ui, sans-serif;
-        letter-spacing: 0;
-      }
-
-      a { color: inherit; }
-      button { font: inherit; }
-
-      .article-nav {
-        position: fixed;
-        z-index: 80;
-        top: 0;
-        right: 0;
-        left: 0;
-        border-bottom: 1px solid rgba(255,255,255,.07);
-        background: rgba(20,22,25,.9);
-        backdrop-filter: blur(18px);
-      }
-
-      .article-nav-inner {
-        display: flex;
-        width: min(1180px, calc(100% - 32px));
-        min-height: 74px;
-        margin: 0 auto;
-        align-items: center;
-        justify-content: space-between;
-      }
-
-      .article-logo { display: block; width: 142px; }
-      .article-logo img { display: block; width: 100%; height: auto; }
-      .article-nav-links { display: flex; align-items: center; gap: 28px; }
-      .article-nav-links a {
-        color: #d1d5db;
-        font-size: 14px;
-        font-weight: 600;
-        text-decoration: none;
-      }
-      .article-nav-links a:hover { color: var(--accent-light); }
-
-      .article-hero {
-        position: relative;
-        display: flex;
-        min-height: min(720px, 82vh);
-        margin-top: 74px;
-        align-items: flex-end;
-        overflow: hidden;
-        background: var(--surface);
-      }
-
-      .article-hero-media,
-      .article-hero-scrim,
-      .article-hero-fade { position: absolute; inset: 0; }
-      .article-hero-media {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .article-hero-scrim { background: rgba(7,9,11,.52); }
-      .article-hero-fade {
-        background: linear-gradient(to bottom, rgba(10,12,14,.08), rgba(10,12,14,.56) 52%, #0a0c0e 100%);
-      }
-
-      .article-hero-inner {
-        position: relative;
-        z-index: 2;
-        width: min(980px, calc(100% - 40px));
-        margin: 0 auto;
-        padding: 96px 0 72px;
-      }
-
-      .article-kicker {
-        display: inline-flex;
-        align-items: center;
-        gap: 9px;
-        margin-bottom: 24px;
-        color: var(--accent-light);
-        font-size: 13px;
-        font-weight: 800;
-        text-transform: uppercase;
-      }
-
-      .article-hero h1 {
-        max-width: 920px;
-        margin: 0;
-        font-size: clamp(42px, 6.5vw, 78px);
-        font-weight: 800;
-        line-height: 1.04;
-        letter-spacing: 0;
-        text-wrap: balance;
-      }
-
-      .article-excerpt {
-        max-width: 780px;
-        margin: 28px 0 0;
-        color: #d1d5db;
-        font-size: clamp(17px, 2vw, 21px);
-        line-height: 1.65;
-      }
-
-      .article-meta {
-        display: flex;
-        margin-top: 32px;
-        align-items: center;
-        gap: 16px;
-        color: #cbd5e1;
-        font-size: 14px;
-      }
-
-      .article-author-mark,
-      .coursementor-avatar-static {
-        flex: 0 0 auto;
-        width: 48px;
-        height: 48px;
-        border: 1px solid rgba(94,166,176,.4);
-        border-radius: 50%;
-        background-color: var(--surface);
-      }
-
-      .article-author-mark {
-        display: grid;
-        place-items: center;
-        color: var(--accent-light);
-      }
-
-      .coursementor-avatar-static {
-        background-image: url('/images/svg/avatar_animated.svg');
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-      }
-
-      .article-meta strong { display: block; color: #fff; font-size: 15px; }
-      .article-meta span { display: block; margin-top: 3px; color: var(--muted); }
-
-      .article-shell {
-        display: grid;
-        width: min(1120px, calc(100% - 40px));
-        margin: 0 auto;
-        padding: 72px 0 110px;
-        grid-template-columns: minmax(0, 760px) 220px;
-        gap: 84px;
-        justify-content: center;
-      }
-
-      .article-share {
-        position: sticky;
-        top: 112px;
-        display: flex;
-        height: fit-content;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .article-share-label {
-        margin-bottom: 4px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 700;
-        text-transform: uppercase;
-      }
-      .article-share a,
-      .article-share button {
-        display: flex;
-        min-height: 44px;
-        padding: 0 14px;
-        align-items: center;
-        gap: 10px;
-        border: 1px solid rgba(255,255,255,.12);
-        border-radius: 8px;
-        background: var(--surface);
-        color: #e5e7eb;
-        cursor: pointer;
-        font-size: 13px;
-        font-weight: 650;
-        text-decoration: none;
-      }
-      .article-share a:hover,
-      .article-share button:hover { border-color: var(--accent); color: var(--accent-light); }
-
-      .article-mentor-cta {
-        display: grid;
-        margin-top: 64px;
-        padding: 30px;
-        grid-template-columns: 58px 1fr auto;
-        align-items: center;
-        gap: 22px;
-        border: 1px solid rgba(94,166,176,.32);
-        border-radius: 8px;
-        background: var(--surface-raised);
-      }
-      .article-mentor-cta .coursementor-avatar-static { width: 58px; height: 58px; }
-      .article-mentor-cta h2 { margin: 0 0 7px; font-size: 21px; }
-      .article-mentor-cta p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
-      .article-mentor-cta button {
-        min-height: 46px;
-        padding: 0 18px;
-        border: 0;
-        border-radius: 8px;
-        background: var(--accent);
-        color: #081012;
-        cursor: pointer;
-        font-weight: 800;
-      }
-      .article-mentor-cta button:hover,
-      .article-mentor-cta button:focus-visible { background: var(--accent-light); }
-
-      .article-footer {
-        border-top: 1px solid rgba(255,255,255,.07);
-        background: var(--surface);
-      }
-      .article-footer-inner {
-        display: flex;
-        width: min(1120px, calc(100% - 40px));
-        min-height: 110px;
-        margin: 0 auto;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-        color: var(--muted);
-        font-size: 13px;
-      }
-      .article-footer a { color: #d1d5db; text-decoration: none; }
-
-      .mobile-menu-button { display: none; }
-
-      @media (max-width: 800px) {
-        .article-nav-links { display: none; }
-        .mobile-menu-button {
-          display: grid;
-          width: 44px;
-          height: 44px;
-          place-items: center;
-          border: 0;
-          background: transparent;
-          color: #fff;
-        }
-        .article-hero { min-height: 690px; }
-        .article-hero-inner { padding-bottom: 52px; }
-        .article-hero h1 { font-size: clamp(38px, 11vw, 58px); }
-        .article-shell { display: block; padding-top: 52px; }
-        .article-share {
-          position: static;
-          display: grid;
-          margin-top: 52px;
-          grid-template-columns: repeat(2, minmax(0,1fr));
-        }
-        .article-share-label { grid-column: 1 / -1; }
-        .article-mentor-cta {
-          grid-template-columns: 52px 1fr;
-        }
-        .article-mentor-cta .coursementor-avatar-static { width: 52px; height: 52px; }
-        .article-mentor-cta button { grid-column: 1 / -1; width: 100%; }
-        .article-footer-inner { min-height: 150px; flex-direction: column; justify-content: center; text-align: center; }
-      }
-    </style>
-    <style is:inline>
-      /* Keep the article CTA stable even when an older extracted stylesheet is cached. */
-      .article-mentor-cta button { background: var(--accent) !important; }
-      .article-mentor-cta button:hover,
-      .article-mentor-cta button:focus-visible { background: var(--accent-light) !important; }
+      :root { color-scheme: dark; }
+      html, body { min-height: 100%; margin: 0; background: #0a0c0e; color: #f8fafc; font-family: "Plus Jakarta Sans", system-ui, sans-serif; }
+      body { overflow: hidden; }
+      .coursementor-avatar-static { background: url('/images/svg/avatar_animated.svg') center / cover no-repeat; }
+      #reader-hero-bg { background-position: center; background-size: cover; }
+      .reader-hero-scrim { position: absolute; inset: 0; background: rgba(7, 9, 11, .22); }
+      .reader-hero-fade { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(20, 22, 25, 0), #141619 100%); }
+      .reader-backdrop { background-position: center; background-size: cover; filter: blur(14px); transform: scale(1.04); }
     </style>
   </head>
   <body>
-    <header class="article-nav">
-      <div class="article-nav-inner">
-        <a class="article-logo" href="/" aria-label="Rasika Producciones">
-          <img src="/images/svg/rasika_logo.svg" alt="Rasika Producciones" />
-        </a>
-        <nav class="article-nav-links" aria-label="Navegación principal">
-          <a href="/demos/">Demos</a>
-          <a href="/lms/">LMS & Bots</a>
-          <a href="/clients/">Clientes</a>
-          <a href="/pricing/">Precios</a>
-          <a href="/blog/" aria-current="page">Blog</a>
-        </nav>
-        <button class="mobile-menu-button" type="button" aria-label="Abrir navegación" onclick="window.location.href='/blog/'">
-          <i data-lucide="arrow-left"></i>
-        </button>
-      </div>
-    </header>
-
-    <main>
-      <article>
-        <header class="article-hero">
-          {post.cover_image && <img class="article-hero-media" src={post.cover_image} alt="" fetchpriority="high" />}
-          <div class="article-hero-scrim"></div>
-          <div class="article-hero-fade"></div>
-          <div class="article-hero-inner">
-            <div class="article-kicker">
-              <i data-lucide={isRadar ? "radar" : "book-open"}></i>
-              <span>{articleTypeLabel}</span>
-              {isRadar && <span>(potenciado por IA)</span>}
-            </div>
-            <h1>{post.title}</h1>
-            <p class="article-excerpt">{post.excerpt}</p>
-            <div class="article-meta">
-              <span class="article-author-mark">
-                <i data-lucide={isRadar ? "radar" : "user"}></i>
-              </span>
-              <div>
-                <strong>{post.author}</strong>
-                <span>{displayDate} · {post.read_time || "5 min de lectura"}</span>
-              </div>
-            </div>
+    <main id="reader-modal" class="fixed inset-0 z-[200] flex items-center justify-center" aria-label="Artículo">
+      <button class="reader-backdrop fixed inset-0 min-h-[100dvh] w-screen border-0" style={`background-image: linear-gradient(rgba(10, 12, 14, .84), rgba(10, 12, 14, .96)), url("${post.cover_image || SITE.defaultImage}")`} type="button" aria-label="Volver al Blog" onclick="closeSharedReader()"></button>
+      <article id="reader-container" class="relative z-10 flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-[#141619] shadow-2xl ring-1 ring-white/10 md:h-[90vh] md:rounded-[2rem]">
+        <header class="relative z-20 flex shrink-0 items-center justify-between border-b border-white/5 bg-[#1E2226] p-4 md:px-8 md:py-5">
+          <div class="flex min-w-0 flex-col gap-0.5" id="reader-category">
+            <span class="text-sm font-bold text-gray-300" id="reader-category-label">{articleTypeLabel}</span>
+            {isRadar && <span class="text-xs font-medium text-gray-500">(potenciado por IA)</span>}
           </div>
+          <button onclick="closeSharedReader()" class="flex h-10 w-10 items-center justify-center rounded-full bg-white/5 text-gray-400 transition-colors hover:bg-white/10 hover:text-white" type="button" aria-label="Volver al Blog"><i data-lucide="x" class="h-5 w-5"></i></button>
         </header>
 
-        <div class="article-shell">
-          <div>
-            <div class="article-content rasika-article-content" set:html={post.content_html}></div>
+        <div class="no-scrollbar relative flex-1 overflow-y-auto scroll-smooth" id="reader-scroll-area">
+          <div id="reader-hero-bg" class="relative h-48 w-full transition-all duration-500 md:h-[24rem]" style={`background-image: linear-gradient(rgba(10, 12, 14, .1), rgba(10, 12, 14, .1)), url("${post.cover_image || SITE.defaultImage}")`}><div class="reader-hero-scrim"></div><div class="reader-hero-fade"></div></div>
+          <div class="relative z-10 mx-auto max-w-3xl px-6 py-12 md:py-16">
+            <h1 id="reader-title" class="mb-8 font-sans text-3xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">{post.title}</h1>
+            <div class="mb-10 flex items-center gap-4 border-b border-white/10 pb-8">
+              <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#1E2226]"><i data-lucide={isRadar ? "radar" : "user"} class:list={["h-6 w-6", isRadar ? "text-rasika-accent" : "text-gray-400"]}></i></div>
+              <div><div class="text-base font-bold text-white">{post.author}</div><div class="mt-1 text-sm text-gray-500">{displayDate} · {post.read_time || "5 min de lectura"}</div></div>
+            </div>
+            <div id="reader-body" class="article-content rasika-article-content text-left" set:html={post.content_html}></div>
 
-            <section class="article-mentor-cta" aria-labelledby="article-mentor-title">
-              <span class="coursementor-avatar-static" role="img" aria-label="CourseMentor"></span>
-              <div>
-                <h2 id="article-mentor-title">¿Cómo se conecta esto con tu desafío?</h2>
-                <p>Conversa sobre las ideas del artículo y cómo podrían aplicarse a un desafío real de tu organización.</p>
+            <section class="mt-16 flex flex-col border-t border-white/10 pt-6" aria-label="Compartir artículo">
+              <div class="flex items-center gap-4 py-4">
+                <button data-share-platform="facebook" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform hover:-translate-y-1 hover:bg-[#1877F2]/20" type="button" aria-label="Facebook"><img src="/images/social/facebook.svg" alt="" class="h-4 w-4 object-contain" /></button>
+                <button data-share-platform="twitter" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform hover:-translate-y-1 hover:bg-white/20" type="button" aria-label="X"><img src="/images/social/x.svg" alt="" class="h-4 w-4 object-contain" /></button>
+                <button data-share-platform="linkedin" class="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 transition-transform hover:-translate-y-1 hover:bg-[#0A66C2]/20" type="button" aria-label="LinkedIn"><img src="/images/social/linkedin.svg" alt="" class="h-4 w-4 object-contain" /></button>
+                <button id="copy-article-link" class="ml-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-gray-400 transition-transform hover:-translate-y-1 hover:bg-white/20 hover:text-white" type="button" data-url={articleUrl} aria-label="Copiar enlace"><i data-lucide="link" class="h-4 w-4"></i></button>
               </div>
-              <button id="article-mentor-button" type="button">Explorar con CourseMentor</button>
+              <div class="flex items-center justify-between border-t border-white/10 py-5"><span class="text-sm font-medium tracking-wide text-gray-400">{post.views || 0} visualizaciones</span><span class="flex items-center gap-2 text-gray-400"><span class="text-sm font-bold">{post.likes || 0}</span><i data-lucide="heart" class="h-5 w-5"></i></span></div>
+            </section>
+
+            <section class="mt-8 rounded-2xl border border-rasika-accent/20 bg-gradient-to-br from-rasika-accent/10 to-transparent p-8 text-center" aria-labelledby="article-mentor-title">
+              <span role="img" aria-label="CourseMentor" class="coursementor-avatar-static mx-auto mb-4 block h-14 w-14 rounded-full border border-rasika-accent/40 bg-[#141619]"></span>
+              <h2 id="article-mentor-title" class="mb-2 text-xl font-bold text-white">¿Cómo se conecta esto con tu desafío?</h2>
+              <p class="mb-6 text-sm text-gray-400">CourseMentor puede conversar sobre este artículo, comprender tu desafío de aprendizaje y relacionarlo con soluciones concretas de Rasika.</p>
+              <button id="article-mentor-button" class="inline-flex items-center gap-2 rounded-full bg-rasika-accent px-6 py-3 font-bold text-[#0a0b0d] transition-all hover:bg-[#88d6e0]" type="button"><span>Explorar con CourseMentor</span><i data-lucide="message-circle" class="h-4 w-4"></i></button>
             </section>
           </div>
-
-          <aside class="article-share" aria-label="Compartir artículo">
-            <div class="article-share-label">Compartir</div>
-            <a data-share-platform="linkedin" href={`https://www.linkedin.com/shareArticle?mini=true&url=${shareUrl}&title=${shareTitle}`} target="_blank" rel="noopener noreferrer">
-              <i data-lucide="linkedin"></i><span>LinkedIn</span>
-            </a>
-            <a data-share-platform="twitter" href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${shareTitle}`} target="_blank" rel="noopener noreferrer">
-              <i data-lucide="message-circle"></i><span>X</span>
-            </a>
-            <a data-share-platform="facebook" href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`} target="_blank" rel="noopener noreferrer">
-              <i data-lucide="facebook"></i><span>Facebook</span>
-            </a>
-            <button id="copy-article-link" type="button" data-url={articleUrl}>
-              <i data-lucide="link"></i><span>Copiar enlace</span>
-            </button>
-            <a href="/blog/">
-              <i data-lucide="arrow-left"></i><span>Volver al Blog</span>
-            </a>
-          </aside>
-        </div>
-        <div class="article-shell" style="display:block;padding-top:0;">
-          <NewsletterSignup />
         </div>
       </article>
     </main>
 
-    <footer class="article-footer">
-      <div class="article-footer-inner">
-        <span>© 2026 Rasika Producciones. Todos los derechos reservados.</span>
-        <a href="/blog/">Rasika Insights</a>
-      </div>
-    </footer>
-
     <SiteAnalytics articleSlug={post.slug} />
     <Chatbot />
 
-    <script
-      is:inline
-      define:vars={{
-        articleId: post.id,
-        articleTitle: post.title,
-        articleIsRadar: isRadar,
-      }}
-    >
+    <script is:inline define:vars={{ articleId: post.id, articleTitle: post.title, articleIsRadar: isRadar }}>
       if (window.lucide) window.lucide.createIcons();
 
       function setArticleContext() {
         if (!window.setMentorArticleContext) return;
-        window.setMentorArticleContext({
-          id: articleId,
-          title: articleTitle,
-          isRadar: articleIsRadar,
-        });
+        window.setMentorArticleContext({ id: articleId, title: articleTitle, isRadar: articleIsRadar });
       }
 
+      function blogIndexUrl() { return document.documentElement.lang === "en" ? "/en/blog/" : "/blog/"; }
+      window.closeSharedReader = function() { window.location.assign(blogIndexUrl()); };
       setArticleContext();
       document.addEventListener("DOMContentLoaded", setArticleContext);
+      document.addEventListener("keydown", (event) => { if (event.key === "Escape") window.closeSharedReader(); });
 
       document.getElementById("article-mentor-button")?.addEventListener("click", () => {
         setArticleContext();
@@ -523,50 +162,36 @@ const seo: SeoPage = {
       async function getShareableArticleUrl() {
         const canonical = document.querySelector('link[rel="canonical"]')?.href || window.location.href;
         const url = new URL(canonical);
-        const referralCode = window.ensureMentorReferralCode
-          ? await window.ensureMentorReferralCode()
-          : window.mentorReferralCode;
-        if (/^[A-Za-z0-9_-]{8}$/.test(referralCode || "")) {
-          url.searchParams.set("ref", referralCode);
-        }
+        const referralCode = window.ensureMentorReferralCode ? await window.ensureMentorReferralCode() : window.mentorReferralCode;
+        if (/^[A-Za-z0-9_-]{8}$/.test(referralCode || "")) url.searchParams.set("ref", referralCode);
         return url.toString();
       }
 
-      document.querySelectorAll("[data-share-platform]").forEach((link) => {
-        link.addEventListener("click", (event) => {
-          event.preventDefault();
+      document.querySelectorAll("[data-share-platform]").forEach((button) => {
+        button.addEventListener("click", () => {
           const popup = window.open("about:blank", "_blank");
           if (popup) popup.opener = null;
           void (async () => {
             const url = encodeURIComponent(await getShareableArticleUrl());
             const title = encodeURIComponent(articleTitle);
-            const platform = link.dataset.sharePlatform;
+            const platform = button.dataset.sharePlatform;
             const destination = platform === "linkedin"
               ? `https://www.linkedin.com/shareArticle?mini=true&url=${url}&title=${title}`
               : platform === "twitter"
                 ? `https://twitter.com/intent/tweet?url=${url}&text=${title}`
                 : `https://www.facebook.com/sharer/sharer.php?u=${url}`;
-            if (popup) {
-              popup.location.replace(destination);
-            } else {
-              window.location.assign(destination);
-            }
+            if (popup) popup.location.replace(destination); else window.location.assign(destination);
           })();
         });
       });
 
       document.getElementById("copy-article-link")?.addEventListener("click", async (event) => {
         const button = event.currentTarget;
-        const label = button.querySelector("span");
-        try {
-          await navigator.clipboard.writeText(await getShareableArticleUrl());
-          if (label) label.textContent = document.documentElement.lang === "en" ? "Link copied" : "Enlace copiado";
-        } catch {
-          if (label) label.textContent = document.documentElement.lang === "en" ? "Could not copy" : "No se pudo copiar";
-        }
-        window.setTimeout(() => {
-          if (label) label.textContent = document.documentElement.lang === "en" ? "Copy link" : "Copiar enlace";
-        }, 1800);
+        const icon = button.querySelector("i");
+        try { await navigator.clipboard.writeText(await getShareableArticleUrl()); icon?.setAttribute("data-lucide", "check"); }
+        catch { icon?.setAttribute("data-lucide", "x"); }
+        if (window.lucide) window.lucide.createIcons();
+        window.setTimeout(() => { if (icon) icon.setAttribute("data-lucide", "link"); if (window.lucide) window.lucide.createIcons(); }, 1800);
       });
     </script>
   </body>

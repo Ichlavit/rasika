@@ -287,7 +287,7 @@ function localizeArticle($, translation, englishRoute) {
   $("meta[name='description'],meta[property='og:description'],meta[name='twitter:description']")
     .attr("content", translation.excerpt);
   $("meta[property='og:title'],meta[name='twitter:title']").attr("content", translation.title);
-  $(".article-hero h1").text(translation.title);
+  $(".article-hero h1, #reader-title").text(translation.title);
   $(".article-excerpt").text(translation.excerpt);
   $(".article-content").html(translation.content_html);
   $("a[href^='https://www.linkedin.com/shareArticle']")
