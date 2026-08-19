@@ -372,6 +372,7 @@ const seo = seoPages.admin;
                     </select>
                     <i data-lucide="chevron-down" class="w-5 h-5 absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                 </div>
+                <span id="article-locale-badge" class="hidden shrink-0 px-3 py-2 rounded-lg border border-[#5EA6B0]/30 bg-[#5EA6B0]/10 text-xs font-bold text-[#88d6e0]"></span>
                 <button onclick="document.getElementById('edit-selector').value=''; handleEditSelection('');" class="px-4 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-sm font-bold transition-colors">
                     Limpiar
                 </button>
@@ -633,6 +634,7 @@ const seo = seoPages.admin;
         const SUPA_KEY = config.getAttribute('data-key');
         
         let currentEditingId = null;
+        let currentEditingLocale = 'es';
         let currentEditingSlug = null;
         let currentEditingPublishedAt = null;
         let currentRadarCandidate = null;
@@ -2440,26 +2442,45 @@ const seo = seoPages.admin;
         async function loadArticlesList() {
             const token = sessionStorage.getItem('adminToken');
             try {
-                const res = await fetch(`${SUPA_URL}/rest/v1/blog_posts?select=id,title,type&order=created_at.desc`, {
-                    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` }
-                });
-                if(res.ok) {
-                    const data = await res.json();
+                const headers = { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` };
+                const [postsResponse, translationsResponse] = await Promise.all([
+                    fetch(`${SUPA_URL}/rest/v1/blog_posts?select=id,title,type&order=created_at.desc`, { headers }),
+                    fetch(`${SUPA_URL}/rest/v1/blog_post_translations?select=blog_post_id,title,locale,status&locale=eq.en`, { headers })
+                ]);
+                if(postsResponse.ok) {
+                    const data = await postsResponse.json();
+                    const translations = translationsResponse.ok ? await translationsResponse.json() : [];
+                    const englishByPost = new Map(translations.map(item => [item.blog_post_id, item]));
                     const selector = document.getElementById('edit-selector');
                     selector.innerHTML = '<option value="">✨ Crear Nuevo Artículo...</option>';
                     data.forEach(post => {
-                        const icon = post.type === 'agent' ? '🤖' : '📝';
-                        selector.innerHTML += `<option value="${post.id}">${icon} ${post.title}</option>`;
+                        const spanishOption = document.createElement('option');
+                        spanishOption.value = `${post.id}::es`;
+                        spanishOption.textContent = `[ES] ${post.title}`;
+                        selector.appendChild(spanishOption);
+
+                        const english = englishByPost.get(post.id);
+                        if (english) {
+                            const englishOption = document.createElement('option');
+                            englishOption.value = `${post.id}::en`;
+                            englishOption.textContent = `[EN] ${english.title}`;
+                            selector.appendChild(englishOption);
+                        }
                     });
                 }
             } catch (e) { console.error("Error loading articles list", e); }
         }
 
-        window.handleEditSelection = async function(id) {
+        window.handleEditSelection = async function(selection) {
+            const [id = '', locale = 'es'] = String(selection || '').split('::');
             currentEditingId = id || null;
+            currentEditingLocale = locale === 'en' ? 'en' : 'es';
             currentEditingSlug = null;
             currentEditingPublishedAt = null;
             const publishBtn = document.getElementById('publish-btn');
+            const localeBadge = document.getElementById('article-locale-badge');
+            localeBadge.classList.toggle('hidden', !id);
+            localeBadge.textContent = currentEditingLocale === 'en' ? 'EN · Edición' : 'ES · Fuente';
             
             if(!id) {
                 document.getElementById('post-title').value = '';
@@ -2478,27 +2499,34 @@ const seo = seoPages.admin;
 
             const token = sessionStorage.getItem('adminToken');
             try {
-                const res = await fetch(`${SUPA_URL}/rest/v1/blog_posts?id=eq.${id}`, {
-                    headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` }
-                });
+                const headers = { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${token}` };
+                const sourceResponse = await fetch(`${SUPA_URL}/rest/v1/blog_posts?id=eq.${encodeURIComponent(id)}`, { headers });
                 
-                if (!res.ok) throw new Error("Fallo en la petición a Supabase");
+                if (!sourceResponse.ok) throw new Error("Fallo en la petición a Supabase");
                 
-                const data = await res.json();
+                const data = await sourceResponse.json();
                 
                 if(data && data[0]) {
-                    const post = data[0];
-                    document.getElementById('post-type').value = post.type || 'human';
-                    document.getElementById('post-title').value = post.title || '';
-                    document.getElementById('post-author').value = post.author || '';
-                    document.getElementById('post-category').value = post.category || '';
-                    document.getElementById('post-excerpt').value = post.excerpt || '';
-                    document.getElementById('post-cover').value = post.cover_image || '';
-                    quill.root.innerHTML = post.content_html || '';
-                    currentEditingSlug = post.slug || null;
-                    currentEditingPublishedAt = post.published_at || null;
+                    const source = data[0];
+                    let edition = source;
+                    if (currentEditingLocale === 'en') {
+                        const translationResponse = await fetch(`${SUPA_URL}/rest/v1/blog_post_translations?blog_post_id=eq.${encodeURIComponent(id)}&locale=eq.en&limit=1`, { headers });
+                        if (!translationResponse.ok) throw new Error('No fue posible cargar la edición en inglés.');
+                        const translations = await translationResponse.json();
+                        if (!translations[0]) throw new Error('Este artículo todavía no tiene una edición en inglés.');
+                        edition = translations[0];
+                    }
+                    document.getElementById('post-type').value = source.type || 'human';
+                    document.getElementById('post-title').value = edition.title || '';
+                    document.getElementById('post-author').value = source.author || '';
+                    document.getElementById('post-category').value = source.category || '';
+                    document.getElementById('post-excerpt').value = edition.excerpt || '';
+                    document.getElementById('post-cover').value = source.cover_image || '';
+                    quill.root.innerHTML = edition.content_html || '';
+                    currentEditingSlug = edition.slug || null;
+                    currentEditingPublishedAt = edition.published_at || source.published_at || null;
                     
-                    publishBtn.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
+                    publishBtn.innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar edición ${currentEditingLocale.toUpperCase()}`;
                 } else {
                     alert("El artículo fue eliminado o no existe.");
                     publishBtn.innerHTML = '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
@@ -2521,6 +2549,7 @@ const seo = seoPages.admin;
                 cover_image: document.getElementById('post-cover').value,
                 content: quill.root.innerHTML,
                 editingId: currentEditingId,
+                editingLocale: currentEditingLocale,
                 editingSlug: currentEditingSlug,
                 editingPublishedAt: currentEditingPublishedAt
             };
@@ -2547,10 +2576,14 @@ const seo = seoPages.admin;
                 
                 if(draft.editingId) {
                     currentEditingId = draft.editingId;
+                    currentEditingLocale = draft.editingLocale === 'en' ? 'en' : 'es';
                     currentEditingSlug = draft.editingSlug || null;
                     currentEditingPublishedAt = draft.editingPublishedAt || null;
-                    document.getElementById('edit-selector').value = draft.editingId;
-                    document.getElementById('publish-btn').innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo';
+                    document.getElementById('edit-selector').value = `${draft.editingId}::${currentEditingLocale}`;
+                    const localeBadge = document.getElementById('article-locale-badge');
+                    localeBadge.classList.remove('hidden');
+                    localeBadge.textContent = currentEditingLocale === 'en' ? 'EN · Edición' : 'ES · Fuente';
+                    document.getElementById('publish-btn').innerHTML = `<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar edición ${currentEditingLocale.toUpperCase()}`;
                     if (window.lucide) lucide.createIcons();
                 }
             }
@@ -2628,7 +2661,9 @@ const seo = seoPages.admin;
             const plainText = quill.getText().replace(/\s+/g, ' ').trim();
 
             if (!title.trim() || !author.trim() || !plainText) {
-                btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                btn.innerHTML = currentEditingId
+                    ? `<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar edición ${currentEditingLocale.toUpperCase()}`
+                    : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
                 if (window.lucide) lucide.createIcons();
                 return alert('Título, autor y contenido son obligatorios.');
             }
@@ -2651,45 +2686,67 @@ const seo = seoPages.admin;
                 content_html: htmlContent
             };
 
-            const endpoint = currentEditingId 
-                ? `${SUPA_URL}/rest/v1/blog_posts?id=eq.${currentEditingId}` 
-                : `${SUPA_URL}/rest/v1/blog_posts`;
-                
-            const httpMethod = currentEditingId ? 'PATCH' : 'POST';
-
             try {
-                const res = await fetch(endpoint, {
-                    method: httpMethod,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'apikey': SUPA_KEY,
-                        'Authorization': `Bearer ${token}`,
-                        'Prefer': 'return=representation'
-                    },
-                    body: JSON.stringify(payload)
-                });
+                let res;
+                let savedPost;
+                let savedArticleId = currentEditingId;
+
+                if (currentEditingId && currentEditingLocale === 'en') {
+                    res = await fetch('/article-admin.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Admin-Session': token
+                        },
+                        body: JSON.stringify({
+                            article_id: currentEditingId,
+                            locale: 'en',
+                            title,
+                            slug,
+                            excerpt,
+                            content_html: htmlContent
+                        })
+                    });
+                    const responseData = await res.json().catch(() => ({}));
+                    savedPost = responseData.translation || {};
+                    if (!res.ok) throw new Error(responseData.error || 'No fue posible guardar la edición en inglés.');
+                } else {
+                    const endpoint = currentEditingId
+                        ? `${SUPA_URL}/rest/v1/blog_posts?id=eq.${currentEditingId}`
+                        : `${SUPA_URL}/rest/v1/blog_posts`;
+                    res = await fetch(endpoint, {
+                        method: currentEditingId ? 'PATCH' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'apikey': SUPA_KEY,
+                            'Authorization': `Bearer ${token}`,
+                            'Prefer': 'return=representation'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+                    const responseData = await res.json().catch(() => ([]));
+                    savedPost = responseData[0] || {};
+                    savedArticleId = savedPost.id || currentEditingId;
+                    if (!res.ok) throw new Error(responseData.message || 'No fue posible guardar el artículo.');
+                }
 
                 if(res.ok) {
-                    const responseData = await res.json();
-                    const savedPost = responseData[0] || {};
-                    const savedArticleId = savedPost.id || currentEditingId;
-
                     btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generando página...';
                     if (window.lucide) lucide.createIcons();
                     await requestSeoPublication(savedArticleId);
                     
                     localStorage.removeItem('rasika_blog_draft'); 
-                    window.location.href = `/blog/${savedPost.slug || slug}/`;
-                    
-                } else {
-                    const errData = await res.json();
-                    alert("Error. Revisa los permisos de tu base de datos: " + (errData.message || "Desconocido"));
+                    window.location.href = currentEditingLocale === 'en'
+                        ? `/en/blog/${savedPost.slug || slug}/`
+                        : `/blog/${savedPost.slug || slug}/`;
                 }
             } catch (e) {
                 console.error(e);
                 alert(e.message || "Error de red.");
             } finally {
-                btn.innerHTML = currentEditingId ? '<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar Artículo' : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
+                btn.innerHTML = currentEditingId
+                    ? `<i data-lucide="refresh-cw" class="w-4 h-4"></i> Actualizar edición ${currentEditingLocale.toUpperCase()}`
+                    : '<i data-lucide="send" class="w-4 h-4"></i> Publicar Ahora';
                 if (window.lucide) lucide.createIcons();
             }
         }
