@@ -11,6 +11,7 @@ export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
 export ASTRO_TELEMETRY_DISABLED=1
 
 npm ci --no-audit --no-fund
+node scripts/prepare-siteground-build.mjs
 npm run build
 
 if [[ ! -f dist/blog/index.html || ! -f dist/sitemap.xml || ! -f dist/upload.php || ! -f dist/article-admin.php ]]; then
