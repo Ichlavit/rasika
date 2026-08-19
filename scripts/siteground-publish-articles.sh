@@ -11,13 +11,49 @@ export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-1}"
 export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=160}"
 export ASTRO_TELEMETRY_DISABLED=1
 export RASIKA_LOW_MEMORY_BUILD=1
+export RASIKA_ARTICLE_BUILD=1
 
-/bin/timeout -k 5s 45s npm ci --no-audit --no-fund
+run_with_timeout() {
+  local seconds="$1"
+  shift
+  if [[ -x /bin/timeout ]]; then
+    /bin/timeout -k 5s "${seconds}s" "$@"
+  else
+    "$@"
+  fi
+}
+
+run_with_timeout 45 npm ci --no-audit --no-fund
 node scripts/prepare-siteground-build.mjs
+
+route_stash="$(mktemp -d "${TMPDIR:-/tmp}/rasika-article-routes.XXXXXX")"
+restore_full_site_routes() {
+  if [[ -d "$route_stash" ]]; then
+    for route in "$route_stash"/*; do
+      [[ -e "$route" ]] || continue
+      mv "$route" src/pages/
+    done
+    rmdir "$route_stash"
+  fi
+}
+trap restore_full_site_routes EXIT
+
+for route in \
+  src/pages/clients.astro \
+  src/pages/demos.astro \
+  src/pages/index.astro \
+  src/pages/lms.astro \
+  src/pages/newsletter \
+  src/pages/pricing.astro \
+  src/pages/projects.astro; do
+  if [[ -e "$route" ]]; then
+    mv "$route" "$route_stash/"
+  fi
+done
 
 build_succeeded=0
 for attempt in 1 2 3; do
-  if /bin/timeout -k 5s 60s npm run build; then
+  if run_with_timeout 60 npm run build; then
     build_succeeded=1
     break
   fi
@@ -31,6 +67,9 @@ if [[ "$build_succeeded" -ne 1 ]]; then
   printf 'Build failed after 3 attempts\n'
   exit 1
 fi
+
+restore_full_site_routes
+trap - EXIT
 
 if [[ ! -f dist/blog/index.html || ! -f dist/sitemap.xml || ! -f dist/upload.php || ! -f dist/article-admin.php ]]; then
   printf 'Build output is incomplete\n'

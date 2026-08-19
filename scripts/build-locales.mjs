@@ -6,6 +6,7 @@ import { load } from "cheerio";
 
 const root = process.cwd();
 const dist = path.join(root, "dist");
+const articleBuild = process.env.RASIKA_ARTICLE_BUILD === "1";
 const catalogPath = path.join(root, "src/i18n/en.json");
 const blogFallbackPath = path.join(root, "src/i18n/blog-en.json");
 const staticRoutes = new Map([
@@ -26,6 +27,11 @@ const sourceFiles = new Map([
   ["/blog/", path.join(dist, "blog/index.html")],
   ["/newsletter/unsubscribe/", path.join(dist, "newsletter/unsubscribe/index.html")],
 ]);
+if (articleBuild) {
+  for (const route of sourceFiles.keys()) {
+    if (route !== "/blog/") sourceFiles.delete(route);
+  }
+}
 const siteOrigin = "https://www.rasika.cl";
 const localeScriptPath = path.join(root, "public/locale.js");
 const localeScriptVersion = createHash("sha256")
