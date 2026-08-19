@@ -4,12 +4,17 @@ RewriteRule ^ https://www.rasika.cl%{REQUEST_URI} [R=301,L,NE]
 
 <IfModule mod_setenvif.c>
   SetEnvIf Request_URI "^/admin(/|$)" RASIKA_ADMIN_NOCACHE=1
+  SetEnvIf Request_URI "^/(en/)?blog(/|$)" RASIKA_BLOG_NOCACHE=1
 </IfModule>
 
 <IfModule mod_headers.c>
   Header always set Cache-Control "private, no-store, no-cache, must-revalidate, max-age=0" env=RASIKA_ADMIN_NOCACHE
   Header always set Pragma "no-cache" env=RASIKA_ADMIN_NOCACHE
   Header always set Expires "0" env=RASIKA_ADMIN_NOCACHE
+
+  Header always set Cache-Control "private, no-cache, must-revalidate, max-age=0" env=RASIKA_BLOG_NOCACHE
+  Header always set Pragma "no-cache" env=RASIKA_BLOG_NOCACHE
+  Header always set Expires "0" env=RASIKA_BLOG_NOCACHE
 </IfModule>
 
 RedirectMatch 301 ^/nosotros/?$ /demos/
