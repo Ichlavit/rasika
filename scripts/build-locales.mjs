@@ -42,6 +42,41 @@ function normalizedText(value) {
   return String(value || "").replace(/\s+/g, " ").trim();
 }
 
+const spanishMonths = new Map([
+  ["enero", "January"],
+  ["febrero", "February"],
+  ["marzo", "March"],
+  ["abril", "April"],
+  ["mayo", "May"],
+  ["junio", "June"],
+  ["julio", "July"],
+  ["agosto", "August"],
+  ["septiembre", "September"],
+  ["octubre", "October"],
+  ["noviembre", "November"],
+  ["diciembre", "December"],
+]);
+
+function translateDynamicMetadata(value) {
+  const source = normalizedText(value);
+  const parts = source.split(/\s+·\s+/);
+  if (parts.length > 1) {
+    const translated = parts.map((part) => translateDynamicMetadata(part));
+    if (translated.every(Boolean)) return translated.join(" · ");
+  }
+
+  const readingTime = source.match(/^(\d+)\s+min(?:\s+de\s+lectura|\s+read)?$/i);
+  if (readingTime) return `${readingTime[1]} min read`;
+
+  const date = source.match(/^(\d{1,2})\s+de\s+([a-záéíóúñ]+)\s+de\s+(\d{4})$/i);
+  if (date) {
+    const month = spanishMonths.get(date[2].toLowerCase());
+    if (month) return `${date[1]} ${month} ${date[3]}`;
+  }
+
+  return null;
+}
+
 function routeFile(route) {
   return path.join(dist, route.replace(/^\//, ""), "index.html");
 }
@@ -90,7 +125,7 @@ function translateTextNodes($, catalog, missing, skipSelectors = []) {
     const raw = $(node).text();
     const source = normalizedText(raw);
     if (!source || !/[A-Za-zÁÉÍÓÚÑáéíóúñ¿¡]/.test(source)) return;
-    const translation = catalog[source];
+    const translation = catalog[source] || translateDynamicMetadata(source);
     if (!translation) {
       missing.add(source);
       return;
