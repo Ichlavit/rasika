@@ -10,9 +10,9 @@ export GOMAXPROCS="${GOMAXPROCS:-2}"
 export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
 export ASTRO_TELEMETRY_DISABLED=1
 
-npm ci --no-audit --no-fund
+/bin/timeout -k 5s 45s npm ci --no-audit --no-fund
 node scripts/prepare-siteground-build.mjs
-npm run build
+/bin/timeout -k 5s 110s npm run build
 
 if [[ ! -f dist/blog/index.html || ! -f dist/sitemap.xml || ! -f dist/upload.php || ! -f dist/article-admin.php ]]; then
   printf 'Build output is incomplete\n'
