@@ -2566,6 +2566,11 @@ const seo = seoPages.admin;
             const saved = localStorage.getItem('rasika_blog_draft');
             if(saved) {
                 const draft = JSON.parse(saved);
+                const hasExplicitLocale = draft.editingLocale === 'es' || draft.editingLocale === 'en';
+                if (draft.editingId && !hasExplicitLocale) {
+                    localStorage.removeItem('rasika_blog_draft');
+                    return;
+                }
                 document.getElementById('post-type').value = draft.type || 'human';
                 document.getElementById('post-title').value = draft.title || '';
                 document.getElementById('post-author').value = draft.author || '';
