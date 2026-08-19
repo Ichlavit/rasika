@@ -93,6 +93,7 @@ const seo: SeoPage = {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <SEO {...seo} />
+    <link rel="stylesheet" href="/article-content.css">
     <script is:inline src="https://cdn.tailwindcss.com"></script>
     <script is:inline>
       tailwind.config = {
@@ -277,63 +278,6 @@ const seo: SeoPage = {
         justify-content: center;
       }
 
-      .article-content {
-        color: #d1d5db;
-        font-size: 18px;
-        line-height: 1.85;
-      }
-      .article-content > :first-child { margin-top: 0; }
-      .article-content p { margin: 0 0 1.55em; }
-      .article-content h2,
-      .article-content h3,
-      .article-content h4 {
-        margin: 2.15em 0 .75em;
-        color: #fff;
-        font-weight: 750;
-        line-height: 1.25;
-        letter-spacing: 0;
-      }
-      .article-content h2 { font-size: 31px; }
-      .article-content h3 { font-size: 23px; }
-      .article-content strong { color: #fff; font-weight: 700; }
-      .article-content a {
-        color: var(--accent-light);
-        text-decoration: underline;
-        text-decoration-thickness: 1px;
-        text-underline-offset: 4px;
-      }
-      .article-content ul,
-      .article-content ol { margin: 0 0 1.5em; padding-left: 1.5em; }
-      .article-content li { margin-bottom: .6em; }
-      .article-content blockquote {
-        margin: 2em 0;
-        padding: .25em 0 .25em 1.35em;
-        border-left: 4px solid var(--accent);
-        color: #cbd5e1;
-        font-style: italic;
-      }
-      .article-content img,
-      .article-content iframe {
-        display: block;
-        width: 100%;
-        height: auto;
-        margin: 2em 0;
-        border: 1px solid rgba(255,255,255,.1);
-        border-radius: 8px;
-      }
-      .article-content iframe { aspect-ratio: 16/9; }
-
-      .article-content .rasika-service-bridge {
-        margin: 2.25em 0;
-        padding: 24px;
-        border: 1px solid rgba(94,166,176,.32);
-        border-left: 4px solid var(--accent);
-        border-radius: 8px;
-        background: rgba(94,166,176,.08);
-      }
-      .article-content .rasika-service-bridge h3 { margin-top: 0; }
-      .article-content .rasika-service-bridge p:last-child { margin-bottom: 0; }
-
       .article-share {
         position: sticky;
         top: 112px;
@@ -491,7 +435,7 @@ const seo: SeoPage = {
 
         <div class="article-shell">
           <div>
-            <div class="article-content" set:html={post.content_html}></div>
+            <div class="article-content rasika-article-content" set:html={post.content_html}></div>
 
             <section class="article-mentor-cta" aria-labelledby="article-mentor-title">
               <span class="coursementor-avatar-static" role="img" aria-label="CourseMentor"></span>

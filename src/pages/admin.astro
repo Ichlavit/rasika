@@ -1635,6 +1635,20 @@ const seo = seoPages.admin;
                 .slice(0, 90);
         }
 
+        function normalizeArticleHtml(value) {
+            const template = document.createElement('template');
+            template.innerHTML = String(value || '');
+
+            template.content.querySelectorAll('.ql-cursor').forEach(node => node.remove());
+            template.content.querySelectorAll('p').forEach(paragraph => {
+                const visibleText = (paragraph.textContent || '').replace(/\u00a0/g, ' ').trim();
+                const hasMedia = Boolean(paragraph.querySelector('img, iframe, video, audio, embed'));
+                if (!visibleText && !hasMedia) paragraph.remove();
+            });
+
+            return template.innerHTML.trim();
+        }
+
         async function requestSeoPublication(articleId) {
             const token = sessionStorage.getItem('adminToken');
             const response = await fetch(`${SUPA_URL}/functions/v1/site-publish`, {
@@ -2531,7 +2545,7 @@ const seo = seoPages.admin;
         }
 
         window.openPreview = function() {
-            const htmlContent = quill.root.innerHTML;
+            const htmlContent = normalizeArticleHtml(quill.root.innerHTML);
             const title = document.getElementById('post-title').value || 'Sin Título';
             const author = document.getElementById('post-author').value || 'Autor';
             const cover = document.getElementById('post-cover').value;
@@ -2556,35 +2570,20 @@ const seo = seoPages.admin;
                     <link rel="preconnect" href="https://fonts.googleapis.com">
                     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+                    <link href="${window.location.origin}/article-content.css" rel="stylesheet">
                     <style>
                         body { background: #141619; color: #D1D5DB; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-weight: 400; line-height: 1.8; margin: 0; padding: 3rem 1.5rem; }
-                        .container { max-width: 800px; margin: 0 auto; }
-                        h1, h2, h3, h4, h5, h6 { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #fff; font-weight: 700; }
-                        h1 { font-size: 2.5rem; margin-bottom: 0.5rem; letter-spacing: -0.025em; }
-                        h2 { font-size: 1.75rem; margin-top: 2em; margin-bottom: 1em; letter-spacing: -0.025em; }
-                        h3 { font-size: 1.25rem; margin-top: 1.5em; margin-bottom: 0.75em; }
+                        .container { max-width: 760px; margin: 0 auto; }
+                        .preview-title { color: #fff; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 2.5rem; font-weight: 700; line-height: 1.2; margin: 0 0 0.5rem; letter-spacing: 0; }
                         .meta { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #9CA3AF; font-size: 0.9rem; margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-                        blockquote { border-left: 4px solid #5EA6B0; padding-left: 1.25rem; font-style: italic; color: #9CA3AF; margin: 2.5em 0; font-size: 1.1rem; }
-                        strong { color: #fff; font-weight: 600; }
-                        
-                        /* Previsualización idéntica al CMS Separando Videos de Imagenes */
-                        .content iframe { width: 100%; height: auto; aspect-ratio: 16/9; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); background-color: #0a0c0e; margin: 2rem 0; display: block; }
-                        .content img { width: 100%; height: auto; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.5); margin: 2rem 0; display: block; }
-                        
-                        .ql-align-left iframe, .ql-align-left img { width: 50%; margin: 2rem auto 2rem 0; }
-                        .ql-align-center iframe, .ql-align-center img { width: 75%; margin: 2rem auto; }
-                        .ql-align-right iframe, .ql-align-right img { width: 50%; margin: 2rem 0 2rem auto; }
-                        .ql-align-center { text-align: center; }
-                        .ql-align-right { text-align: right; }
-                        .ql-align-justify { text-align: justify; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
                         ${coverHtml}
-                        <h1>${title}</h1>
+                        <h1 class="preview-title">${title}</h1>
                         <div class="meta">Por ${author} • Modo Vista Previa</div>
-                        <div class="content">${processedHtml}</div>
+                        <div class="content rasika-article-content">${processedHtml}</div>
                     </div>
                 </body>
                 </html>
@@ -2613,7 +2612,7 @@ const seo = seoPages.admin;
             const category = document.getElementById('post-category').value;
             const excerptInput = document.getElementById('post-excerpt').value.trim();
             const cover = document.getElementById('post-cover').value;
-            const htmlContent = quill.root.innerHTML;
+            const htmlContent = normalizeArticleHtml(quill.root.innerHTML);
             const plainText = quill.getText().replace(/\s+/g, ' ').trim();
 
             if (!title.trim() || !author.trim() || !plainText) {

@@ -156,7 +156,7 @@ function buildArticleInstructions(
     `Extracto: ${capReferenceText(article.excerpt, 1600)}`,
     "",
     "TEXTO COMPLETO ALMACENADO:",
-    capReferenceText(article.content_html, 16_000),
+    capReferenceText(article.content_html, 30_000),
     "",
     "SERVICIOS RASIKA VINCULADOS POR EL EQUIPO EDITORIAL:",
     services,

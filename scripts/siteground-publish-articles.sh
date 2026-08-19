@@ -19,10 +19,13 @@ if [[ ! -f dist/blog/index.html || ! -f dist/sitemap.xml || ! -f dist/upload.php
 fi
 
 mkdir -p "$RASIKA_PUBLIC_ROOT/blog"
+mkdir -p "$RASIKA_PUBLIC_ROOT/en/blog"
 mkdir -p "$RASIKA_PUBLIC_ROOT/_astro"
 rsync -az --delete dist/blog/ "$RASIKA_PUBLIC_ROOT/blog/"
+rsync -az --delete dist/en/blog/ "$RASIKA_PUBLIC_ROOT/en/blog/"
 rsync -az dist/_astro/ "$RASIKA_PUBLIC_ROOT/_astro/"
 install -m 0644 dist/admin/index.html "$RASIKA_PUBLIC_ROOT/admin/index.html"
+install -m 0644 dist/article-content.css "$RASIKA_PUBLIC_ROOT/article-content.css"
 install -m 0644 dist/sitemap.xml "$RASIKA_PUBLIC_ROOT/sitemap.xml"
 install -m 0644 dist/robots.txt "$RASIKA_PUBLIC_ROOT/robots.txt"
 install -m 0644 dist/llms.txt "$RASIKA_PUBLIC_ROOT/llms.txt"
