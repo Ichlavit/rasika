@@ -28,3 +28,5 @@ if (source.includes(patched)) {
 } else {
   throw new Error("Astro font plugin changed; review the SiteGround build preparation step.");
 }
+
+process.exit(0);
