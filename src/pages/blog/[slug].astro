@@ -388,6 +388,12 @@ const seo: SeoPage = {
         .article-footer-inner { min-height: 150px; flex-direction: column; justify-content: center; text-align: center; }
       }
     </style>
+    <style is:inline>
+      /* Keep the article CTA stable even when an older extracted stylesheet is cached. */
+      .article-mentor-cta button { background: var(--accent) !important; }
+      .article-mentor-cta button:hover,
+      .article-mentor-cta button:focus-visible { background: var(--accent-light) !important; }
+    </style>
   </head>
   <body>
     <header class="article-nav">
