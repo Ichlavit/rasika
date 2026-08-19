@@ -6,9 +6,11 @@ if [[ -z "${RASIKA_PUBLIC_ROOT:-}" ]]; then
   exit 1
 fi
 
-export GOMAXPROCS="${GOMAXPROCS:-2}"
-export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-2}"
+export GOMAXPROCS="${GOMAXPROCS:-1}"
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-1}"
+export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=160}"
 export ASTRO_TELEMETRY_DISABLED=1
+export RASIKA_LOW_MEMORY_BUILD=1
 
 /bin/timeout -k 5s 45s npm ci --no-audit --no-fund
 node scripts/prepare-siteground-build.mjs
