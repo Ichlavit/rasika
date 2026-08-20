@@ -38,6 +38,52 @@ const localeScriptVersion = createHash("sha256")
   .update(fs.readFileSync(localeScriptPath))
   .digest("hex")
   .slice(0, 12);
+const optimizedArticleImages = Object.fromEntries([
+  "20260818-200839-d4d10a3375ef0246ea64",
+  "20260818-204023-3dbce32078b75970fe73",
+  "20260818-221154-bc5e8b503435ef2a8eeb",
+  "20260818-221325-5ed03b7591220603db6f",
+  "20260818-222000-85edf39d4e57d3d52f6f",
+  "20260818-222152-d8d7ada9ebb6073ece14",
+  "20260818-233031-a8adc2ad5ffd8728df96",
+  "20260819-003625-f1056209f96032671458",
+  "20260819-013238-57919e406c31ee4ddc5e",
+  "20260819-014707-3e265c288e632bf81bf8",
+].map((name) => [`/images/blog/${name}.png`, name]).concat([
+  ["/images/blog/press_start.gif", "legacy-press-start"],
+  ["/images/blog/vr_set.png", "legacy-vr-set"],
+  ["/images/blog/tech_learning.jpg", "legacy-tech-learning"],
+  ["/images/general/1778101836_skinner_box.jpg", "legacy-skinner-box"],
+  ["/images/general/1778101774_interactive_hamburger.gif", "legacy-interactive-hamburger"],
+  ["/images/general/1778099519_lego_pieces.png", "legacy-lego-pieces"],
+  ["/images/general/1778099286_jean_piaget.jpg", "legacy-jean-piaget"],
+  ["/images/general/1778098759_graphics-transformational_short.png", "legacy-graphics-transformational"],
+  ["/images/general/1778098706_kidney-bean-plant-timelapse.gif", "legacy-kidney-bean"],
+  ["/images/general/1778098802_dual_coding_brain.jpg", "legacy-dual-coding"],
+  ["/images/general/1778098841_two_brains.jpg", "legacy-two-brains"],
+  ["/images/general/1778099728_starbucks_loyalty_app.png", "legacy-starbucks-loyalty"],
+]));
+
+function optimizeArticleContentImages(contentHtml) {
+  const $ = load(String(contentHtml || ""), null, false);
+  $("img").each((_, image) => {
+    const element = $(image);
+    const source = element.attr("src") || "";
+    const pathname = new URL(source, siteOrigin).pathname;
+    const imageName = optimizedArticleImages[pathname];
+    if (!imageName) return;
+    const root = `/images/blog/optimized/${imageName}`;
+    element
+      .attr("src", `${root}-1280.webp`)
+      .attr("srcset", `${root}-768.webp 768w, ${root}-1280.webp 1280w`)
+      .attr("sizes", "(max-width: 640px) calc(100vw - 3rem), 768px")
+      .attr("width", "1280")
+      .attr("height", "715")
+      .attr("loading", "lazy")
+      .attr("decoding", "async");
+  });
+  return $.html();
+}
 
 function readJson(filePath, fallback) {
   if (!fs.existsSync(filePath)) return fallback;
@@ -289,7 +335,7 @@ function localizeArticle($, translation, englishRoute) {
   $("meta[property='og:title'],meta[name='twitter:title']").attr("content", translation.title);
   $(".article-hero h1, #reader-title").text(translation.title);
   $(".article-excerpt").text(translation.excerpt);
-  $(".article-content").html(translation.content_html);
+  $(".article-content").html(optimizeArticleContentImages(translation.content_html));
   $("a[href^='https://www.linkedin.com/shareArticle']")
     .attr("href", `https://www.linkedin.com/shareArticle?mini=true&url=${encodedUrl}&title=${encodedTitle}`);
   $("a[href^='https://twitter.com/intent/tweet']")

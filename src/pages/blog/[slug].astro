@@ -9,6 +9,7 @@ import {
   getPublishedBlogPosts,
   type PublishedBlogPost,
 } from "../../lib/blog";
+import { articleImageVariants, optimizeArticleContentImages, socialArticleImageSource } from "../../lib/article-images";
 import { SITE, absoluteUrl, type SeoPage } from "../../data/seo";
 
 export async function getStaticPaths() {
@@ -19,7 +20,11 @@ export async function getStaticPaths() {
 const { post } = Astro.props as { post: PublishedBlogPost };
 const path = articlePath(post.slug);
 const articleUrl = absoluteUrl(path);
-const imageUrl = absoluteUrl(post.cover_image || SITE.defaultImage);
+const socialImage = socialArticleImageSource(post.cover_image || SITE.defaultImage);
+const imageUrl = absoluteUrl(socialImage);
+const coverImage = articleImageVariants(post.cover_image);
+const coverBackgroundImage = coverImage?.desktop || post.cover_image || SITE.defaultImage;
+const articleContent = optimizeArticleContentImages(post.content_html);
 const isRadar = post.type === "agent";
 const publishedDate = new Date(post.published_at);
 const modifiedDate = new Date(post.updated_at || post.published_at);
@@ -51,7 +56,7 @@ const seo: SeoPage = {
   title: `${post.title} | Rasika Insights`,
   description: post.excerpt,
   path,
-  image: post.cover_image || SITE.defaultImage,
+  image: socialImage,
   type: "article",
   topic: articleTypeLabel,
   keywords: [articleTypeLabel, "EdTech", "aprendizaje digital", ...(isRadar ? ["IA educativa", "tendencias EdTech"] : [])],
@@ -92,7 +97,7 @@ const seo: SeoPage = {
   </head>
   <body>
     <main id="reader-modal" class="fixed inset-0 z-[200] flex items-center justify-center" aria-label="Artículo">
-      <button class="reader-backdrop fixed inset-0 min-h-[100dvh] w-screen border-0" style={`background-image: linear-gradient(rgba(10, 12, 14, .84), rgba(10, 12, 14, .96)), url("${post.cover_image || SITE.defaultImage}")`} type="button" aria-label="Volver al Blog" onclick="closeSharedReader()"></button>
+      <button class="reader-backdrop fixed inset-0 min-h-[100dvh] w-screen border-0" style={`background-image: linear-gradient(rgba(10, 12, 14, .84), rgba(10, 12, 14, .96)), url("${coverBackgroundImage}")`} type="button" aria-label="Volver al Blog" onclick="closeSharedReader()"></button>
       <article id="reader-container" class="relative z-10 flex h-[100dvh] w-full max-w-5xl flex-col overflow-hidden bg-[#141619] shadow-2xl ring-1 ring-white/10 md:h-[90vh] md:rounded-[2rem]">
         <header class="relative z-20 flex shrink-0 items-center justify-between border-b border-white/5 bg-[#1E2226] p-4 md:px-8 md:py-5">
           <div class="flex min-w-0 flex-col gap-0.5" id="reader-category">
@@ -103,14 +108,22 @@ const seo: SeoPage = {
         </header>
 
         <div class="no-scrollbar relative flex-1 overflow-y-auto scroll-smooth" id="reader-scroll-area">
-          <div id="reader-hero-bg" class="relative h-48 w-full transition-all duration-500 md:h-[24rem]" style={`background-image: linear-gradient(rgba(10, 12, 14, .1), rgba(10, 12, 14, .1)), url("${post.cover_image || SITE.defaultImage}")`}><div class="reader-hero-scrim"></div><div class="reader-hero-fade"></div></div>
+          <div id="reader-hero-bg" class="relative h-48 w-full overflow-hidden transition-all duration-500 md:h-[24rem]">
+            {coverImage ? (
+              <picture>
+                <source media="(max-width: 640px)" srcset={coverImage.mobile} />
+                <img src={coverImage.desktop} alt="" width="1280" height="715" fetchpriority="high" decoding="async" class="absolute inset-0 h-full w-full object-cover" />
+              </picture>
+            ) : null}
+            <div class="reader-hero-scrim"></div><div class="reader-hero-fade"></div>
+          </div>
           <div class="relative z-10 mx-auto max-w-3xl px-6 py-12 md:py-16">
             <h1 id="reader-title" class="mb-8 font-sans text-3xl font-extrabold leading-tight tracking-tight text-white md:text-5xl">{post.title}</h1>
             <div class="mb-10 flex items-center gap-4 border-b border-white/10 pb-8">
               <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[#1E2226]"><i data-lucide={isRadar ? "radar" : "user"} class:list={["h-6 w-6", isRadar ? "text-rasika-accent" : "text-gray-400"]}></i></div>
               <div><div class="text-base font-bold text-white">{post.author}</div><div class="mt-1 text-sm text-gray-500">{displayDate} · {post.read_time || "5 min de lectura"}</div></div>
             </div>
-            <div id="reader-body" class="article-content rasika-article-content text-left" set:html={post.content_html}></div>
+            <div id="reader-body" class="article-content rasika-article-content text-left" set:html={articleContent}></div>
 
             <section class="mt-16 flex flex-col border-t border-white/10 pt-6" aria-label="Compartir artículo">
               <div class="flex items-center gap-4 py-4">
