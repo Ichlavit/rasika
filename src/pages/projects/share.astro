@@ -59,6 +59,7 @@ const seo = {
       .share-label span { display:block; margin-top:3px; color:var(--share-muted); font-size:9px; }
       .share-axis { position:relative; background:#131619; }
       .share-today-marker { position:absolute; top:0; bottom:0; width:2px; transform:translateX(-1px); background:var(--share-accent); box-shadow:0 0 8px rgba(114,190,199,.5); pointer-events:none; z-index:3; }
+      .share-today-marker.is-header::after { content:attr(data-today-label); position:absolute; top:5px; left:50%; transform:translateX(-50%); border-radius:999px; padding:3px 7px; color:#071012; background:var(--share-accent); box-shadow:0 2px 8px rgba(0,0,0,.28); font-size:8px; font-weight:900; line-height:1; white-space:nowrap; }
       .share-header { min-height:36px; background:#111416; }
       .share-header .share-label { color:var(--share-muted); font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
       .share-axis-labels { height:100%; display:grid; grid-template-columns:repeat(6,1fr); align-items:center; padding:0 8px; color:var(--share-muted); font-size:9px; }
@@ -135,8 +136,12 @@ const seo = {
         const today = new Date();
         today.setHours(12, 0, 0, 0);
         const todayPosition = ((today.getTime() - bounds.start.getTime()) / bounds.span) * 100;
+        const todayLabel = `Hoy · ${new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short' }).format(today)}`;
         const todayMarker = todayPosition >= 0 && todayPosition <= 100
           ? `<span class="share-today-marker" style="left:${todayPosition}%" role="img" aria-label="Hoy"></span>`
+          : '';
+        const todayMarkerHeader = todayPosition >= 0 && todayPosition <= 100
+          ? `<span class="share-today-marker is-header" style="left:${todayPosition}%" data-today-label="${escapeHTML(todayLabel)}" role="img" aria-label="${escapeHTML(todayLabel)}"></span>`
           : '';
         const departmentOrder = new Map(departments.map((department, index) => [department.id, Number(department.sort_order ?? index)]));
         const rows = [...grouped.entries()].sort(([left],[right]) => (departmentOrder.get(left) ?? 9999) - (departmentOrder.get(right) ?? 9999)).flatMap(([departmentId, departmentTasks]) => {
@@ -155,7 +160,7 @@ const seo = {
           return [header, ...taskRows];
         }).join('');
         const expiry = data.share?.expires_at ? `Enlace vigente hasta ${formatDate(String(data.share.expires_at).slice(0,10))}` : 'Enlace compartido vigente';
-        document.getElementById('share-content').innerHTML = `<section class="share-project"><div><span class="share-eyebrow">${escapeHTML(project.project_code)}</span><h1>${escapeHTML(project.name)}</h1><div class="share-meta"><span>${escapeHTML(project.client_name)}</span><span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span></div></div><span class="share-status">${escapeHTML(projectStatus(project.status))}</span></section><div class="share-notice"><span>◉</span><div><strong>Vista compartida de solo lectura.</strong> Este cronograma muestra únicamente actividades autorizadas para clientes. Los cambios se realizan desde Rasika Project Control.</div></div><section class="share-card"><div class="share-card-head"><strong>Cronograma por departamento</strong><span>${escapeHTML(formatDate(bounds.start.toISOString().slice(0,10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0,10)))}</span></div><div class="share-scroll"><div class="share-gantt"><div class="share-row share-header"><div class="share-label">Actividad</div><div class="share-axis">${todayMarker}<div class="share-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>${rows || '<div class="share-error"><div><strong>Sin actividades visibles</strong><p>El equipo todavía no ha habilitado actividades para esta vista.</p></div></div>'}</div></div></section><footer class="share-footer"><span>${escapeHTML(expiry)}</span><span>Compartido mediante <a href="https://www.rasika.cl/" target="_blank" rel="noopener">Rasika</a></span></footer>`;
+        document.getElementById('share-content').innerHTML = `<section class="share-project"><div><span class="share-eyebrow">${escapeHTML(project.project_code)}</span><h1>${escapeHTML(project.name)}</h1><div class="share-meta"><span>${escapeHTML(project.client_name)}</span><span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span></div></div><span class="share-status">${escapeHTML(projectStatus(project.status))}</span></section><div class="share-notice"><span>◉</span><div><strong>Vista compartida de solo lectura.</strong> Este cronograma muestra únicamente actividades autorizadas para clientes. Los cambios se realizan desde Rasika Project Control.</div></div><section class="share-card"><div class="share-card-head"><strong>Cronograma por departamento</strong><span>${escapeHTML(formatDate(bounds.start.toISOString().slice(0,10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0,10)))}</span></div><div class="share-scroll"><div class="share-gantt"><div class="share-row share-header"><div class="share-label">Actividad</div><div class="share-axis">${todayMarkerHeader}<div class="share-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>${rows || '<div class="share-error"><div><strong>Sin actividades visibles</strong><p>El equipo todavía no ha habilitado actividades para esta vista.</p></div></div>'}</div></div></section><footer class="share-footer"><span>${escapeHTML(expiry)}</span><span>Compartido mediante <a href="https://www.rasika.cl/" target="_blank" rel="noopener">Rasika</a></span></footer>`;
       }
 
       let sharedRequestInFlight = false;
