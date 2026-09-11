@@ -729,6 +729,8 @@ const seo = {
         taskDeleteArmed: false,
         selectedTimelineTaskIds: new Set(),
         timelineDrag: null,
+        timelineZoom: 1,
+        timelineBaseWidth: null,
       };
 
       function escapeHTML(value) {
@@ -1148,15 +1150,18 @@ const seo = {
 
       function updateTimelineDragOffset(offset) {
         const selected = state.timelineDrag?.taskIds || [];
-        document.querySelectorAll('[data-draggable-task-id]').forEach((bar) => {
-          if (!selected.includes(bar.dataset.draggableTaskId)) return;
+        document.querySelectorAll('[data-draggable-task-id], [data-department-drag-id]').forEach((bar) => {
+          const taskId = bar.dataset.draggableTaskId;
+          const departmentId = bar.dataset.departmentDragId;
+          if (taskId && !selected.includes(taskId)) return;
+          if (departmentId && departmentId !== state.timelineDrag?.departmentId) return;
           bar.style.setProperty('--pm-drag-offset', `${offset}px`);
           bar.classList.add('is-dragging');
         });
       }
 
       function resetTimelineDragOffset() {
-        document.querySelectorAll('[data-draggable-task-id]').forEach((bar) => {
+        document.querySelectorAll('[data-draggable-task-id], [data-department-drag-id]').forEach((bar) => {
           bar.style.removeProperty('--pm-drag-offset');
           bar.classList.remove('is-dragging');
         });
@@ -1240,6 +1245,55 @@ const seo = {
         });
       }
 
+      function bindDepartmentTimelineDrag(bar, departmentId, bounds) {
+        bar.addEventListener('pointerdown', (event) => {
+          if (event.button !== 0) return;
+          const taskIds = (state.detail?.tasks || []).filter((task) => task.department_id === departmentId && !isMeetingTask(task)).map((task) => task.id);
+          if (!taskIds.length) return;
+          const axisRect = bar.closest('.pm-timeline-axis')?.getBoundingClientRect();
+          if (!axisRect?.width) return;
+          setTimelineSelection(taskIds);
+          state.timelineDrag = { taskIds, departmentId, startX: event.clientX, axisWidth: axisRect.width, span: bounds.span, moved: false };
+          bar.setPointerCapture(event.pointerId);
+          event.preventDefault();
+        });
+        bar.addEventListener('pointermove', (event) => {
+          const drag = state.timelineDrag;
+          if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
+          const offset = event.clientX - drag.startX;
+          if (Math.abs(offset) > 3) drag.moved = true;
+          updateTimelineDragOffset(offset);
+        });
+        bar.addEventListener('pointerup', async (event) => {
+          const drag = state.timelineDrag;
+          if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
+          bar.releasePointerCapture(event.pointerId);
+          state.timelineDrag = null;
+          const days = Math.round(((event.clientX - drag.startX) / drag.axisWidth) * (drag.span / 86400000));
+          resetTimelineDragOffset();
+          if (drag.moved && days) await persistTimelineShift(drag.taskIds, days);
+        });
+        bar.addEventListener('pointercancel', () => {
+          state.timelineDrag = null;
+          resetTimelineDragOffset();
+        });
+      }
+
+      function bindTimelineZoom(scroll) {
+        scroll.addEventListener('wheel', (event) => {
+          if (!event.altKey || !event.metaKey || !event.deltaY) return;
+          event.preventDefault();
+          const nextZoom = Math.max(1, Math.min(3, state.timelineZoom * Math.exp(-event.deltaY * 0.0015)));
+          if (Math.abs(nextZoom - state.timelineZoom) < 0.005) return;
+          const pointerOffset = event.clientX - scroll.getBoundingClientRect().left;
+          const focusRatio = (scroll.scrollLeft + pointerOffset) / Math.max(1, scroll.scrollWidth);
+          state.timelineZoom = nextZoom;
+          renderTimeline();
+          const refreshedScroll = document.querySelector('#timeline-panel .pm-timeline-scroll');
+          if (refreshedScroll) refreshedScroll.scrollLeft = Math.max(0, focusRatio * refreshedScroll.scrollWidth - pointerOffset);
+        }, { passive: false });
+      }
+
       function timelineBounds(tasks) {
         const values = tasks.flatMap((task) => [taskTimelineStart(task), taskTimelineEnd(task)]).filter(Boolean).map((value) => new Date(`${value}T12:00:00`).getTime());
         const today = new Date();
@@ -1315,7 +1369,7 @@ const seo = {
                   <span class="pm-department-count">${departmentTasks.length}</span>
                 </button>
               </div>
-              <div class="pm-timeline-axis">${todayMarker}${collapsed ? `<button class="pm-task-bar pm-department-summary" type="button" data-department-toggle="${escapeHTML(departmentId)}" style="left:${groupGeometry.left}%;width:${groupGeometry.width}%;--department-color:${color}" aria-label="Expandir ${escapeHTML(department.name)}">${escapeHTML(department.name)}</button>` : ''}</div>
+              <div class="pm-timeline-axis">${todayMarker}<button class="pm-task-bar pm-department-summary is-draggable" type="button" data-department-drag-id="${escapeHTML(departmentId)}" style="left:${groupGeometry.left}%;width:${groupGeometry.width}%;--department-color:${color}" aria-label="Mover tareas de ${escapeHTML(department.name)}" title="Arrastra para mover las tareas del departamento">${escapeHTML(department.name)}</button></div>
             </div>`);
           if (collapsed) return;
           departmentTasks.forEach((task) => {
@@ -1339,11 +1393,13 @@ const seo = {
           });
         });
         panel.innerHTML = `
-          <div class="pm-timeline-toolbar"><strong>Plan por departamento</strong><span>${state.selectedTimelineTaskIds.size ? `${state.selectedTimelineTaskIds.size} seleccionada${state.selectedTimelineTaskIds.size === 1 ? '' : 's'} · ` : ''}Arrastra para reprogramar · ⌘/Ctrl + clic para selección múltiple</span></div>
-          <div class="pm-timeline-scroll"><div class="pm-timeline">
+          <div class="pm-timeline-toolbar"><strong>Plan por departamento</strong><span>${state.selectedTimelineTaskIds.size ? `${state.selectedTimelineTaskIds.size} seleccionada${state.selectedTimelineTaskIds.size === 1 ? '' : 's'} · ` : ''}Zoom ${Math.round(state.timelineZoom * 100)}% · ⌥⌘ + scroll · Arrastra una actividad o barra de departamento</span></div>
+          <div class="pm-timeline-scroll"><div class="pm-timeline" style="min-width:${Math.round((state.timelineBaseWidth || 820) * state.timelineZoom)}px">
             <div class="pm-timeline-row pm-timeline-header"><div class="pm-timeline-label">Actividad / dedicación</div><div class="pm-timeline-axis">${todayMarkerHeader}<div class="pm-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>
             ${rows.join('')}
           </div></div>`;
+        const timelineScroll = panel.querySelector('.pm-timeline-scroll');
+        if (!state.timelineBaseWidth && timelineScroll?.clientWidth) state.timelineBaseWidth = Math.max(820, timelineScroll.clientWidth);
         panel.querySelectorAll('[data-department-toggle]').forEach((button) => {
           button.addEventListener('click', () => {
             const departmentId = button.dataset.departmentToggle;
@@ -1352,7 +1408,9 @@ const seo = {
             renderTimeline();
           });
         });
+        panel.querySelectorAll('[data-department-drag-id]').forEach((button) => bindDepartmentTimelineDrag(button, button.dataset.departmentDragId, bounds));
         panel.querySelectorAll('[data-draggable-task-id]').forEach((button) => bindTimelineDrag(button, bounds));
+        bindTimelineZoom(timelineScroll);
         panel.querySelectorAll('[data-task-id]:not([data-draggable-task-id])').forEach((button) => {
           button.addEventListener('click', () => openTaskModal(button.dataset.taskId));
         });
