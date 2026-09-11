@@ -1180,8 +1180,7 @@ const seo = {
         const selectedTasks = (state.detail?.tasks || []).filter((task) => taskIds.includes(task.id) && !isMeetingTask(task));
         if (!selectedTasks.length || !days || !state.selectedProjectId) return;
         setSyncStatus(selectedTasks.length > 1 ? 'Moviendo actividades…' : 'Moviendo actividad…');
-        try {
-          const results = await Promise.all(selectedTasks.map((task) => projectRequest('', {
+        const results = await Promise.allSettled(selectedTasks.map((task) => projectRequest('', {
             method: 'POST',
             body: JSON.stringify({
               action: 'update_task',
@@ -1191,13 +1190,22 @@ const seo = {
               task: timelineScheduleUpdate(task, days),
             }),
           })));
-          results.forEach((result) => replaceTaskState(result.task));
+        const saved = results
+          .filter((result) => result.status === 'fulfilled')
+          .map((result) => result.value);
+        const failed = results.filter((result) => result.status === 'rejected');
+        if (saved.length) {
+          saved.forEach((result) => replaceTaskState(result.task));
           renderWorkspace();
-          setSyncStatus(selectedTasks.length > 1 ? 'Actividades reprogramadas' : 'Actividad reprogramada', true);
-        } catch (error) {
-          resetTimelineDragOffset();
-          setSyncStatus(error.message || 'No se pudo reprogramar');
         }
+        if (failed.length) {
+          // Refresh after a partial write so the visual schedule can never fall back to stale client data.
+          await selectProject(state.selectedProjectId);
+          const reason = failed[0].reason instanceof Error ? failed[0].reason.message : 'No se pudo reprogramar';
+          setSyncStatus(saved.length ? `${saved.length} actividades reprogramadas; revisa las restantes` : reason);
+          return;
+        }
+        setSyncStatus(selectedTasks.length > 1 ? 'Actividades reprogramadas' : 'Actividad reprogramada', true);
       }
 
       function bindTimelineDrag(bar, bounds) {
@@ -1386,7 +1394,10 @@ const seo = {
           const department = departmentMap.get(departmentId) || { name: 'Sin departamento', color: '#8f999f' };
           const color = safeDepartmentColor(department.color);
           const collapsed = state.collapsedDepartments.has(departmentId);
-          const datedTasks = departmentTasks.filter((task) => taskTimelineStart(task) || taskTimelineEnd(task));
+          // Calendar meetings retain their own schedule. The department bar is the movable work span,
+          // so it must follow exactly the same records that a department drag can move.
+          const movableDepartmentTasks = departmentTasks.filter((task) => !isMeetingTask(task));
+          const datedTasks = movableDepartmentTasks.filter((task) => taskTimelineStart(task) || taskTimelineEnd(task));
           const groupStart = datedTasks.map((task) => taskTimelineStart(task) || taskTimelineEnd(task)).sort()[0];
           const groupEnd = datedTasks.map((task) => taskTimelineEnd(task) || taskTimelineStart(task)).sort().at(-1);
           const groupGeometry = geometry(groupStart, groupEnd);
@@ -1400,7 +1411,7 @@ const seo = {
                   <span class="pm-department-count">${departmentTasks.length}</span>
                 </button>
               </div>
-              <div class="pm-timeline-axis">${axisGrid}${todayMarker}<button class="pm-task-bar pm-department-summary is-draggable" type="button" data-department-drag-id="${escapeHTML(departmentId)}" style="left:${groupGeometry.left}%;width:${groupGeometry.width}%;--department-color:${color}" aria-label="Mover tareas de ${escapeHTML(department.name)}" title="Arrastra para mover las tareas del departamento">${escapeHTML(department.name)}</button></div>
+              <div class="pm-timeline-axis">${axisGrid}${todayMarker}<button class="pm-task-bar pm-department-summary ${movableDepartmentTasks.length ? 'is-draggable' : ''}" type="button" ${movableDepartmentTasks.length ? `data-department-drag-id="${escapeHTML(departmentId)}"` : 'disabled'} style="left:${groupGeometry.left}%;width:${groupGeometry.width}%;--department-color:${color}" aria-label="${movableDepartmentTasks.length ? 'Mover tareas de' : 'Sin tareas movibles en'} ${escapeHTML(department.name)}" title="${movableDepartmentTasks.length ? 'Arrastra para mover las tareas del departamento. Las reuniones de Calendar se mantienen en su fecha.' : 'Este departamento solo tiene reuniones de Calendar.'}">${escapeHTML(department.name)}</button></div>
             </div>`);
           if (collapsed) return;
           departmentTasks.forEach((task) => {
