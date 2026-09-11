@@ -1212,22 +1212,54 @@ const seo = {
         setSyncStatus(selectedTasks.length > 1 ? 'Actividades reprogramadas' : 'Actividad reprogramada', true);
       }
 
+      function timelineDragState(bar, event, bounds, departmentId = null) {
+        const axisRect = bar.closest('.pm-timeline-axis')?.getBoundingClientRect();
+        if (!axisRect?.width) return null;
+        const slotCount = bounds.workdays.length;
+        const barRect = bar.getBoundingClientRect();
+        const startSlot = Math.round((Number.parseFloat(bar.style.left || '0') / 100) * slotCount);
+        return {
+          departmentId,
+          startX: event.clientX,
+          axisWidth: axisRect.width,
+          slotCount,
+          startSlot,
+          // Keep the point grabbed inside the bar fixed while calculating the destination slot.
+          grabOffset: Math.max(0, Math.min(barRect.width, event.clientX - barRect.left)),
+          moved: false,
+        };
+      }
+
+      function timelineDropDays(bar, event, drag) {
+        const axisRect = bar.closest('.pm-timeline-axis')?.getBoundingClientRect();
+        if (!axisRect?.width || !drag.slotCount) return 0;
+        const slotWidth = axisRect.width / drag.slotCount;
+        const rawSlot = Math.round((event.clientX - axisRect.left - drag.grabOffset) / slotWidth);
+        const targetSlot = Math.max(0, Math.min(drag.slotCount - 1, rawSlot));
+        return targetSlot - drag.startSlot;
+      }
+
+      function timelinePreviewOffset(bar, event, drag) {
+        const days = timelineDropDays(bar, event, drag);
+        return days * (drag.axisWidth / drag.slotCount);
+      }
+
       function bindTimelineDrag(bar, bounds) {
         bar.addEventListener('pointerdown', (event) => {
           if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
           const taskId = bar.dataset.draggableTaskId;
           if (!state.selectedTimelineTaskIds.has(taskId)) setTimelineSelection([taskId]);
-          const axisRect = bar.closest('.pm-timeline-axis')?.getBoundingClientRect();
-          if (!axisRect?.width) return;
-          state.timelineDrag = { taskIds: [...state.selectedTimelineTaskIds], startX: event.clientX, axisWidth: axisRect.width, slotCount: bounds.workdays.length, moved: false };
+          const drag = timelineDragState(bar, event, bounds);
+          if (!drag) return;
+          state.timelineDrag = { ...drag, taskIds: [...state.selectedTimelineTaskIds] };
           bar.setPointerCapture(event.pointerId);
           event.preventDefault();
         });
         bar.addEventListener('pointermove', (event) => {
           const drag = state.timelineDrag;
           if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
-          const offset = event.clientX - drag.startX;
-          if (Math.abs(offset) > 3) drag.moved = true;
+          const offset = timelinePreviewOffset(bar, event, drag);
+          if (offset) drag.moved = true;
           updateTimelineDragOffset(offset);
         });
         bar.addEventListener('pointerup', async (event) => {
@@ -1235,8 +1267,7 @@ const seo = {
           if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
           bar.releasePointerCapture(event.pointerId);
           state.timelineDrag = null;
-          const offset = event.clientX - drag.startX;
-          const days = Math.round((offset / drag.axisWidth) * drag.slotCount);
+          const days = timelineDropDays(bar, event, drag);
           resetTimelineDragOffset();
           if (drag.moved && days) {
             bar.dataset.dragged = 'true';
@@ -1271,18 +1302,18 @@ const seo = {
           if (event.button !== 0) return;
           const taskIds = (state.detail?.tasks || []).filter((task) => task.department_id === departmentId && !isMeetingTask(task)).map((task) => task.id);
           if (!taskIds.length) return;
-          const axisRect = bar.closest('.pm-timeline-axis')?.getBoundingClientRect();
-          if (!axisRect?.width) return;
+          const drag = timelineDragState(bar, event, bounds, departmentId);
+          if (!drag) return;
           setTimelineSelection(taskIds);
-          state.timelineDrag = { taskIds, departmentId, startX: event.clientX, axisWidth: axisRect.width, slotCount: bounds.workdays.length, moved: false };
+          state.timelineDrag = { ...drag, taskIds };
           bar.setPointerCapture(event.pointerId);
           event.preventDefault();
         });
         bar.addEventListener('pointermove', (event) => {
           const drag = state.timelineDrag;
           if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
-          const offset = event.clientX - drag.startX;
-          if (Math.abs(offset) > 3) drag.moved = true;
+          const offset = timelinePreviewOffset(bar, event, drag);
+          if (offset) drag.moved = true;
           updateTimelineDragOffset(offset);
         });
         bar.addEventListener('pointerup', async (event) => {
@@ -1290,7 +1321,7 @@ const seo = {
           if (!drag || !bar.hasPointerCapture(event.pointerId)) return;
           bar.releasePointerCapture(event.pointerId);
           state.timelineDrag = null;
-          const days = Math.round(((event.clientX - drag.startX) / drag.axisWidth) * drag.slotCount);
+          const days = timelineDropDays(bar, event, drag);
           resetTimelineDragOffset();
           if (drag.moved && days) await persistTimelineShift(drag.taskIds, days);
         });
