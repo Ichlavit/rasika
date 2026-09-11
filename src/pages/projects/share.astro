@@ -57,13 +57,16 @@ const seo = {
       .share-label { min-width:0; padding:10px 15px; border-right:1px solid var(--share-line); }
       .share-label strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
       .share-label span { display:block; margin-top:3px; color:var(--share-muted); font-size:9px; }
-      .share-axis { position:relative; background:#131619; }
+      .share-axis { position:relative; overflow:hidden; background:#131619; }
+      .share-axis-grid { position:absolute; inset:0; display:grid; pointer-events:none; z-index:0; }
+      .share-axis-grid span { border-left:1px solid rgba(255,255,255,.055); }
+      .share-axis-grid span:last-child { border-right:1px solid rgba(255,255,255,.055); }
       .share-today-marker { position:absolute; top:0; bottom:0; width:2px; transform:translateX(-1px); background:var(--share-accent); box-shadow:0 0 8px rgba(114,190,199,.5); pointer-events:none; z-index:3; }
       .share-today-marker.is-header::after { content:attr(data-today-label); position:absolute; top:5px; left:50%; transform:translateX(-50%); border-radius:999px; padding:3px 7px; color:#071012; background:var(--share-accent); box-shadow:0 2px 8px rgba(0,0,0,.28); font-size:8px; font-weight:900; line-height:1; white-space:nowrap; }
       .share-header { min-height:36px; background:#111416; }
       .share-header .share-label { color:var(--share-muted); font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
-      .share-axis-labels { height:100%; display:grid; grid-template-columns:repeat(6,1fr); align-items:center; padding:0 8px; color:var(--share-muted); font-size:9px; }
-      .share-axis-labels span:last-child { text-align:right; }
+      .share-axis-labels { position:relative; z-index:4; height:100%; display:grid; align-items:center; padding:0; color:var(--share-muted); font-size:9px; }
+      .share-axis-labels span { padding-left:7px; white-space:nowrap; }
       .share-department { min-height:35px; background:#181b1e; }
       .share-department .share-label { display:flex; align-items:center; gap:8px; padding-block:8px; }
       .share-dot { width:7px; height:7px; flex:0 0 auto; border-radius:50%; }
@@ -112,9 +115,12 @@ const seo = {
         const now = new Date(); now.setHours(12,0,0,0);
         const minimum = values.length ? Math.min(...values) : now.getTime();
         const maximum = values.length ? Math.max(...values) : now.getTime() + 14 * 86400000;
-        const start = new Date(minimum - 2 * 86400000);
-        const end = new Date(Math.max(maximum + 2 * 86400000, start.getTime() + 14 * 86400000));
-        return { start, end, span: Math.max(1, end.getTime() - start.getTime()) };
+        const start = new Date(minimum); start.setHours(12,0,0,0); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+        const end = new Date(Math.max(maximum, start.getTime() + 14 * 86400000)); end.setHours(12,0,0,0); end.setDate(end.getDate() + ((5 - end.getDay() + 7) % 7));
+        const workdays = [];
+        const cursor = new Date(start);
+        while (cursor <= end) { if (cursor.getDay() !== 0 && cursor.getDay() !== 6) workdays.push(cursor.toISOString().slice(0,10)); cursor.setDate(cursor.getDate() + 1); }
+        return { start, end, workdays, dateIndex:new Map(workdays.map((value,index) => [value,index])) };
       }
 
       function renderSharedProject(data) {
@@ -125,29 +131,38 @@ const seo = {
         const grouped = new Map();
         tasks.forEach((task) => { const key = task.department_id || 'unassigned'; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(task); });
         const bounds = timelineBounds(tasks);
+        const workdayIndex = (value, end = false) => {
+          if (!value) return end ? bounds.workdays.length - 1 : 0;
+          const date = new Date(`${value}T12:00:00`);
+          while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + (end ? -1 : 1));
+          const index = bounds.dateIndex.get(date.toISOString().slice(0,10));
+          return Math.max(0, Math.min(bounds.workdays.length - 1, index ?? (end ? bounds.workdays.length - 1 : 0)));
+        };
         const geometry = (startValue, endValue) => {
-          const start = startValue ? new Date(`${startValue}T12:00:00`).getTime() : bounds.start.getTime();
-          const end = endValue ? new Date(`${endValue}T12:00:00`).getTime() : start + 86400000;
-          const left = Math.max(0, Math.min(98, ((start - bounds.start.getTime()) / bounds.span) * 100));
-          const width = Math.max(1.5, Math.min(100 - left, ((end - start + 86400000) / bounds.span) * 100));
+          const start = workdayIndex(startValue);
+          const end = Math.max(start, workdayIndex(endValue || startValue, true));
+          const left = (start / bounds.workdays.length) * 100;
+          const width = Math.max(1.5, Math.min(100 - left, ((end - start + 1) / bounds.workdays.length) * 100));
           return { left, width };
         };
-        const axisLabels = Array.from({ length:6 }, (_, index) => new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short' }).format(new Date(bounds.start.getTime() + bounds.span * (index / 5))));
+        const axisLabels = bounds.workdays.map((value) => { const date = new Date(`${value}T12:00:00`); return date.getDay() === 1 ? new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short' }).format(date) : ''; });
+        const axisGrid = `<div class="share-axis-grid" style="grid-template-columns:repeat(${bounds.workdays.length},minmax(0,1fr))">${bounds.workdays.map(() => '<span></span>').join('')}</div>`;
         const today = new Date();
         today.setHours(12, 0, 0, 0);
-        const todayPosition = ((today.getTime() - bounds.start.getTime()) / bounds.span) * 100;
+        const todayIndex = bounds.dateIndex.get(today.toISOString().slice(0,10));
+        const todayPosition = todayIndex === undefined ? null : (todayIndex / bounds.workdays.length) * 100;
         const todayLabel = `Hoy · ${new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short' }).format(today)}`;
-        const todayMarker = todayPosition >= 0 && todayPosition <= 100
+        const todayMarker = todayPosition !== null
           ? `<span class="share-today-marker" style="left:${todayPosition}%" role="img" aria-label="Hoy"></span>`
           : '';
-        const todayMarkerHeader = todayPosition >= 0 && todayPosition <= 100
+        const todayMarkerHeader = todayPosition !== null
           ? `<span class="share-today-marker is-header" style="left:${todayPosition}%" data-today-label="${escapeHTML(todayLabel)}" role="img" aria-label="${escapeHTML(todayLabel)}"></span>`
           : '';
         const departmentOrder = new Map(departments.map((department, index) => [department.id, Number(department.sort_order ?? index)]));
         const rows = [...grouped.entries()].sort(([left],[right]) => (departmentOrder.get(left) ?? 9999) - (departmentOrder.get(right) ?? 9999)).flatMap(([departmentId, departmentTasks]) => {
           const department = departmentMap.get(departmentId) || { name:'Sin departamento', color:'#8f999f' };
           const color = safeColor(department.color);
-          const header = `<div class="share-row share-department"><div class="share-label"><span class="share-dot" style="background:${color}"></span><strong>${escapeHTML(department.name)}</strong><span class="share-count">${departmentTasks.length} actividades</span></div><div class="share-axis">${todayMarker}</div></div>`;
+          const header = `<div class="share-row share-department"><div class="share-label"><span class="share-dot" style="background:${color}"></span><strong>${escapeHTML(department.name)}</strong><span class="share-count">${departmentTasks.length} actividades</span></div><div class="share-axis">${axisGrid}${todayMarker}</div></div>`;
           const taskRows = departmentTasks.map((task) => {
             const meeting = task.activity_type === 'meeting';
             const milestone = task.activity_type === 'milestone';
@@ -155,12 +170,12 @@ const seo = {
             const stateClass = task.status === 'completed' ? 'completed' : task.status === 'blocked' ? 'blocked' : '';
             const detail = meeting ? `Reunión · ${statusLabel(task.status, true)}` : statusLabel(task.status);
             const barText = milestone ? '' : meeting ? '◆' : `${Math.max(0, Math.min(100, Number(task.progress || 0)))}%`;
-            return `<div class="share-row"><div class="share-label"><strong>${escapeHTML(task.title)}</strong><span>${escapeHTML(detail)} · ${escapeHTML(formatDate(task.planned_start))}</span></div><div class="share-axis">${todayMarker}<span class="share-bar ${stateClass} ${meeting ? 'meeting' : ''} ${milestone ? 'milestone' : ''}" style="left:${taskGeometry.left}%;width:${taskGeometry.width}%;--department-color:${color}" title="${escapeHTML(task.title)}">${escapeHTML(barText)}</span></div></div>`;
+            return `<div class="share-row"><div class="share-label"><strong>${escapeHTML(task.title)}</strong><span>${escapeHTML(detail)} · ${escapeHTML(formatDate(task.planned_start))}</span></div><div class="share-axis">${axisGrid}${todayMarker}<span class="share-bar ${stateClass} ${meeting ? 'meeting' : ''} ${milestone ? 'milestone' : ''}" style="left:${taskGeometry.left}%;width:${taskGeometry.width}%;--department-color:${color}" title="${escapeHTML(task.title)}">${escapeHTML(barText)}</span></div></div>`;
           });
           return [header, ...taskRows];
         }).join('');
         const expiry = data.share?.expires_at ? `Enlace vigente hasta ${formatDate(String(data.share.expires_at).slice(0,10))}` : 'Enlace compartido vigente';
-        document.getElementById('share-content').innerHTML = `<section class="share-project"><div><span class="share-eyebrow">${escapeHTML(project.project_code)}</span><h1>${escapeHTML(project.name)}</h1><div class="share-meta"><span>${escapeHTML(project.client_name)}</span><span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span></div></div><span class="share-status">${escapeHTML(projectStatus(project.status))}</span></section><div class="share-notice"><span>◉</span><div><strong>Vista compartida de solo lectura.</strong> Este cronograma muestra únicamente actividades autorizadas para clientes. Los cambios se realizan desde Rasika Project Control.</div></div><section class="share-card"><div class="share-card-head"><strong>Cronograma por departamento</strong><span>${escapeHTML(formatDate(bounds.start.toISOString().slice(0,10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0,10)))}</span></div><div class="share-scroll"><div class="share-gantt"><div class="share-row share-header"><div class="share-label">Actividad</div><div class="share-axis">${todayMarkerHeader}<div class="share-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>${rows || '<div class="share-error"><div><strong>Sin actividades visibles</strong><p>El equipo todavía no ha habilitado actividades para esta vista.</p></div></div>'}</div></div></section><footer class="share-footer"><span>${escapeHTML(expiry)}</span><span>Compartido mediante <a href="https://www.rasika.cl/" target="_blank" rel="noopener">Rasika</a></span></footer>`;
+        document.getElementById('share-content').innerHTML = `<section class="share-project"><div><span class="share-eyebrow">${escapeHTML(project.project_code)}</span><h1>${escapeHTML(project.name)}</h1><div class="share-meta"><span>${escapeHTML(project.client_name)}</span><span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span></div></div><span class="share-status">${escapeHTML(projectStatus(project.status))}</span></section><div class="share-notice"><span>◉</span><div><strong>Vista compartida de solo lectura.</strong> Este cronograma muestra únicamente actividades autorizadas para clientes. Los cambios se realizan desde Rasika Project Control.</div></div><section class="share-card"><div class="share-card-head"><strong>Cronograma por departamento</strong><span>${escapeHTML(formatDate(bounds.start.toISOString().slice(0,10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0,10)))}</span></div><div class="share-scroll"><div class="share-gantt"><div class="share-row share-header"><div class="share-label">Actividad</div><div class="share-axis">${axisGrid}${todayMarkerHeader}<div class="share-axis-labels" style="grid-template-columns:repeat(${bounds.workdays.length},minmax(0,1fr))">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>${rows || '<div class="share-error"><div><strong>Sin actividades visibles</strong><p>El equipo todavía no ha habilitado actividades para esta vista.</p></div></div>'}</div></div></section><footer class="share-footer"><span>${escapeHTML(expiry)}</span><span>Compartido mediante <a href="https://www.rasika.cl/" target="_blank" rel="noopener">Rasika</a></span></footer>`;
       }
 
       let sharedRequestInFlight = false;
