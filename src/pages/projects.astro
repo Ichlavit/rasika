@@ -1415,6 +1415,14 @@ const seo = {
           if (!value) return end ? bounds.workdays.length - 1 : 0;
           const date = new Date(`${value}T12:00:00`);
           while (date.getDay() === 0 || date.getDay() === 6) date.setDate(date.getDate() + (end ? -1 : 1));
+          const firstWorkday = new Date(`${bounds.workdays[0]}T12:00:00`).getTime();
+          const lastWorkday = new Date(`${bounds.workdays[bounds.workdays.length - 1]}T12:00:00`).getTime();
+          const time = date.getTime();
+          // A task may be scheduled beyond this project's visible window. Clamp both
+          // edges to the nearest slot; using opposite fallback edges made one bar span
+          // the full Gantt when both dates were outside the window.
+          if (time <= firstWorkday) return 0;
+          if (time >= lastWorkday) return bounds.workdays.length - 1;
           const index = bounds.dateIndex.get(date.toISOString().slice(0, 10));
           return Math.max(0, Math.min(bounds.workdays.length - 1, index ?? (end ? bounds.workdays.length - 1 : 0)));
         };
