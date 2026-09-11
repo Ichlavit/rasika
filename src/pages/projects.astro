@@ -1180,9 +1180,12 @@ const seo = {
         const selectedTasks = (state.detail?.tasks || []).filter((task) => taskIds.includes(task.id) && !isMeetingTask(task));
         if (!selectedTasks.length || !days || !state.selectedProjectId) return;
         setSyncStatus(selectedTasks.length > 1 ? 'Moviendo actividades…' : 'Moviendo actividad…');
+        // Calculate each change exactly once. Recalculating after the optimistic update
+        // applied the same drag delta a second time when the request was sent.
+        const scheduleUpdates = new Map(selectedTasks.map((task) => [task.id, timelineScheduleUpdate(task, days)]));
         // Commit the visual date change before the request completes. This keeps a successful drag in
         // its new slot instead of momentarily jumping back to the original schedule during the save.
-        selectedTasks.forEach((task) => Object.assign(task, timelineScheduleUpdate(task, days)));
+        selectedTasks.forEach((task) => Object.assign(task, scheduleUpdates.get(task.id)));
         renderWorkspace();
         const results = await Promise.allSettled(selectedTasks.map((task) => projectRequest('', {
             method: 'POST',
@@ -1191,7 +1194,7 @@ const seo = {
               project_id: state.selectedProjectId,
               task_id: task.id,
               version: task.version,
-              task: timelineScheduleUpdate(task, days),
+              task: scheduleUpdates.get(task.id),
             }),
           })));
         const saved = results
