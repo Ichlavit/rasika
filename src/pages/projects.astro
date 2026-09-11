@@ -1346,12 +1346,16 @@ const seo = {
         }, { passive: false });
       }
 
-      function timelineBounds(tasks) {
+      function timelineBounds(tasks, project = null) {
         const values = tasks.flatMap((task) => [taskTimelineStart(task), taskTimelineEnd(task)]).filter(Boolean).map((value) => new Date(`${value}T12:00:00`).getTime());
         const today = new Date();
         today.setHours(12, 0, 0, 0);
-        const minimum = values.length ? Math.min(...values) : today.getTime();
-        const maximum = values.length ? Math.max(...values) : today.getTime() + 30 * 86400000;
+        const projectStart = project?.planned_start ? new Date(`${project.planned_start}T12:00:00`).getTime() : null;
+        const projectEnd = project?.committed_completion_date ? new Date(`${project.committed_completion_date}T12:00:00`).getTime() : null;
+        // The Gantt is a stable project window, not a view derived from whichever task moved last.
+        // That prevents every bar from changing scale or apparent position after an in-range drag.
+        const minimum = Number.isFinite(projectStart) ? projectStart : (values.length ? Math.min(...values) : today.getTime());
+        const maximum = Number.isFinite(projectEnd) ? projectEnd : (values.length ? Math.max(...values) : today.getTime() + 30 * 86400000);
         const start = new Date(minimum);
         start.setHours(12, 0, 0, 0);
         start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
@@ -1387,7 +1391,7 @@ const seo = {
           if (!grouped.has(key)) grouped.set(key, []);
           grouped.get(key).push(task);
         });
-        const bounds = timelineBounds(tasks);
+        const bounds = timelineBounds(tasks, state.detail?.project);
         const detailedTimeline = state.timelineZoom > 1;
         const axisLabels = bounds.workdays.map((value) => {
           const date = new Date(`${value}T12:00:00`);
