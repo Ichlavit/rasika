@@ -14,6 +14,13 @@
             <stop offset="100%" stop-color="#141619" />
         </linearGradient>
 
+        <!-- CourseMentor-style dimensional teal outline -->
+        <linearGradient id="coursementor-outline-gradient" gradientUnits="userSpaceOnUse" x1="1554" y1="-56" x2="1906" y2="296">
+            <stop offset="0%" stop-color="#5EA6B0" />
+            <stop offset="50%" stop-color="#1E2226" />
+            <stop offset="100%" stop-color="#88D6E0" />
+        </linearGradient>
+
         <!-- Clipping path to ensure the bird perfectly hugs the bottom rounded corners -->
         <clipPath id="favicon-clip">
             <rect x="1550" y="-60" width="360" height="360" rx="80" />
@@ -31,4 +38,6 @@
             <path d="M1805.41 14.78c-.61-.45-5-5.74-15.6-6.2l1.89-.68c-.69 0-3-.39-5.66-.41l-4.14.3a22.5 22.5 0 014.14-.3l6-.43c-1.77-.63-4.7-.64-7.26-.47l-5 .54s2.29-.37 5-.54l8.76-.94c-4.81-2.07-16.94 1-17.33.91l16.77-4c-7.69-.3-18.46 3.09-18.46 3.09l18-5.65c-13.59.31-24.81 6.13-30.19 8.37-18.4 7.65-38.69 20.28-42 50.94-.92 8.43-20 1.06-113 61.43 120.51-60.37 127.76-50.78 126.57-35.54 23.76 40.78 94.43 28.11 89.69-32.15-.29-17.13-7.43-30.28-18.18-38.27z" fill="url(#favicon-tech-gradient)"/>
         </g>
     </g>
+
+    <rect x="1554" y="-56" width="352" height="352" rx="76" fill="none" stroke="url(#coursementor-outline-gradient)" stroke-width="10" />
 </svg>

@@ -1,0 +1,197 @@
+---
+import '../../styles/global.css';
+import SEO from '../../components/SEO.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const seo = {
+  title: 'Cronograma compartido | Rasika',
+  description: 'Vista compartida de cronograma de proyecto Rasika.',
+  path: '/projects/share/',
+  noindex: true,
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <SEO {...seo} />
+    <style is:global>
+      :root { --share-bg:#0b0d0f; --share-panel:#14171a; --share-panel-2:#1a1e21; --share-line:#2b3035; --share-muted:#939da2; --share-text:#edf2f3; --share-accent:#72bec7; --share-success:#6ec89b; }
+      * { box-sizing: border-box; }
+      body { min-width:320px; margin:0; color:var(--share-text); background:var(--share-bg); }
+      button, input { font:inherit; }
+      .share-shell { min-height:100vh; }
+      .share-topbar { min-height:70px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px clamp(18px,4vw,46px); border-bottom:1px solid var(--share-line); background:#101214; }
+      .share-brand { display:flex; align-items:center; gap:11px; }
+      .share-brand img { width:34px; height:34px; border-radius:9px; }
+      .share-brand strong { display:block; font-size:14px; }
+      .share-brand span { display:block; margin-top:2px; color:var(--share-muted); font-size:10px; }
+      .share-readonly { display:inline-flex; align-items:center; gap:7px; min-height:28px; padding:4px 10px; border:1px solid #355e63; border-radius:999px; color:#abe1e6; background:#19383d; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.06em; }
+      .share-readonly::before { content:''; width:7px; height:7px; border-radius:50%; background:var(--share-success); }
+      .share-readonly.is-refreshing::before { animation:share-pulse 1s infinite alternate; }
+      .share-readonly.is-stale { border-color:#704b3b; color:#efb49d; background:#3b251f; }
+      .share-readonly.is-stale::before { background:#e78172; }
+      @keyframes share-pulse { to { opacity:.25; } }
+      .share-main { width:min(1500px,100%); margin:0 auto; padding:clamp(20px,4vw,46px); }
+      .share-project { display:flex; align-items:flex-start; justify-content:space-between; gap:22px; margin-bottom:18px; }
+      .share-eyebrow { color:var(--share-muted); font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.13em; }
+      .share-project h1 { margin:6px 0 0; font-size:clamp(24px,4vw,38px); letter-spacing:-.035em; }
+      .share-meta { display:flex; flex-wrap:wrap; gap:7px 18px; margin-top:12px; color:var(--share-muted); font-size:11px; }
+      .share-status { display:inline-flex; min-height:27px; align-items:center; padding:4px 10px; border:1px solid #355e63; border-radius:999px; color:#abe1e6; background:#19383d; font-size:9px; font-weight:900; text-transform:uppercase; }
+      .share-notice { display:flex; align-items:flex-start; gap:11px; margin-bottom:14px; padding:12px 14px; border:1px solid var(--share-line); border-radius:10px; color:var(--share-muted); background:#111416; font-size:10px; line-height:1.5; }
+      .share-notice strong { color:var(--share-text); }
+      .share-card { overflow:hidden; border:1px solid var(--share-line); border-radius:13px; background:var(--share-panel); }
+      .share-card-head { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:15px 18px; border-bottom:1px solid var(--share-line); }
+      .share-card-head strong { font-size:13px; }
+      .share-card-head span { color:var(--share-muted); font-size:10px; }
+      .share-scroll { overflow-x:auto; }
+      .share-gantt { min-width:900px; }
+      .share-row { display:grid; grid-template-columns:285px minmax(600px,1fr); min-height:43px; border-bottom:1px solid #22272b; }
+      .share-row:last-child { border-bottom:0; }
+      .share-label { min-width:0; padding:10px 15px; border-right:1px solid var(--share-line); }
+      .share-label strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+      .share-label span { display:block; margin-top:3px; color:var(--share-muted); font-size:9px; }
+      .share-axis { position:relative; background:#131619; }
+      .share-today-marker { position:absolute; top:0; bottom:0; width:2px; transform:translateX(-1px); background:var(--share-accent); box-shadow:0 0 8px rgba(114,190,199,.5); pointer-events:none; z-index:3; }
+      .share-header { min-height:36px; background:#111416; }
+      .share-header .share-label { color:var(--share-muted); font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+      .share-axis-labels { height:100%; display:grid; grid-template-columns:repeat(6,1fr); align-items:center; padding:0 8px; color:var(--share-muted); font-size:9px; }
+      .share-axis-labels span:last-child { text-align:right; }
+      .share-department { min-height:35px; background:#181b1e; }
+      .share-department .share-label { display:flex; align-items:center; gap:8px; padding-block:8px; }
+      .share-dot { width:7px; height:7px; flex:0 0 auto; border-radius:50%; }
+      .share-count { margin-left:auto; color:var(--share-muted); font-size:9px; }
+      .share-bar { position:absolute; top:9px; z-index:1; min-width:9px; height:24px; display:flex; align-items:center; overflow:hidden; padding:0 8px; border:0; border-radius:6px; color:#071012; background:var(--department-color,var(--share-accent)); box-shadow:inset 0 -1px rgba(0,0,0,.2); font-size:9px; font-weight:900; white-space:nowrap; }
+      .share-bar.completed { opacity:.58; box-shadow:inset 0 0 0 2px rgba(255,255,255,.34); }
+      .share-bar.blocked { box-shadow:inset 0 0 0 2px #e78172,0 0 0 1px rgba(0,0,0,.35); }
+      .share-bar.meeting { height:18px; top:12px; justify-content:center; border-radius:999px; box-shadow:inset 0 0 0 2px rgba(255,255,255,.6),0 0 0 1px rgba(0,0,0,.35); }
+      .share-bar.milestone { width:17px!important; min-width:17px; height:17px; top:13px; padding:0; border-radius:3px; transform:rotate(45deg); }
+      .share-loading, .share-error { min-height:430px; display:grid; place-items:center; padding:40px; text-align:center; }
+      .share-loading strong, .share-error strong { display:block; font-size:18px; }
+      .share-loading p, .share-error p { max-width:520px; margin:9px auto 0; color:var(--share-muted); font-size:11px; }
+      .share-footer { display:flex; justify-content:space-between; gap:12px; padding:18px 2px 0; color:var(--share-muted); font-size:9px; }
+      .share-footer a { color:var(--share-accent); text-decoration:none; }
+      @media (max-width:700px) { .share-project { flex-direction:column; } .share-card-head { align-items:flex-start; flex-direction:column; } .share-footer { flex-direction:column; } }
+    </style>
+  </head>
+  <body>
+    <div id="share-config" hidden data-url={supabaseUrl} data-key={supabaseAnonKey}></div>
+    <div class="share-shell">
+      <header class="share-topbar"><div class="share-brand"><img src="/favicon.svg" alt=""><div><strong>Rasika</strong><span>Project Control</span></div></div><span id="share-live-status" class="share-readonly">Actualización en vivo</span></header>
+      <main id="share-content" class="share-main"><div class="share-card share-loading"><div><strong>Cargando cronograma…</strong><p>Estamos validando el enlace compartido.</p></div></div></main>
+    </div>
+    <script is:inline>
+      const config = document.getElementById('share-config');
+      const SUPABASE_URL = String(config?.dataset.url || '').replace(/\/$/, '');
+      const SUPABASE_KEY = String(config?.dataset.key || '');
+
+      function escapeHTML(value) {
+        return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+
+      function safeColor(value) { return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : '#8f999f'; }
+      function formatDate(value) {
+        if (!value) return 'Sin fecha';
+        return new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short', year:'numeric' }).format(new Date(`${value}T12:00:00`));
+      }
+      function statusLabel(value, meeting = false) {
+        if (meeting) return ({ not_started:'Programada', in_progress:'En curso', completed:'Realizada', cancelled:'Cancelada' })[value] || 'Sin estado';
+        return ({ not_started:'No iniciada', ready:'Lista', in_progress:'En curso', blocked:'Bloqueada', in_review:'En revisión', completed:'Completada', cancelled:'Cancelada' })[value] || 'Sin estado';
+      }
+      function projectStatus(value) { return ({ draft:'Borrador', planned:'Planificado', active:'Activo', on_hold:'En pausa', completed:'Completado', cancelled:'Cancelado' })[value] || value || 'Proyecto'; }
+
+      function timelineBounds(tasks) {
+        const values = tasks.flatMap((task) => [task.planned_start, task.planned_end]).filter(Boolean).map((value) => new Date(`${value}T12:00:00`).getTime());
+        const now = new Date(); now.setHours(12,0,0,0);
+        const minimum = values.length ? Math.min(...values) : now.getTime();
+        const maximum = values.length ? Math.max(...values) : now.getTime() + 14 * 86400000;
+        const start = new Date(minimum - 2 * 86400000);
+        const end = new Date(Math.max(maximum + 2 * 86400000, start.getTime() + 14 * 86400000));
+        return { start, end, span: Math.max(1, end.getTime() - start.getTime()) };
+      }
+
+      function renderSharedProject(data) {
+        const project = data.project || {};
+        const tasks = data.tasks || [];
+        const departments = data.departments || [];
+        const departmentMap = new Map(departments.map((department) => [department.id, department]));
+        const grouped = new Map();
+        tasks.forEach((task) => { const key = task.department_id || 'unassigned'; if (!grouped.has(key)) grouped.set(key, []); grouped.get(key).push(task); });
+        const bounds = timelineBounds(tasks);
+        const geometry = (startValue, endValue) => {
+          const start = startValue ? new Date(`${startValue}T12:00:00`).getTime() : bounds.start.getTime();
+          const end = endValue ? new Date(`${endValue}T12:00:00`).getTime() : start + 86400000;
+          const left = Math.max(0, Math.min(98, ((start - bounds.start.getTime()) / bounds.span) * 100));
+          const width = Math.max(1.5, Math.min(100 - left, ((end - start + 86400000) / bounds.span) * 100));
+          return { left, width };
+        };
+        const axisLabels = Array.from({ length:6 }, (_, index) => new Intl.DateTimeFormat('es-CL', { day:'2-digit', month:'short' }).format(new Date(bounds.start.getTime() + bounds.span * (index / 5))));
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        const todayPosition = ((today.getTime() - bounds.start.getTime()) / bounds.span) * 100;
+        const todayMarker = todayPosition >= 0 && todayPosition <= 100
+          ? `<span class="share-today-marker" style="left:${todayPosition}%" role="img" aria-label="Hoy"></span>`
+          : '';
+        const departmentOrder = new Map(departments.map((department, index) => [department.id, Number(department.sort_order ?? index)]));
+        const rows = [...grouped.entries()].sort(([left],[right]) => (departmentOrder.get(left) ?? 9999) - (departmentOrder.get(right) ?? 9999)).flatMap(([departmentId, departmentTasks]) => {
+          const department = departmentMap.get(departmentId) || { name:'Sin departamento', color:'#8f999f' };
+          const color = safeColor(department.color);
+          const header = `<div class="share-row share-department"><div class="share-label"><span class="share-dot" style="background:${color}"></span><strong>${escapeHTML(department.name)}</strong><span class="share-count">${departmentTasks.length} actividades</span></div><div class="share-axis">${todayMarker}</div></div>`;
+          const taskRows = departmentTasks.map((task) => {
+            const meeting = task.activity_type === 'meeting';
+            const milestone = task.activity_type === 'milestone';
+            const taskGeometry = geometry(task.planned_start, task.planned_end);
+            const stateClass = task.status === 'completed' ? 'completed' : task.status === 'blocked' ? 'blocked' : '';
+            const detail = meeting ? `Reunión · ${statusLabel(task.status, true)}` : statusLabel(task.status);
+            const barText = milestone ? '' : meeting ? '◆' : `${Math.max(0, Math.min(100, Number(task.progress || 0)))}%`;
+            return `<div class="share-row"><div class="share-label"><strong>${escapeHTML(task.title)}</strong><span>${escapeHTML(detail)} · ${escapeHTML(formatDate(task.planned_start))}</span></div><div class="share-axis">${todayMarker}<span class="share-bar ${stateClass} ${meeting ? 'meeting' : ''} ${milestone ? 'milestone' : ''}" style="left:${taskGeometry.left}%;width:${taskGeometry.width}%;--department-color:${color}" title="${escapeHTML(task.title)}">${escapeHTML(barText)}</span></div></div>`;
+          });
+          return [header, ...taskRows];
+        }).join('');
+        const expiry = data.share?.expires_at ? `Enlace vigente hasta ${formatDate(String(data.share.expires_at).slice(0,10))}` : 'Enlace compartido vigente';
+        document.getElementById('share-content').innerHTML = `<section class="share-project"><div><span class="share-eyebrow">${escapeHTML(project.project_code)}</span><h1>${escapeHTML(project.name)}</h1><div class="share-meta"><span>${escapeHTML(project.client_name)}</span><span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span></div></div><span class="share-status">${escapeHTML(projectStatus(project.status))}</span></section><div class="share-notice"><span>◉</span><div><strong>Vista compartida de solo lectura.</strong> Este cronograma muestra únicamente actividades autorizadas para clientes. Los cambios se realizan desde Rasika Project Control.</div></div><section class="share-card"><div class="share-card-head"><strong>Cronograma por departamento</strong><span>${escapeHTML(formatDate(bounds.start.toISOString().slice(0,10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0,10)))}</span></div><div class="share-scroll"><div class="share-gantt"><div class="share-row share-header"><div class="share-label">Actividad</div><div class="share-axis">${todayMarker}<div class="share-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>${rows || '<div class="share-error"><div><strong>Sin actividades visibles</strong><p>El equipo todavía no ha habilitado actividades para esta vista.</p></div></div>'}</div></div></section><footer class="share-footer"><span>${escapeHTML(expiry)}</span><span>Compartido mediante <a href="https://www.rasika.cl/" target="_blank" rel="noopener">Rasika</a></span></footer>`;
+      }
+
+      let sharedRequestInFlight = false;
+
+      async function loadSharedProject({ background = false } = {}) {
+        if (sharedRequestInFlight) return;
+        sharedRequestInFlight = true;
+        const liveStatus = document.getElementById('share-live-status');
+        liveStatus.classList.add('is-refreshing');
+        liveStatus.classList.remove('is-stale');
+        liveStatus.textContent = background ? 'Actualizando…' : 'Conectando…';
+        const token = new URL(location.href).searchParams.get('token') || '';
+        try {
+          if (!/^[A-Za-z0-9_-]{43}$/.test(token)) throw new Error('El enlace está incompleto o no es válido.');
+          const response = await fetch(`${SUPABASE_URL}/functions/v1/project-admin?resource=shared&token=${encodeURIComponent(token)}&refresh=${Date.now()}`, { cache:'no-store', headers:{ apikey:SUPABASE_KEY } });
+          const result = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(response.status === 404 ? 'Este enlace no existe, venció o fue revocado.' : (result.error || 'No pudimos abrir el cronograma.'));
+          renderSharedProject(result);
+          liveStatus.textContent = 'Actualización en vivo';
+          liveStatus.title = `Última actualización: ${new Intl.DateTimeFormat('es-CL', { hour:'2-digit', minute:'2-digit', second:'2-digit' }).format(new Date())}`;
+        } catch (error) {
+          liveStatus.classList.add('is-stale');
+          liveStatus.textContent = 'Reconectando…';
+          if (!background) throw error;
+        } finally {
+          liveStatus.classList.remove('is-refreshing');
+          sharedRequestInFlight = false;
+        }
+      }
+
+      loadSharedProject().catch((error) => { document.getElementById('share-content').innerHTML = `<div class="share-card share-error"><div><strong>No se pudo abrir la vista compartida</strong><p>${escapeHTML(error.message)}</p></div></div>`; });
+      window.setInterval(() => loadSharedProject({ background:true }), 30000);
+      window.addEventListener('focus', () => loadSharedProject({ background:true }));
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') loadSharedProject({ background:true });
+      });
+    </script>
+  </body>
+</html>

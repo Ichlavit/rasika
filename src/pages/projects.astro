@@ -1,0 +1,2406 @@
+---
+import '../styles/global.css';
+import SEO from '../components/SEO.astro';
+
+const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const seo = {
+  title: 'Project Control | Rasika',
+  description: 'Panel privado de gestión de proyectos Rasika.',
+  path: '/projects/',
+  noindex: true,
+};
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=20260826c" />
+    <link rel="alternate icon" href="/favicon.ico" />
+    <SEO {...seo} />
+    <style is:global>
+      :root {
+        --pm-bg: #0b0d0f;
+        --pm-panel: #14171a;
+        --pm-panel-2: #1b1f23;
+        --pm-line: #2b3035;
+        --pm-muted: #8f999f;
+        --pm-text: #edf2f3;
+        --pm-accent: #72bec7;
+        --pm-accent-soft: #19383d;
+        --pm-danger: #e78172;
+        --pm-warning: #d8a25e;
+        --pm-success: #6ec89b;
+      }
+
+      * { box-sizing: border-box; }
+      body { min-width: 320px; background: var(--pm-bg); color: var(--pm-text); }
+      button, input, select, textarea { font: inherit; }
+      button { cursor: pointer; }
+      .pm-hidden { display: none !important; }
+      .pm-shell { min-height: 100vh; display: grid; grid-template-columns: 286px minmax(0, 1fr); transition: grid-template-columns .2s ease; }
+      .pm-shell.sidebar-collapsed { grid-template-columns: 76px minmax(0, 1fr); }
+      .pm-sidebar { border-right: 1px solid var(--pm-line); background: #101214; padding: 22px 16px; display: flex; flex-direction: column; min-width: 0; min-height: 100vh; overflow: hidden; transition: padding .2s ease; }
+      .pm-brand { display: flex; align-items: center; gap: 11px; padding: 0 8px 24px; min-width: 0; }
+      .pm-brand-mark { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; overflow: hidden; background: transparent; border-radius: 9px; }
+      .pm-brand-mark img { width: 100%; height: 100%; object-fit: cover; }
+      .pm-brand-copy { min-width: 0; flex: 1; }
+      .pm-brand-copy strong { display: block; font-size: 14px; letter-spacing: .02em; }
+      .pm-brand-copy span { display: block; color: var(--pm-muted); font-size: 11px; margin-top: 1px; }
+      .pm-button.pm-sidebar-toggle { width: 28px; height: 28px; min-width: 28px; min-height: 28px; flex: 0 0 28px; display: grid; place-items: center; margin-left: auto; padding: 0; border-color: transparent; border-radius: 8px; color: #d9e0e3; background: #171a1d; }
+      .pm-button.pm-sidebar-toggle:hover { border-color: #3a4248; background: #22272b; }
+      .pm-sidebar-toggle svg { width: 13px; height: 13px; transition: transform .2s ease; }
+      .pm-button { border: 1px solid var(--pm-line); color: var(--pm-text); background: var(--pm-panel-2); min-height: 40px; border-radius: 9px; padding: 9px 13px; font-weight: 700; font-size: 13px; }
+      .pm-button:hover { border-color: #465057; background: #23282d; }
+      .pm-button-primary { border-color: var(--pm-accent); background: var(--pm-accent); color: #071012; }
+      .pm-button-primary:hover { background: #92d5dc; border-color: #92d5dc; }
+      .pm-button-quiet { background: transparent; }
+      .pm-button-danger { color: #f4aaa0; }
+      .pm-button-push { margin-right: auto; }
+      .pm-sidebar-tool { width:100%; margin-top:7px; }
+      .pm-project-nav { margin-top: 24px; flex: 1; min-height: 0; }
+      .pm-eyebrow { color: var(--pm-muted); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; font-weight: 800; }
+      .pm-project-list { margin-top: 10px; display: grid; gap: 6px; overflow-y: auto; max-height: calc(100vh - 230px); }
+      .pm-project-item { width: 100%; border: 1px solid transparent; background: transparent; color: inherit; text-align: left; border-radius: 9px; padding: 11px; }
+      .pm-project-item:hover { background: #181b1e; }
+      .pm-project-item.is-active { background: var(--pm-accent-soft); border-color: #2c5a60; }
+      .pm-project-item strong { display: block; max-width: 100%; font-size: 13px; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+      .pm-project-item span { display: flex; justify-content: space-between; gap: 8px; min-width: 0; color: var(--pm-muted); font-size: 10px; margin-top: 6px; }
+      .pm-project-item span span { min-width: 0; margin-top: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .pm-project-item .pm-project-client { display: block; }
+      .pm-project-item .pm-project-short { display: none; font-size: 10px; font-weight: 900; text-align: center; }
+      .pm-sidebar-footer { border-top: 1px solid var(--pm-line); padding: 16px 8px 0; color: var(--pm-muted); font-size: 11px; }
+      .pm-sidebar-footer a { color: var(--pm-accent); text-decoration: none; }
+      .pm-main { min-width: 0; }
+      .pm-shell.sidebar-collapsed .pm-sidebar { padding-inline: 10px; }
+      .pm-shell.sidebar-collapsed .pm-brand { flex-direction: column; gap: 8px; padding: 0 0 14px; justify-content: center; }
+      .pm-shell.sidebar-collapsed .pm-brand-copy,
+      .pm-shell.sidebar-collapsed .pm-project-nav > .pm-eyebrow,
+      .pm-shell.sidebar-collapsed .pm-sidebar-footer { display: none; }
+      .pm-shell.sidebar-collapsed .pm-sidebar-toggle { position: static; margin-left: 0; }
+      .pm-shell.sidebar-collapsed .pm-sidebar-toggle svg { transform: rotate(180deg); }
+      .pm-shell.sidebar-collapsed #new-project-button { width: 44px; min-width: 44px; margin: 30px auto 0; padding: 0; font-size: 0; }
+      .pm-shell.sidebar-collapsed #new-project-button::before { content: '+'; font-size: 20px; }
+      .pm-shell.sidebar-collapsed .pm-sidebar-tool { width:44px; min-width:44px; margin-inline:auto; padding:0; font-size:0; }
+      .pm-shell.sidebar-collapsed .pm-sidebar-tool::before { content:'◆'; font-size:14px; }
+      .pm-shell.sidebar-collapsed .pm-project-nav { margin-top: 15px; }
+      .pm-shell.sidebar-collapsed .pm-project-item { min-height: 44px; display: grid; place-items: center; padding: 7px 4px; }
+      .pm-shell.sidebar-collapsed .pm-project-item > strong,
+      .pm-shell.sidebar-collapsed .pm-project-item > span:not(.pm-project-short) { display: none; }
+      .pm-shell.sidebar-collapsed .pm-project-short { display: block; }
+      .pm-topbar { height: 74px; border-bottom: 1px solid var(--pm-line); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 28px; background: #101214; }
+      .pm-topbar h1 { margin: 0; font-size: 17px; }
+      .pm-topbar p { margin: 3px 0 0; color: var(--pm-muted); font-size: 11px; }
+      .pm-top-actions { display: flex; align-items: center; gap: 10px; }
+      .pm-sync { display: flex; align-items: center; gap: 7px; color: var(--pm-muted); font-size: 11px; }
+      .pm-sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--pm-warning); }
+      .pm-sync.is-ready .pm-sync-dot { background: var(--pm-success); }
+      .pm-content { padding: 24px 28px 40px; max-width: 1600px; margin: 0 auto; }
+      .pm-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+      .pm-metric { border: 1px solid var(--pm-line); background: var(--pm-panel); border-radius: 11px; padding: 16px; }
+      .pm-metric span { display: block; color: var(--pm-muted); font-size: 11px; }
+      .pm-metric strong { display: block; font-size: 25px; margin-top: 7px; letter-spacing: -.04em; }
+      .pm-workspace { border: 1px solid var(--pm-line); background: var(--pm-panel); border-radius: 12px; overflow: hidden; }
+      .pm-project-head { padding: 20px 22px 17px; display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; border-bottom: 1px solid var(--pm-line); }
+      .pm-project-head-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+      .pm-project-head h2 { margin: 4px 0 0; font-size: 22px; letter-spacing: -.025em; }
+      .pm-project-meta { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 10px; color: var(--pm-muted); font-size: 11px; }
+      .pm-chip { display: inline-flex; align-items: center; min-height: 25px; border: 1px solid #335e63; color: #a8e0e5; background: var(--pm-accent-soft); border-radius: 999px; padding: 3px 9px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+      .pm-tabs { display: flex; gap: 4px; padding: 8px 14px 0; border-bottom: 1px solid var(--pm-line); overflow-x: auto; }
+      .pm-tab { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--pm-muted); padding: 11px 12px; font-size: 12px; font-weight: 800; white-space: nowrap; }
+      .pm-tab.is-active { color: var(--pm-text); border-bottom-color: var(--pm-accent); }
+      .pm-panel { min-height: 420px; }
+      .pm-timeline-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--pm-line); }
+      .pm-timeline-toolbar strong { font-size: 12px; }
+      .pm-timeline-toolbar span { color: var(--pm-muted); font-size: 11px; }
+      .pm-timeline { min-width: 820px; }
+      .pm-timeline-scroll { overflow-x: auto; }
+      .pm-timeline-row { display: grid; grid-template-columns: 270px minmax(550px, 1fr); min-height: 43px; border-bottom: 1px solid #22272b; }
+      .pm-timeline-row:last-child { border-bottom: 0; }
+      .pm-timeline-label { padding: 10px 15px; border-right: 1px solid var(--pm-line); min-width: 0; }
+      .pm-timeline-label strong { display: block; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pm-timeline-label span { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 2px; }
+      .pm-timeline-axis { position: relative; background: #131619; }
+      .pm-today-marker { position: absolute; top: 0; bottom: 0; width: 2px; transform: translateX(-1px); background: var(--pm-accent); box-shadow: 0 0 8px rgba(114, 190, 199, .5); pointer-events: none; z-index: 3; }
+      .pm-timeline-header { min-height: 36px; background: #111416; }
+      .pm-timeline-header .pm-timeline-label { color: var(--pm-muted); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .pm-axis-labels { display: grid; grid-template-columns: repeat(6, 1fr); height: 100%; align-items: center; color: var(--pm-muted); font-size: 9px; padding: 0 8px; }
+      .pm-axis-labels span:last-child { text-align: right; }
+      .pm-department-row { min-height: 34px; background: #171a1d; }
+      .pm-department-row .pm-timeline-label { display: flex; align-items: center; gap: 8px; padding-top: 7px; padding-bottom: 7px; }
+      .pm-department-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+      .pm-department-toggle { width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
+      .pm-department-toggle-icon { width: 12px; color: var(--pm-muted); font-size: 9px; text-align: center; }
+      .pm-department-count { margin-left: auto; color: var(--pm-muted); font-size: 9px; }
+      .pm-task-bar { position: absolute; top: 9px; z-index: 1; height: 24px; min-width: 8px; border: 0; border-radius: 6px; background: var(--department-color, var(--pm-accent)); color: #071012; display: flex; align-items: center; padding: 0 8px; overflow: hidden; font-size: 9px; font-weight: 900; white-space: nowrap; box-shadow: inset 0 -1px rgba(0, 0, 0, .2); }
+      .pm-task-bar:hover { filter: brightness(1.12); z-index: 2; }
+      .pm-task-bar.is-completed { opacity: .58; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .34); }
+      .pm-task-bar.is-blocked { box-shadow: inset 0 0 0 2px var(--pm-danger), 0 0 0 1px rgba(0, 0, 0, .35); }
+      .pm-task-bar.is-milestone { width: 17px !important; min-width: 17px; height: 17px; top: 13px; border-radius: 3px; transform: rotate(45deg); padding: 0; }
+      .pm-task-bar.is-meeting { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .58), 0 0 0 1px rgba(0, 0, 0, .34); }
+      .pm-department-summary { top: 7px; height: 20px; opacity: .82; border-radius: 999px; }
+      .pm-timeline-task-link { width: 100%; border: 0; background: transparent; color: inherit; padding: 0; text-align: left; }
+      .pm-timeline-task-link:hover strong { color: var(--pm-accent); }
+      .pm-empty { padding: 64px 24px; text-align: center; }
+      .pm-empty strong { display: block; font-size: 16px; }
+      .pm-empty p { color: var(--pm-muted); font-size: 12px; max-width: 470px; margin: 10px auto 0; }
+      .pm-list-toolbar { display: flex; justify-content: space-between; align-items: end; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--pm-line); }
+      .pm-list-toolbar-copy strong { display: block; font-size: 12px; }
+      .pm-list-toolbar-copy span { display: block; color: var(--pm-muted); font-size: 10px; margin-top: 3px; }
+      .pm-list-controls { display: flex; align-items: end; gap: 8px; }
+      .pm-list-control { display: grid; gap: 4px; }
+      .pm-list-control label { color: var(--pm-muted); font-size: 8px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+      .pm-input-compact { min-height: 34px; padding: 6px 9px; font-size: 10px; }
+      .pm-task-group-row td { padding: 9px 14px; background: #171a1d; }
+      .pm-task-group-heading { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 900; }
+      .pm-task-group-heading span:last-child { color: var(--pm-muted); font-weight: 700; }
+      .pm-task-open { border: 0; background: transparent; color: var(--pm-text); padding: 0; text-align: left; font-weight: 800; }
+      .pm-task-open:hover { color: var(--pm-accent); }
+      .pm-task-subline { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 3px; }
+      .pm-status-pill { display: inline-flex; align-items: center; min-height: 23px; padding: 3px 8px; border-radius: 999px; background: #20262a; color: #cbd2d5; font-size: 9px; font-weight: 800; }
+      .pm-progress-track { width: 72px; height: 5px; border-radius: 999px; overflow: hidden; background: #2c3237; }
+      .pm-progress-track span { display: block; height: 100%; background: var(--department-color, var(--pm-accent)); }
+      .pm-document-options { border: 1px solid #353c41; border-radius: 9px; max-height: 180px; overflow-y: auto; background: #101315; }
+      .pm-document-option { display: grid; grid-template-columns: 18px 1fr; gap: 9px; align-items: start; padding: 10px 11px; border-bottom: 1px solid #252a2e; }
+      .pm-document-option:last-child { border-bottom: 0; }
+      .pm-document-option strong { display: block; font-size: 10px; }
+      .pm-document-option span { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 2px; }
+      .pm-table-wrap { overflow-x: auto; }
+      .pm-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+      .pm-table th { color: var(--pm-muted); font-size: 9px; letter-spacing: .09em; text-transform: uppercase; text-align: left; background: #111416; }
+      .pm-table th, .pm-table td { padding: 12px 16px; border-bottom: 1px solid var(--pm-line); }
+      .pm-table tr:last-child td { border-bottom: 0; }
+      .pm-minutes { padding: 18px; display: grid; gap: 14px; }
+      .pm-minutes-hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; border: 1px solid #35565b; border-radius: 11px; padding: 16px; background: linear-gradient(135deg, #173238, #151a1d 64%); }
+      .pm-minutes-hero h3 { margin: 4px 0 0; font-size: 17px; }
+      .pm-minutes-hero p { max-width: 700px; margin: 7px 0 0; color: #a7b0b4; font-size: 11px; }
+      .pm-minutes-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+      .pm-minutes-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+      .pm-minute-stat { border: 1px solid var(--pm-line); border-radius: 9px; padding: 12px; background: #111416; }
+      .pm-minute-stat span { display: block; color: var(--pm-muted); font-size: 9px; text-transform: uppercase; letter-spacing: .06em; }
+      .pm-minute-stat strong { display: block; margin-top: 4px; font-size: 18px; }
+      .pm-minute-knowledge { display: flex; align-items: flex-start; gap: 11px; padding: 13px 14px; border: 1px solid var(--pm-line); border-radius: 9px; background: #111416; }
+      .pm-minute-knowledge-icon { width: 30px; height: 30px; flex: 0 0 30px; display: grid; place-items: center; border-radius: 8px; color: var(--pm-accent); background: var(--pm-accent-soft); }
+      .pm-minute-knowledge strong { display: block; font-size: 11px; }
+      .pm-minute-knowledge p { margin: 4px 0 0; color: var(--pm-muted); font-size: 10px; }
+      .pm-minute-list { display: grid; gap: 8px; }
+      .pm-minute-card { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-height: 74px; padding: 12px; border: 1px solid var(--pm-line); border-radius: 10px; background: #111416; }
+      .pm-minute-date { display: grid; place-items: center; align-content: center; min-height: 48px; border-radius: 8px; color: var(--pm-text); background: #1c2226; text-align: center; }
+      .pm-minute-date strong { display: block; font-size: 12px; }
+      .pm-minute-date span { display: block; color: var(--pm-muted); font-size: 8px; margin-top: 2px; }
+      .pm-minute-copy { min-width: 0; }
+      .pm-minute-copy h4 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 11px; }
+      .pm-minute-copy p { margin: 5px 0 0; color: var(--pm-muted); font-size: 9px; }
+      .pm-minute-meta { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 7px; color: #aab3b7; font-size: 9px; }
+      .pm-minute-card-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 6px; }
+      .pm-agent-ready { color: var(--pm-success); background: #173026; }
+      .pm-agent-pending { color: var(--pm-warning); background: #302719; }
+      .pm-minutes-message { min-height: 16px; margin: 0; color: var(--pm-warning); font-size: 10px; }
+      .pm-modal-backdrop { position: fixed; inset: 0; z-index: 80; background: rgba(3, 5, 6, .78); display: grid; place-items: center; padding: 22px; }
+      .pm-modal { width: min(820px, 100%); max-height: calc(100vh - 44px); display: flex; flex-direction: column; overflow: hidden; background: var(--pm-panel-2); border: 1px solid #3a4248; border-radius: 14px; box-shadow: 0 24px 80px rgba(0, 0, 0, .52); }
+      .pm-modal-head { flex: 0 0 auto; display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; padding: 18px 20px; border-bottom: 1px solid var(--pm-line); }
+      .pm-modal-head h2 { margin: 0; font-size: 18px; }
+      .pm-modal-head p { margin: 5px 0 0; color: var(--pm-muted); font-size: 11px; }
+      .pm-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 18px 20px; }
+      .pm-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+      .pm-field { display: grid; gap: 6px; }
+      .pm-field-full { grid-column: 1 / -1; }
+      .pm-three-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+      .pm-field label { color: #cbd2d5; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+      .pm-input { width: 100%; min-height: 42px; border: 1px solid #353c41; border-radius: 8px; color: var(--pm-text); background: #101315; padding: 9px 11px; outline: none; }
+      .pm-input:focus { border-color: var(--pm-accent); }
+      input[type="number"].pm-input { appearance: textfield; -moz-appearance: textfield; }
+      input[type="number"].pm-input::-webkit-inner-spin-button,
+      input[type="number"].pm-input::-webkit-outer-spin-button { appearance: none; -webkit-appearance: none; margin: 0; }
+      .pm-native-select { position: absolute !important; width: 1px !important; height: 1px !important; min-height: 1px !important; opacity: 0; pointer-events: none; }
+      .pm-select { position: relative; min-width: 0; }
+      .pm-select-button { width: 100%; min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid #353c41; border-radius: 8px; color: var(--pm-text); background: #101315; padding: 9px 11px; text-align: left; }
+      .pm-select-button:hover, .pm-select.is-open .pm-select-button { border-color: var(--pm-accent); }
+      .pm-select-button svg { width: 14px; height: 14px; flex: 0 0 auto; color: var(--pm-muted); transition: transform .16s ease; }
+      .pm-select.is-open .pm-select-button svg { transform: rotate(180deg); }
+      .pm-select-menu { position: absolute; z-index: 120; top: calc(100% + 5px); left: 0; right: 0; display: none; max-height: 230px; overflow-y: auto; padding: 5px; border: 1px solid #3b454b; border-radius: 9px; background: #111518; box-shadow: 0 16px 38px rgba(0, 0, 0, .48); }
+      .pm-select.is-open .pm-select-menu { display: grid; }
+      .pm-select-option { width: 100%; border: 0; border-radius: 6px; color: var(--pm-text); background: transparent; padding: 9px 10px; text-align: left; font-size: 12px; }
+      .pm-select-option:hover, .pm-select-option.is-selected { color: #071012; background: var(--pm-accent); }
+      .pm-select.pm-input-compact .pm-select-button { min-height: 34px; padding: 6px 9px; font-size: 10px; }
+      textarea.pm-input { min-height: 92px; resize: vertical; }
+      .pm-service-options { border: 1px solid #353c41; border-radius: 9px; max-height: 220px; overflow-y: auto; background: #101315; }
+      .pm-service-option { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 11px; border-bottom: 1px solid #252a2e; }
+      .pm-service-option:last-child { border-bottom: 0; }
+      .pm-service-option strong { display: block; font-size: 11px; }
+      .pm-service-option span { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 2px; }
+      .pm-template-badge { color: var(--pm-success) !important; font-weight: 800; }
+      .pm-template-badge.is-missing { color: var(--pm-warning) !important; }
+      .pm-form-message { min-height: 18px; margin: 14px 0 0; color: var(--pm-danger); font-size: 11px; }
+      .pm-modal-actions { flex: 0 0 auto; display: flex; justify-content: flex-end; gap: 8px; padding: 16px 22px; border-top: 1px solid var(--pm-line); background: var(--pm-panel-2); }
+      .pm-section-title { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+      .pm-section-title > label { margin: 0; }
+      .pm-inline-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+      .pm-calendar-actions { display: flex; align-items: center; gap: 6px; }
+      .pm-calendar-actions-stack { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 6px; }
+      .pm-calendar-actions-stack > .pm-button { width: 100%; justify-content: center; }
+      .pm-checklist, .pm-integration-card { border: 1px solid #353c41; border-radius: 9px; background: #101315; overflow: hidden; }
+      .pm-check-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 9px; min-height: 42px; padding: 8px 10px; border-bottom: 1px solid #252a2e; }
+      .pm-check-row:last-child { border-bottom: 0; }
+      .pm-check-row input[type="text"] { width: 100%; min-width: 0; border: 0; color: var(--pm-text); background: transparent; outline: none; font-size: 11px; }
+      .pm-check-row input[type="checkbox"] { accent-color: var(--pm-accent); }
+      .pm-check-row.is-complete .pm-check-label { color: var(--pm-muted); text-decoration: line-through; }
+      .pm-icon-button { width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 7px; color: var(--pm-muted); background: transparent; }
+      .pm-icon-button:hover { color: var(--pm-danger); background: #272c30; }
+      .pm-integration-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 11px 12px; border-bottom: 1px solid #252a2e; }
+      .pm-integration-head strong { display: block; font-size: 11px; }
+      .pm-integration-head span { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 3px; }
+      .pm-file-row, .pm-calendar-row { display: grid; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid #252a2e; }
+      .pm-file-row { grid-template-columns: 24px minmax(0, 1fr) auto; }
+      .pm-calendar-row { grid-template-columns: 44px minmax(0, 1fr) minmax(150px, 180px) auto; }
+      .pm-file-row:last-child, .pm-calendar-row:last-child { border-bottom: 0; }
+      .pm-file-icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: #20353a; color: var(--pm-accent); font-size: 12px; }
+      .pm-file-copy, .pm-calendar-copy { min-width: 0; }
+      .pm-file-copy strong, .pm-calendar-copy strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+      .pm-file-copy span, .pm-calendar-copy span { display: block; color: var(--pm-muted); font-size: 9px; margin-top: 2px; }
+      .pm-hours-badge { display: grid; place-items: center; min-height: 28px; border-radius: 7px; color: #071012; background: var(--pm-accent); font-size: 10px; font-weight: 900; }
+      .pm-calendar-schedule { display: grid; gap: 6px; min-width: 0; }
+      .pm-calendar-schedule .pm-input { width: 100%; min-width: 0; }
+      .pm-calendar-picker { margin-top: 9px; border: 1px solid #35565b; border-radius: 10px; background: #101719; overflow: hidden; }
+      .pm-calendar-picker-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; padding: 10px; border-bottom: 1px solid #26363a; }
+      .pm-calendar-event-list { max-height: 290px; overflow-y: auto; }
+      .pm-calendar-event-option { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 12px; border-bottom: 1px solid #252f32; }
+      .pm-calendar-event-option:last-child { border-bottom: 0; }
+      .pm-calendar-event-option strong { display: block; font-size: 11px; }
+      .pm-calendar-event-option span { display: block; margin-top: 3px; color: var(--pm-muted); font-size: 9px; }
+      .pm-placeholder-note { padding: 12px; color: var(--pm-muted); font-size: 10px; }
+      .pm-drive-browser { overflow: hidden; border: 1px solid var(--pm-line); border-radius: 10px; background: #101315; }
+      .pm-drive-browser-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px; border-bottom: 1px solid var(--pm-line); background: var(--pm-panel-2); }
+      .pm-drive-browser-head strong, .pm-drive-tree-copy strong { display: block; font-size: 11px; }
+      .pm-drive-browser-head span, .pm-drive-tree-copy span { display: block; margin-top: 3px; color: var(--pm-muted); font-size: 9px; }
+      .pm-drive-browser-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
+      .pm-drive-tree-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 130px auto; align-items: center; gap: 12px; min-height: 48px; padding: 8px 12px 8px calc(12px + var(--drive-depth, 0) * 20px); border-bottom: 1px solid #252a2e; }
+      .pm-drive-tree-row:last-child { border-bottom: 0; }
+      .pm-drive-tree-row.is-folder { background: #121719; }
+      .pm-drive-tree-name { min-width: 0; display: grid; grid-template-columns: 24px 24px minmax(0, 1fr); align-items: center; gap: 7px; }
+      .pm-drive-tree-toggle, .pm-drive-tree-spacer { width: 24px; height: 24px; }
+      .pm-drive-tree-toggle { display: grid; place-items: center; border: 0; border-radius: 6px; color: var(--pm-muted); background: transparent; cursor: pointer; }
+      .pm-drive-tree-toggle:hover { color: var(--pm-text); background: #232a2e; }
+      .pm-drive-tree-icon { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; color: var(--pm-accent); background: #20353a; font-size: 12px; }
+      .pm-drive-tree-copy { min-width: 0; }
+      .pm-drive-tree-copy a { display: block; overflow: hidden; color: inherit; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+      .pm-drive-tree-copy a:hover { color: var(--pm-accent); }
+      .pm-drive-tree-meta { color: var(--pm-muted); font-size: 9px; }
+      .pm-drive-sync-message { min-height: 18px; margin: 8px 0 0; color: var(--pm-muted); font-size: 10px; }
+      .pm-person-row { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(170px, 1.2fr) minmax(120px, .8fr) 28px; align-items: center; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #252a2e; }
+      .pm-person-row:last-child, .pm-commitment-row:last-child { border-bottom: 0; }
+      .pm-person-row input, .pm-commitment-row input[type="text"], .pm-commitment-row input[type="date"] { min-width: 0; min-height: 34px; }
+      .pm-commitment-row { display: grid; grid-template-columns: 18px minmax(180px, 1.6fr) minmax(130px, .8fr) 140px 28px; align-items: center; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #252a2e; }
+      .pm-commitment-row input[type="checkbox"] { accent-color: var(--pm-accent); }
+      .pm-commitment-row.is-complete input[type="text"] { color: var(--pm-muted); text-decoration: line-through; }
+      .pm-meeting-note { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 11px; padding: 12px; }
+      .pm-meeting-note-icon { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; color: var(--pm-accent); background: var(--pm-accent-soft); font-weight: 900; }
+      .pm-meeting-note strong { display: block; font-size: 11px; }
+      .pm-meeting-note span { display: block; margin-top: 3px; color: var(--pm-muted); font-size: 9px; }
+      .pm-share-summary { border: 1px solid #35565b; border-radius: 10px; padding: 13px; background: #11191c; }
+      .pm-share-summary strong { display: block; font-size: 11px; }
+      .pm-share-summary p { margin: 5px 0 0; color: var(--pm-muted); font-size: 10px; line-height: 1.5; }
+      .pm-share-url { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+      .pm-department-manager { display:grid; gap:9px; margin-top:16px; }
+      .pm-department-manager-row { display:grid; grid-template-columns:42px minmax(150px,1fr) minmax(155px,.9fr) auto auto; align-items:center; gap:9px; padding:10px; border:1px solid #353c41; border-radius:9px; background:#101315; }
+      .pm-color-input { width:42px; height:36px; padding:3px; border:1px solid #353c41; border-radius:8px; background:#101315; }
+      .pm-department-usage strong { display:block; font-size:10px; }
+      .pm-department-usage span { display:block; margin-top:3px; color:var(--pm-muted); font-size:9px; }
+      .pm-department-replacement { grid-column:2 / 4; }
+      .pm-link-button { color: var(--pm-accent); text-decoration: none; }
+      .pm-link-button[aria-disabled="true"] { color: var(--pm-muted); pointer-events: none; opacity: .7; }
+      .pm-auth { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      .pm-auth-card { width: min(410px, 100%); border: 1px solid var(--pm-line); background: var(--pm-panel); border-radius: 14px; padding: 28px; }
+      .pm-auth-card .pm-brand { padding-left: 0; }
+      .pm-auth-card h1 { margin: 0; font-size: 23px; }
+      .pm-auth-card > p { color: var(--pm-muted); font-size: 12px; margin: 8px 0 22px; }
+      .pm-auth-card form { display: grid; gap: 12px; }
+      .pm-loading { opacity: .62; pointer-events: none; }
+      .pm-mobile-menu { display: none; }
+
+      @media (max-width: 980px) {
+        .pm-shell { grid-template-columns: 1fr; }
+        .pm-shell.sidebar-collapsed { grid-template-columns: 1fr; }
+        .pm-sidebar { position: fixed; inset: 0 auto 0 0; width: 286px; z-index: 60; transform: translateX(-100%); transition: transform .2s ease; }
+        .pm-shell.sidebar-open .pm-sidebar { transform: translateX(0); }
+        .pm-mobile-menu { display: inline-flex; }
+        .pm-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .pm-sidebar-toggle { display: none; }
+        .pm-shell.sidebar-collapsed .pm-sidebar { padding: 22px 16px; }
+        .pm-shell.sidebar-collapsed .pm-brand { flex-direction: row; gap: 11px; padding: 0 8px 24px; justify-content: flex-start; }
+        .pm-shell.sidebar-collapsed .pm-brand-copy,
+        .pm-shell.sidebar-collapsed .pm-project-nav > .pm-eyebrow,
+        .pm-shell.sidebar-collapsed .pm-sidebar-footer { display: block; }
+        .pm-shell.sidebar-collapsed #new-project-button { width: 100%; margin: 0; padding: 9px 13px; font-size: 13px; }
+        .pm-shell.sidebar-collapsed #new-project-button::before { content: none; }
+        .pm-shell.sidebar-collapsed .pm-sidebar-tool { width:100%; margin-top:7px; padding:9px 13px; font-size:13px; }
+        .pm-shell.sidebar-collapsed .pm-sidebar-tool::before { content:none; }
+        .pm-shell.sidebar-collapsed .pm-project-nav { margin-top: 24px; }
+        .pm-shell.sidebar-collapsed .pm-project-item { display: block; min-height: 0; padding: 11px; }
+        .pm-shell.sidebar-collapsed .pm-project-item > strong,
+        .pm-shell.sidebar-collapsed .pm-project-item > span:not(.pm-project-short) { display: flex; }
+        .pm-shell.sidebar-collapsed .pm-project-item > strong { display: block; }
+        .pm-shell.sidebar-collapsed .pm-project-short { display: none; }
+      }
+
+      @media (max-width: 640px) {
+        .pm-topbar { padding: 0 16px; }
+        .pm-content { padding: 16px; }
+        .pm-metrics { grid-template-columns: 1fr 1fr; }
+        .pm-project-head { flex-direction: column; }
+        .pm-project-head-actions { justify-content: flex-start; }
+        .pm-form-grid { grid-template-columns: 1fr; }
+        .pm-field-full { grid-column: auto; }
+        .pm-three-grid { grid-column: auto; grid-template-columns: 1fr; }
+        .pm-sync { display: none; }
+        .pm-list-toolbar { align-items: stretch; flex-direction: column; }
+        .pm-list-controls { align-items: stretch; }
+        .pm-list-control { flex: 1; }
+        .pm-calendar-row { grid-template-columns: 40px minmax(0, 1fr); }
+        .pm-calendar-row .pm-select, .pm-calendar-row > :last-child { grid-column: 2; }
+        .pm-calendar-picker-head { grid-template-columns: 1fr auto; }
+        .pm-calendar-picker-head input { grid-column: 1 / -1; }
+        .pm-drive-browser-head { align-items: stretch; flex-direction: column; }
+        .pm-drive-browser-actions { justify-content: flex-start; }
+        .pm-drive-tree-row { grid-template-columns: minmax(0, 1fr) auto; }
+        .pm-drive-tree-row > .pm-drive-tree-meta { display: none; }
+        .pm-minutes-hero { flex-direction: column; }
+        .pm-minutes-actions { justify-content: flex-start; }
+        .pm-minutes-stats { grid-template-columns: 1fr; }
+        .pm-minute-card { grid-template-columns: 64px minmax(0, 1fr); }
+        .pm-minute-card-actions { grid-column: 2; justify-content: flex-start; }
+        .pm-person-row { grid-template-columns: 1fr 28px; }
+        .pm-person-row input:not(:first-child) { grid-column: 1; }
+        .pm-commitment-row { grid-template-columns: 18px 1fr 28px; }
+        .pm-commitment-row input[data-meeting-commitment-owner], .pm-commitment-row input[data-meeting-commitment-date] { grid-column: 2; }
+        .pm-meeting-note { grid-template-columns: 34px minmax(0, 1fr); }
+        .pm-meeting-note > :last-child { grid-column: 2; }
+        .pm-share-url { grid-template-columns: 1fr; }
+        .pm-department-manager-row { grid-template-columns:42px minmax(0,1fr) auto; }
+        .pm-department-usage, .pm-department-replacement { grid-column:2 / 4; }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="projects-config" hidden data-url={supabaseUrl} data-key={supabaseAnonKey}></div>
+
+    <section id="projects-auth" class="pm-auth">
+      <div class="pm-auth-card">
+        <div class="pm-brand">
+          <span class="pm-brand-mark"><img src="/favicon.svg?v=20260826c" alt="" /></span>
+          <span class="pm-brand-copy"><strong>Rasika</strong><span>Project Control</span></span>
+        </div>
+        <h1>Gestión de proyectos</h1>
+        <p>Área privada conectada al CRM y al catálogo de servicios.</p>
+        <form id="projects-login-form">
+          <div class="pm-field">
+            <label for="projects-email">Correo</label>
+            <input class="pm-input" id="projects-email" type="email" autocomplete="username" required value="jose.contreras@rasika.cl" />
+          </div>
+          <div class="pm-field">
+            <label for="projects-password">Contraseña</label>
+            <input class="pm-input" id="projects-password" type="password" autocomplete="current-password" required />
+          </div>
+          <p id="projects-login-error" class="pm-form-message" role="alert"></p>
+          <button class="pm-button pm-button-primary" type="submit">Ingresar</button>
+        </form>
+      </div>
+    </section>
+
+    <div id="projects-app" class="pm-shell pm-hidden">
+      <aside class="pm-sidebar">
+        <div class="pm-brand">
+          <span class="pm-brand-mark"><img src="/favicon.svg?v=20260826c" alt="" /></span>
+          <span class="pm-brand-copy"><strong>Rasika</strong><span>Project Control</span></span>
+          <button id="sidebar-toggle" class="pm-button pm-button-quiet pm-sidebar-toggle" type="button" aria-label="Contraer barra lateral" aria-expanded="true">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m12.5 4.5-5 5 5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          </button>
+        </div>
+        <button id="new-project-button" class="pm-button pm-button-primary" type="button">＋ Nuevo proyecto</button>
+        <button id="manage-departments-button" class="pm-button pm-button-quiet pm-sidebar-tool" type="button">◆ Departamentos</button>
+        <nav class="pm-project-nav" aria-label="Proyectos">
+          <span class="pm-eyebrow">Proyectos</span>
+          <div id="project-list" class="pm-project-list"></div>
+        </nav>
+        <div class="pm-sidebar-footer">
+          <span id="profile-name">Acceso privado</span><br />
+          <a href="/admin/">Volver al CMS</a>
+        </div>
+      </aside>
+
+      <main class="pm-main">
+        <header class="pm-topbar">
+          <div style="display:flex;align-items:center;gap:12px;min-width:0">
+            <button id="mobile-menu" class="pm-button pm-button-quiet pm-mobile-menu" type="button" aria-label="Abrir navegación">☰</button>
+            <div>
+              <h1>Portafolio de proyectos</h1>
+              <p>CRM · Servicios · Planificación operacional</p>
+            </div>
+          </div>
+          <div class="pm-top-actions">
+            <span id="sync-status" class="pm-sync"><span class="pm-sync-dot"></span><span>Conectando</span></span>
+            <button id="refresh-projects" class="pm-button pm-button-quiet" type="button">Actualizar</button>
+            <button id="projects-logout" class="pm-button pm-button-quiet pm-button-danger" type="button">Salir</button>
+          </div>
+        </header>
+
+        <div class="pm-content">
+          <section id="project-metrics" class="pm-metrics" aria-label="Resumen"></section>
+
+          <section class="pm-workspace">
+            <div id="project-heading" class="pm-project-head"></div>
+            <div class="pm-tabs" role="tablist">
+              <button class="pm-tab is-active" type="button" data-tab="timeline">Cronograma</button>
+              <button class="pm-tab" type="button" data-tab="task-list">Lista</button>
+              <button class="pm-tab" type="button" data-tab="services">Servicios y eficiencia</button>
+              <button class="pm-tab" type="button" data-tab="documents">Documentos</button>
+              <button class="pm-tab" type="button" data-tab="minutes">Minutas</button>
+              <button class="pm-tab" type="button" data-tab="activity">Actividad</button>
+            </div>
+            <div id="timeline-panel" class="pm-panel" data-panel="timeline"></div>
+            <div id="task-list-panel" class="pm-panel pm-hidden" data-panel="task-list"></div>
+            <div id="services-panel" class="pm-panel pm-hidden" data-panel="services"></div>
+            <div id="documents-panel" class="pm-panel pm-hidden" data-panel="documents"></div>
+            <div id="minutes-panel" class="pm-panel pm-hidden" data-panel="minutes"></div>
+            <div id="activity-panel" class="pm-panel pm-hidden" data-panel="activity"></div>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <div id="project-modal" class="pm-modal-backdrop pm-hidden" role="dialog" aria-modal="true" aria-labelledby="project-modal-title">
+      <form id="new-project-form" class="pm-modal">
+        <div class="pm-modal-head">
+          <div>
+            <h2 id="project-modal-title">Crear proyecto</h2>
+            <p>Vincula un cliente real del CRM y uno o más servicios Rasika.</p>
+          </div>
+          <button id="close-project-modal" class="pm-button pm-button-quiet" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div class="pm-modal-body">
+          <div class="pm-form-grid">
+            <div class="pm-field pm-field-full">
+              <label for="project-name">Nombre del proyecto</label>
+              <input id="project-name" class="pm-input" required maxlength="240" placeholder="Ej. Programa de inducción 2026" />
+            </div>
+            <div class="pm-field">
+              <label for="project-organization">Cliente CRM</label>
+              <select id="project-organization" class="pm-input" required></select>
+            </div>
+            <div class="pm-field">
+              <label for="project-contact">Contacto principal</label>
+              <select id="project-contact" class="pm-input" required></select>
+            </div>
+            <div class="pm-field">
+              <label for="project-start">Inicio planificado</label>
+              <input id="project-start" class="pm-input" type="date" required />
+            </div>
+            <div class="pm-field">
+              <label for="project-end">Compromiso de entrega</label>
+              <input id="project-end" class="pm-input" type="date" required />
+            </div>
+            <div class="pm-field">
+              <label for="project-days">Días laborales estimados</label>
+              <input id="project-days" class="pm-input" type="number" min="0" step="0.5" />
+            </div>
+            <div class="pm-field">
+              <label for="project-priority">Prioridad</label>
+              <select id="project-priority" class="pm-input">
+                <option value="normal">Normal</option>
+                <option value="high">Alta</option>
+                <option value="urgent">Urgente</option>
+                <option value="low">Baja</option>
+              </select>
+            </div>
+            <div class="pm-field pm-field-full">
+              <label>Servicios / componentes del proyecto</label>
+              <div id="project-service-options" class="pm-service-options"></div>
+            </div>
+          </div>
+          <p id="project-form-message" class="pm-form-message" role="alert"></p>
+        </div>
+        <div class="pm-modal-actions">
+          <button id="cancel-project" class="pm-button pm-button-quiet" type="button">Cancelar</button>
+          <button id="submit-project" class="pm-button pm-button-primary" type="submit">Crear proyecto</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="task-modal" class="pm-modal-backdrop pm-hidden" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
+      <form id="task-edit-form" class="pm-modal">
+        <div class="pm-modal-head">
+          <div>
+            <h2 id="task-modal-title">Detalle de tarea</h2>
+            <p id="task-modal-context">Edita planificación, estado, insumos y documentos desde Lista o Cronograma.</p>
+          </div>
+          <button id="close-task-modal" class="pm-button pm-button-quiet" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div class="pm-modal-body">
+          <div class="pm-form-grid">
+            <div class="pm-field pm-field-full">
+              <label id="task-title-label" for="task-title">Tarea</label>
+              <input id="task-title" class="pm-input" required maxlength="240" />
+            </div>
+            <div class="pm-field">
+              <label for="task-department">Departamento</label>
+              <select id="task-department" class="pm-input" required></select>
+            </div>
+            <div class="pm-field">
+              <label for="task-status">Estado</label>
+              <select id="task-status" class="pm-input">
+                <option value="not_started">No iniciada</option>
+                <option value="ready">Lista</option>
+                <option value="in_progress">En curso</option>
+                <option value="blocked">Bloqueada</option>
+                <option value="in_review">En revisión</option>
+                <option value="completed">Completada</option>
+                <option value="cancelled">Cancelada</option>
+              </select>
+            </div>
+            <div class="pm-field">
+              <label id="task-start-label" for="task-start">Inicio planificado</label>
+              <input id="task-start" class="pm-input" type="date" />
+            </div>
+            <div class="pm-field" data-task-only>
+              <label for="task-end">Fin planificado</label>
+              <input id="task-end" class="pm-input" type="date" />
+            </div>
+            <div class="pm-field" data-task-only>
+              <label for="task-forecast-start">Inicio previsto</label>
+              <input id="task-forecast-start" class="pm-input" type="date" />
+            </div>
+            <div class="pm-field" data-task-only>
+              <label for="task-forecast-end">Fin previsto</label>
+              <input id="task-forecast-end" class="pm-input" type="date" />
+            </div>
+            <div class="pm-three-grid" data-task-only>
+              <div class="pm-field">
+                <label for="task-progress">Avance (%)</label>
+                <input id="task-progress" class="pm-input" type="number" min="0" max="100" step="1" />
+              </div>
+              <div class="pm-field">
+                <label for="task-effort">Esfuerzo planificado (horas)</label>
+                <input id="task-effort" class="pm-input" type="number" min="0" max="10000" step="0.5" />
+              </div>
+              <div class="pm-field">
+                <label for="task-actual-effort">Esfuerzo real (horas)</label>
+                <input id="task-actual-effort" class="pm-input" type="number" min="0" max="10000" step="0.5" />
+              </div>
+            </div>
+            <div class="pm-field pm-field-full">
+              <label id="task-description-label" for="task-description">Descripción / notas</label>
+              <textarea id="task-description" class="pm-input" maxlength="5000"></textarea>
+            </div>
+            <div class="pm-field pm-field-full" data-meeting-only>
+              <label>Evento único de Google Calendar</label>
+              <div id="meeting-calendar-event" class="pm-integration-card"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-meeting-only>
+              <div class="pm-section-title"><label>Asistentes</label><button id="add-meeting-attendee" class="pm-button pm-button-quiet pm-input-compact" type="button">＋ Agregar asistente</button></div>
+              <div id="meeting-attendees" class="pm-checklist"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-meeting-only>
+              <div class="pm-section-title"><label>Responsables</label><button id="add-meeting-responsible" class="pm-button pm-button-quiet pm-input-compact" type="button">＋ Agregar responsable</button></div>
+              <div id="meeting-responsibles" class="pm-checklist"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-meeting-only>
+              <div class="pm-section-title"><label>Compromisos y acuerdos</label><button id="add-meeting-commitment" class="pm-button pm-button-quiet pm-input-compact" type="button">＋ Agregar compromiso</button></div>
+              <div id="meeting-commitments" class="pm-checklist"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-meeting-only>
+              <label>Notes by Gemini</label>
+              <div id="meeting-gemini-notes" class="pm-integration-card"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <label for="task-tags">Etiquetas</label>
+              <input id="task-tags" class="pm-input" maxlength="500" placeholder="cliente, revisión, audiovisual" />
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <div class="pm-section-title">
+                <label>Insumos requeridos</label>
+                <button id="add-required-input" class="pm-button pm-button-quiet pm-input-compact" type="button">＋ Agregar insumo</button>
+              </div>
+              <div id="task-required-inputs" class="pm-checklist"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <label>Tareas requeridas</label>
+              <div id="task-required-tasks" class="pm-checklist"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <label>Carpeta vinculada</label>
+              <div id="task-drive-card" class="pm-integration-card"></div>
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <div class="pm-section-title">
+                <label>Bloques de Calendar</label>
+                <div class="pm-inline-actions">
+                  <button id="link-existing-task-event" class="pm-button pm-button-quiet pm-input-compact" type="button">Vincular evento existente</button>
+                  <button class="pm-button pm-button-quiet pm-input-compact" type="button" data-add-calendar-block="2">＋ Bloque 2 h</button>
+                  <button class="pm-button pm-button-quiet pm-input-compact" type="button" data-add-calendar-block="4">＋ Bloque 4 h</button>
+                </div>
+              </div>
+              <div id="task-calendar-blocks" class="pm-integration-card"></div>
+            </div>
+            <div id="calendar-existing-picker" class="pm-field pm-field-full pm-calendar-picker pm-hidden">
+              <div class="pm-calendar-picker-head">
+                <input id="calendar-event-query" class="pm-input pm-input-compact" type="search" maxlength="200" placeholder="Buscar reunión o evento por nombre" aria-label="Buscar eventos de Calendar" />
+                <button id="search-calendar-events" class="pm-button pm-button-primary pm-input-compact" type="button">Buscar</button>
+                <button id="close-calendar-picker" class="pm-button pm-button-quiet pm-input-compact" type="button">Cerrar</button>
+              </div>
+              <div id="calendar-event-results" class="pm-calendar-event-list"><div class="pm-placeholder-note">Busca eventos de los calendarios autorizados para vincularlos sin duplicarlos.</div></div>
+            </div>
+            <div class="pm-field pm-field-full" data-task-only>
+              <label>Documentos vinculados</label>
+              <div id="task-document-options" class="pm-document-options"></div>
+            </div>
+            <label class="pm-field pm-field-full" data-task-only style="display:flex;grid-template-columns:18px 1fr;align-items:center">
+              <input id="task-client-visible" type="checkbox" />
+              <span style="font-size:11px">Visible para el cliente en una futura vista compartida</span>
+            </label>
+          </div>
+          <p id="task-form-message" class="pm-form-message" role="alert"></p>
+        </div>
+        <div class="pm-modal-actions">
+          <button id="delete-task" class="pm-button pm-button-quiet pm-button-danger pm-button-push" type="button">Eliminar tarea</button>
+          <button id="cancel-task-edit" class="pm-button pm-button-quiet" type="button">Cancelar</button>
+          <button id="submit-task-edit" class="pm-button pm-button-primary" type="submit">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="project-share-modal" class="pm-modal-backdrop pm-hidden" role="dialog" aria-modal="true" aria-labelledby="project-share-title">
+      <div class="pm-modal" style="max-width:680px">
+        <div class="pm-modal-head">
+          <div><h2 id="project-share-title">Compartir cronograma</h2><p>Enlace de solo lectura para clientes y colaboradores.</p></div>
+          <button id="close-project-share" class="pm-button pm-button-quiet" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div class="pm-modal-body">
+          <div class="pm-share-summary"><strong>Vista protegida por alcance</strong><p>Incluye nombre del proyecto, fechas, departamentos y actividades marcadas como visibles para el cliente. Excluye documentos, minutas, asistentes, Calendar, insumos, responsables, costos y metadata interna. Crear otro enlace revoca el anterior.</p></div>
+          <div class="pm-field" style="margin-top:14px"><label for="project-share-url">Enlace compartido</label><div class="pm-share-url"><input id="project-share-url" class="pm-input" readonly><button id="copy-project-share" class="pm-button pm-button-primary" type="button">Copiar enlace</button></div></div>
+          <p id="project-share-expiry" class="pm-placeholder-note" style="padding-inline:0"></p>
+          <p id="project-share-message" class="pm-form-message" role="status"></p>
+        </div>
+        <div class="pm-modal-actions"><button id="revoke-project-share" class="pm-button pm-button-quiet pm-button-danger" type="button">Revocar enlace</button><a id="open-project-share" class="pm-button pm-button-quiet pm-link-button" href="#" target="_blank" rel="noopener">Abrir vista</a><button id="done-project-share" class="pm-button pm-button-primary" type="button">Listo</button></div>
+      </div>
+    </div>
+
+    <div id="departments-modal" class="pm-modal-backdrop pm-hidden" role="dialog" aria-modal="true" aria-labelledby="departments-modal-title">
+      <div class="pm-modal" style="max-width:920px">
+        <div class="pm-modal-head"><div><h2 id="departments-modal-title">Gestionar departamentos</h2><p>Crea, renombra o desactiva departamentos sin romper proyectos ni plantillas.</p></div><button id="close-departments-modal" class="pm-button pm-button-quiet" type="button" aria-label="Cerrar">×</button></div>
+        <div class="pm-modal-body">
+          <form id="create-department-form" class="pm-form-grid">
+            <div class="pm-field"><label for="new-department-name">Nuevo departamento</label><input id="new-department-name" class="pm-input" maxlength="120" placeholder="Ej. Ilustración" required></div>
+            <div class="pm-field"><label for="new-department-color">Color</label><div style="display:flex;gap:8px;align-items:center"><input id="new-department-color" class="pm-color-input" type="color" value="#72BEC7"><button id="create-department" class="pm-button pm-button-primary" type="submit">Crear departamento</button></div></div>
+          </form>
+          <div id="department-management-list" class="pm-department-manager"></div>
+          <p id="department-management-message" class="pm-form-message" role="status"></p>
+        </div>
+        <div class="pm-modal-actions"><button id="done-departments-modal" class="pm-button pm-button-primary" type="button">Listo</button></div>
+      </div>
+    </div>
+
+    <script is:inline>
+      const projectConfig = document.getElementById('projects-config');
+      const SUPABASE_URL = String(projectConfig?.dataset.url || '').replace(/\/$/, '');
+      const SUPABASE_KEY = String(projectConfig?.dataset.key || '');
+      const state = {
+        bootstrap: null,
+        detail: null,
+        selectedProjectId: null,
+        createKey: null,
+        editingTaskId: null,
+        listSort: 'department',
+        listDirection: 'asc',
+        collapsedDepartments: new Set(),
+        collapsedDriveFolders: new Set(),
+        editingCalendarBlocks: [],
+        editingMeetingEvent: null,
+        editingMeetingAttendees: [],
+        editingMeetingResponsibles: [],
+        editingMeetingCommitments: [],
+        calendarLinkContext: null,
+        activeShareLinkId: null,
+        taskDeleteArmed: false,
+      };
+
+      function escapeHTML(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function formatDate(value) {
+        if (!value) return 'Sin fecha';
+        const date = new Date(`${value}T12:00:00`);
+        return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+      }
+
+      function formatTimestamp(value) {
+        if (!value) return 'Sin fecha de modificación';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return 'Sin fecha de modificación';
+        return `Modificado ${new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }).format(date)}`;
+      }
+
+      function formatCalendarDateTime(value) {
+        if (!value) return 'Sin fecha';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value);
+        return new Intl.DateTimeFormat('es-CL', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }).format(date);
+      }
+
+      function statusLabel(value) {
+        return ({ draft: 'Borrador', planned: 'Planificado', active: 'Activo', on_hold: 'En pausa', completed: 'Completado', cancelled: 'Cancelado' })[value] || value || 'Sin estado';
+      }
+
+      function taskStatusLabel(value) {
+        return ({
+          not_started: 'No iniciada',
+          ready: 'Lista',
+          in_progress: 'En curso',
+          blocked: 'Bloqueada',
+          in_review: 'En revisión',
+          completed: 'Completada',
+          cancelled: 'Cancelada',
+        })[value] || value || 'Sin estado';
+      }
+
+      function meetingStatusLabel(value) {
+        return ({ not_started: 'Programada', in_progress: 'En curso', completed: 'Realizada', cancelled: 'Cancelada' })[value] || value || 'Sin estado';
+      }
+
+      function calendarStatusLabel(value) {
+        return ({ not_started: 'No iniciado', in_progress: 'En curso', completed: 'Completo' })[value] || 'No iniciado';
+      }
+
+      function closeCustomSelects(except = null) {
+        document.querySelectorAll('.pm-select.is-open').forEach((element) => {
+          if (element !== except) element.classList.remove('is-open');
+        });
+      }
+
+      function refreshCustomSelect(select) {
+        const wrapper = select?.closest('.pm-select');
+        if (!wrapper) return;
+        const button = wrapper.querySelector('.pm-select-button');
+        const menu = wrapper.querySelector('.pm-select-menu');
+        const options = [...select.options];
+        const selected = options.find((option) => option.value === select.value) || options[0];
+        button.querySelector('span').textContent = selected?.textContent || 'Seleccionar';
+        menu.innerHTML = options.map((option) => `<button class="pm-select-option ${option.value === select.value ? 'is-selected' : ''}" type="button" data-select-value="${escapeHTML(option.value)}">${escapeHTML(option.textContent)}</button>`).join('');
+        menu.querySelectorAll('[data-select-value]').forEach((optionButton) => {
+          optionButton.addEventListener('click', () => {
+            select.value = optionButton.dataset.selectValue;
+            select.dispatchEvent(new Event('input', { bubbles: true }));
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+            refreshCustomSelect(select);
+            wrapper.classList.remove('is-open');
+          });
+        });
+      }
+
+      function enhanceSelect(select) {
+        if (!select || select.dataset.enhanced === 'true') {
+          refreshCustomSelect(select);
+          return;
+        }
+        const compact = select.classList.contains('pm-input-compact');
+        const wrapper = document.createElement('div');
+        wrapper.className = `pm-select${compact ? ' pm-input-compact' : ''}`;
+        select.parentNode.insertBefore(wrapper, select);
+        wrapper.appendChild(select);
+        select.classList.add('pm-native-select');
+        select.dataset.enhanced = 'true';
+        wrapper.insertAdjacentHTML('beforeend', `<button class="pm-select-button" type="button" aria-haspopup="listbox" aria-expanded="false"><span></span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7.5 5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg></button><div class="pm-select-menu" role="listbox"></div>`);
+        const button = wrapper.querySelector('.pm-select-button');
+        button.addEventListener('click', () => {
+          const willOpen = !wrapper.classList.contains('is-open');
+          closeCustomSelects(wrapper);
+          wrapper.classList.toggle('is-open', willOpen);
+          button.setAttribute('aria-expanded', String(willOpen));
+        });
+        select.addEventListener('change', () => refreshCustomSelect(select));
+        refreshCustomSelect(select);
+      }
+
+      function safeDepartmentColor(value) {
+        return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? value : '#8f999f';
+      }
+
+      function isMeetingTask(task) {
+        return task?.metadata?.task_type === 'meeting' || /(^|:)weekly_meeting_|(^|:)kickoff$/.test(String(task?.task_key || '')) || /reuni[oó]n|kick-off/i.test(String(task?.title || ''));
+      }
+
+      function currentToken() {
+        const token = sessionStorage.getItem('adminToken');
+        return token && token.split('.').length === 3 ? token : '';
+      }
+
+      async function projectRequest(path = '?resource=bootstrap', options = {}) {
+        const token = currentToken();
+        if (!token) throw new Error('Tu sesión expiró. Ingresa nuevamente.');
+        const response = await fetch(`${SUPABASE_URL}/functions/v1/project-admin${path}`, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${token}`,
+            ...(options.headers || {}),
+          },
+        });
+        const result = await response.json().catch(() => ({}));
+        if (response.status === 401) logoutProjects();
+        if (!response.ok) throw new Error(result.error || `Error de proyectos (${response.status})`);
+        return result;
+      }
+
+      function replaceTaskState(updatedTask) {
+        if (!updatedTask?.id || !state.detail?.tasks) return;
+        const index = state.detail.tasks.findIndex((task) => task.id === updatedTask.id);
+        if (index >= 0) state.detail.tasks[index] = updatedTask;
+      }
+
+      function showProjectsApp() {
+        document.getElementById('projects-auth').classList.add('pm-hidden');
+        document.getElementById('projects-app').classList.remove('pm-hidden');
+      }
+
+      function showProjectsLogin() {
+        document.getElementById('projects-app').classList.add('pm-hidden');
+        document.getElementById('projects-auth').classList.remove('pm-hidden');
+      }
+
+      function logoutProjects() {
+        sessionStorage.removeItem('adminToken');
+        state.bootstrap = null;
+        state.detail = null;
+        showProjectsLogin();
+      }
+
+      function setSyncStatus(label, ready = false) {
+        const element = document.getElementById('sync-status');
+        element.classList.toggle('is-ready', ready);
+        element.querySelector('span:last-child').textContent = label;
+      }
+
+      function renderMetrics() {
+        const metrics = state.bootstrap?.metrics || {};
+        const items = [
+          ['Proyectos totales', metrics.total_projects || 0],
+          ['En curso', metrics.active_projects || 0],
+          ['Fuera de fecha', metrics.overdue_projects || 0],
+          ['Servicios con plantilla', metrics.services_with_active_blueprints || 0],
+        ];
+        document.getElementById('project-metrics').innerHTML = items.map(([label, value]) => `
+          <article class="pm-metric"><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></article>
+        `).join('');
+      }
+
+      function renderProjectList() {
+        const projects = state.bootstrap?.projects || [];
+        const list = document.getElementById('project-list');
+        if (!projects.length) {
+          list.innerHTML = '<div class="pm-empty" style="padding:22px 8px"><p>Aún no hay proyectos.</p></div>';
+          return;
+        }
+        list.innerHTML = projects.map((project) => {
+          const organization = project.organization || {};
+          return `
+            <button type="button" class="pm-project-item ${project.id === state.selectedProjectId ? 'is-active' : ''}" data-project-id="${escapeHTML(project.id)}">
+              <strong>${escapeHTML(project.name)}</strong>
+              <span><span>${escapeHTML(project.project_code)}</span><span>${escapeHTML(statusLabel(project.status))}</span></span>
+              <span class="pm-project-client">${escapeHTML(organization.display_name || organization.legal_name || 'Cliente')}</span>
+              <span class="pm-project-short">${escapeHTML(String(project.project_code || 'P').split('-').at(-1))}</span>
+            </button>`;
+        }).join('');
+        list.querySelectorAll('[data-project-id]').forEach((button) => {
+          button.addEventListener('click', () => selectProject(button.dataset.projectId));
+        });
+      }
+
+      function renderProjectHeading() {
+        const project = state.detail?.project;
+        const heading = document.getElementById('project-heading');
+        if (!project) {
+          heading.innerHTML = `
+            <div><span class="pm-eyebrow">Primer slice</span><h2>Planificación conectada al catálogo</h2>
+            <div class="pm-project-meta"><span>Selecciona un proyecto o crea el primero.</span></div></div>
+            <span class="pm-chip">Base operacional</span>`;
+          return;
+        }
+        const organization = project.organization || {};
+        heading.innerHTML = `
+          <div>
+            <span class="pm-eyebrow">${escapeHTML(project.project_code)}</span>
+            <h2>${escapeHTML(project.name)}</h2>
+            <div class="pm-project-meta">
+              <span>${escapeHTML(organization.display_name || organization.legal_name || 'Cliente')}</span>
+              <span>${escapeHTML(formatDate(project.planned_start))} → ${escapeHTML(formatDate(project.committed_completion_date))}</span>
+              <span>${escapeHTML(project.initial_estimated_working_days ?? '—')} días laborales base</span>
+            </div>
+          </div>
+          <div class="pm-project-head-actions"><span class="pm-chip">${escapeHTML(statusLabel(project.status))}</span><button id="share-project-view" class="pm-button pm-button-quiet" type="button">↗ Compartir vista</button></div>`;
+        document.getElementById('share-project-view').addEventListener('click', createProjectShareLink);
+      }
+
+      async function createProjectShareLink() {
+        if (!state.selectedProjectId) return;
+        const button = document.getElementById('share-project-view');
+        button.disabled = true;
+        button.textContent = 'Creando enlace…';
+        try {
+          const result = await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'create_share_link', project_id: state.selectedProjectId }),
+          });
+          const shareLink = result.share_link || {};
+          if (!shareLink.id || !shareLink.token) throw new Error('No pudimos crear el enlace compartido.');
+          const shareUrl = `${location.origin}/projects/share/?token=${encodeURIComponent(shareLink.token)}`;
+          state.activeShareLinkId = shareLink.id;
+          document.getElementById('project-share-url').value = shareUrl;
+          document.getElementById('open-project-share').href = shareUrl;
+          document.getElementById('project-share-expiry').textContent = shareLink.expires_at
+            ? `Vigente hasta ${new Intl.DateTimeFormat('es-CL', { dateStyle: 'long', timeStyle: 'short' }).format(new Date(shareLink.expires_at))}.`
+            : 'Sin vencimiento programado.';
+          document.getElementById('project-share-message').textContent = '';
+          document.getElementById('project-share-modal').classList.remove('pm-hidden');
+        } catch (error) {
+          setSyncStatus(error.message, false);
+        } finally {
+          button.disabled = false;
+          button.textContent = '↗ Compartir vista';
+        }
+      }
+
+      function closeProjectShareModal() {
+        document.getElementById('project-share-modal').classList.add('pm-hidden');
+        document.getElementById('project-share-message').textContent = '';
+      }
+
+      async function copyProjectShareLink() {
+        const input = document.getElementById('project-share-url');
+        try {
+          await navigator.clipboard.writeText(input.value);
+        } catch {
+          input.select();
+          document.execCommand('copy');
+        }
+        document.getElementById('project-share-message').textContent = 'Enlace copiado. Ya puedes enviarlo al cliente.';
+      }
+
+      async function revokeProjectShareLink() {
+        if (!state.activeShareLinkId || !state.selectedProjectId) return;
+        const button = document.getElementById('revoke-project-share');
+        button.disabled = true;
+        button.textContent = 'Revocando…';
+        try {
+          await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'revoke_share_link', project_id: state.selectedProjectId, share_link_id: state.activeShareLinkId }),
+          });
+          state.activeShareLinkId = null;
+          document.getElementById('project-share-url').value = '';
+          document.getElementById('open-project-share').removeAttribute('href');
+          document.getElementById('project-share-message').textContent = 'El enlace fue revocado y ya no abre el cronograma.';
+        } catch (error) {
+          document.getElementById('project-share-message').textContent = error.message;
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Revocar enlace';
+        }
+      }
+
+      function renderDepartmentManager() {
+        const departments = state.bootstrap?.departments || [];
+        const container = document.getElementById('department-management-list');
+        container.innerHTML = departments.length ? departments.map((department) => {
+          const taskCount = Number(department.task_count || 0);
+          const blueprintCount = Number(department.blueprint_task_count || 0);
+          const usageCount = taskCount + blueprintCount;
+          const replacements = departments.filter((item) => item.id !== department.id);
+          return `<div class="pm-department-manager-row" data-department-manager-id="${escapeHTML(department.id)}"><input class="pm-color-input" type="color" data-department-color value="${escapeHTML(safeDepartmentColor(department.color))}" aria-label="Color de ${escapeHTML(department.name)}"><input class="pm-input pm-input-compact" data-department-name value="${escapeHTML(department.name)}" maxlength="120" aria-label="Nombre del departamento"><div class="pm-department-usage"><strong>${taskCount} tareas · ${blueprintCount} plantillas</strong><span>${escapeHTML(department.code)}</span></div><button class="pm-button pm-button-quiet pm-input-compact" type="button" data-save-department>Guardar</button><button class="pm-button pm-button-quiet pm-button-danger pm-input-compact" type="button" data-delete-department>Eliminar</button>${usageCount ? `<div class="pm-department-replacement pm-field"><label>Antes de eliminar, mover tareas y plantillas a</label><select class="pm-input pm-input-compact" data-replacement-department>${replacements.map((item) => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`).join('')}</select></div>` : ''}</div>`;
+        }).join('') : '<div class="pm-placeholder-note">No hay departamentos activos.</div>';
+        container.querySelectorAll('select[data-replacement-department]').forEach(enhanceSelect);
+        container.querySelectorAll('[data-save-department]').forEach((button) => button.addEventListener('click', () => updateDepartment(button.closest('[data-department-manager-id]'))));
+        container.querySelectorAll('[data-delete-department]').forEach((button) => button.addEventListener('click', () => deleteDepartment(button)));
+      }
+
+      function openDepartmentsModal() {
+        renderDepartmentManager();
+        document.getElementById('department-management-message').textContent = '';
+        document.getElementById('departments-modal').classList.remove('pm-hidden');
+      }
+
+      function closeDepartmentsModal() {
+        closeCustomSelects();
+        document.getElementById('departments-modal').classList.add('pm-hidden');
+      }
+
+      async function manageDepartment(department) {
+        const result = await projectRequest('', { method:'POST', body:JSON.stringify({ action:'manage_department', department }) });
+        await loadProjects(state.selectedProjectId);
+        renderDepartmentManager();
+        return result.department;
+      }
+
+      async function createDepartment(event) {
+        event.preventDefault();
+        const message = document.getElementById('department-management-message');
+        const button = document.getElementById('create-department');
+        button.disabled = true;
+        button.textContent = 'Creando…';
+        message.textContent = '';
+        try {
+          const department = await manageDepartment({
+            action: 'create',
+            name: document.getElementById('new-department-name').value,
+            color: document.getElementById('new-department-color').value,
+          });
+          document.getElementById('create-department-form').reset();
+          document.getElementById('new-department-color').value = '#72BEC7';
+          message.textContent = `Departamento creado: ${department.name}.`;
+        } catch (error) {
+          message.textContent = error.message;
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Crear departamento';
+        }
+      }
+
+      async function updateDepartment(row) {
+        const message = document.getElementById('department-management-message');
+        const button = row.querySelector('[data-save-department]');
+        button.disabled = true;
+        button.textContent = 'Guardando…';
+        try {
+          const department = await manageDepartment({ action:'update', department_id:row.dataset.departmentManagerId, name:row.querySelector('[data-department-name]').value, color:row.querySelector('[data-department-color]').value });
+          message.textContent = `Departamento actualizado: ${department.name}.`;
+        } catch (error) {
+          message.textContent = error.message;
+          button.disabled = false;
+          button.textContent = 'Guardar';
+        }
+      }
+
+      async function deleteDepartment(button) {
+        const row = button.closest('[data-department-manager-id]');
+        const message = document.getElementById('department-management-message');
+        if (button.dataset.armed !== 'true') {
+          button.dataset.armed = 'true';
+          button.textContent = 'Confirmar';
+          message.textContent = 'Confirma la eliminación. Las tareas y plantillas se moverán al departamento de reemplazo seleccionado.';
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Eliminando…';
+        try {
+          const department = await manageDepartment({ action:'delete', department_id:row.dataset.departmentManagerId, replacement_department_id:row.querySelector('[data-replacement-department]')?.value || null });
+          message.textContent = `${department.name} fue eliminado de los departamentos activos.`;
+        } catch (error) {
+          message.textContent = error.message;
+          button.disabled = false;
+          button.dataset.armed = 'false';
+          button.textContent = 'Eliminar';
+        }
+      }
+
+      function taskTimelineStart(task) {
+        return task?.forecast_start || task?.planned_start || null;
+      }
+
+      function taskTimelineEnd(task) {
+        return task?.forecast_end || task?.planned_end || taskTimelineStart(task);
+      }
+
+      function timelineBounds(tasks) {
+        const values = tasks.flatMap((task) => [taskTimelineStart(task), taskTimelineEnd(task)]).filter(Boolean).map((value) => new Date(`${value}T12:00:00`).getTime());
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        const minimum = values.length ? Math.min(...values) : today.getTime();
+        const maximum = values.length ? Math.max(...values) : today.getTime() + 30 * 86400000;
+        const start = new Date(minimum - 2 * 86400000);
+        const end = new Date(Math.max(maximum + 2 * 86400000, start.getTime() + 14 * 86400000));
+        return { start, end, span: Math.max(1, end.getTime() - start.getTime()) };
+      }
+
+      function renderTimeline() {
+        const panel = document.getElementById('timeline-panel');
+        const tasks = state.detail?.tasks || [];
+        if (!state.detail) {
+          panel.innerHTML = '<div class="pm-empty"><strong>El portafolio está listo para el primer proyecto</strong><p>La creación usa clientes reales del CRM y servicios canónicos. Cuando un servicio tenga una plantilla activa, sus tareas y dependencias se instanciarán automáticamente.</p></div>';
+          return;
+        }
+        if (!tasks.length) {
+          panel.innerHTML = '<div class="pm-empty"><strong>Este proyecto aún no tiene tareas</strong><p>Sus servicios quedaron vinculados y sus precios/plazos fueron capturados como línea base. El siguiente paso es calibrar y activar las plantillas de tareas de esos servicios.</p></div>';
+          return;
+        }
+        const departments = state.bootstrap?.departments || [];
+        const departmentMap = new Map(departments.map((department) => [department.id, department]));
+        const departmentOrder = new Map(departments.map((department, index) => [department.id, Number(department.sort_order ?? index)]));
+        const grouped = new Map();
+        tasks.forEach((task) => {
+          const key = task.department_id || 'unassigned';
+          if (!grouped.has(key)) grouped.set(key, []);
+          grouped.get(key).push(task);
+        });
+        const bounds = timelineBounds(tasks);
+        const axisLabels = Array.from({ length: 6 }, (_, index) => {
+          const date = new Date(bounds.start.getTime() + bounds.span * (index / 5));
+          return new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' }).format(date);
+        });
+        const today = new Date();
+        today.setHours(12, 0, 0, 0);
+        const todayPosition = ((today.getTime() - bounds.start.getTime()) / bounds.span) * 100;
+        const todayMarker = todayPosition >= 0 && todayPosition <= 100
+          ? `<span class="pm-today-marker" style="left:${todayPosition}%" role="img" aria-label="Hoy"></span>`
+          : '';
+        const geometry = (startValue, endValue) => {
+          const start = startValue ? new Date(`${startValue}T12:00:00`).getTime() : bounds.start.getTime();
+          const end = endValue ? new Date(`${endValue}T12:00:00`).getTime() : start + 86400000;
+          const left = Math.max(0, Math.min(98, ((start - bounds.start.getTime()) / bounds.span) * 100));
+          const width = Math.max(1.5, Math.min(100 - left, ((end - start + 86400000) / bounds.span) * 100));
+          return { left, width };
+        };
+        const rows = [];
+        const groups = [...grouped.entries()].sort(([departmentA], [departmentB]) => (
+          (departmentOrder.get(departmentA) ?? 9999) - (departmentOrder.get(departmentB) ?? 9999)
+        ));
+        groups.forEach(([departmentId, departmentTasks]) => {
+          const department = departmentMap.get(departmentId) || { name: 'Sin departamento', color: '#8f999f' };
+          const color = safeDepartmentColor(department.color);
+          const collapsed = state.collapsedDepartments.has(departmentId);
+          const datedTasks = departmentTasks.filter((task) => taskTimelineStart(task) || taskTimelineEnd(task));
+          const groupStart = datedTasks.map((task) => taskTimelineStart(task) || taskTimelineEnd(task)).sort()[0];
+          const groupEnd = datedTasks.map((task) => taskTimelineEnd(task) || taskTimelineStart(task)).sort().at(-1);
+          const groupGeometry = geometry(groupStart, groupEnd);
+          rows.push(`
+            <div class="pm-timeline-row pm-department-row">
+              <div class="pm-timeline-label">
+                <button class="pm-department-toggle" type="button" data-department-toggle="${escapeHTML(departmentId)}" aria-expanded="${collapsed ? 'false' : 'true'}">
+                  <span class="pm-department-toggle-icon">${collapsed ? '▶' : '▼'}</span>
+                  <span class="pm-department-dot" style="background:${color}"></span>
+                  <strong>${escapeHTML(department.name)}</strong>
+                  <span class="pm-department-count">${departmentTasks.length}</span>
+                </button>
+              </div>
+              <div class="pm-timeline-axis">${todayMarker}${collapsed ? `<button class="pm-task-bar pm-department-summary" type="button" data-department-toggle="${escapeHTML(departmentId)}" style="left:${groupGeometry.left}%;width:${groupGeometry.width}%;--department-color:${color}" aria-label="Expandir ${escapeHTML(department.name)}">${escapeHTML(department.name)}</button>` : ''}</div>
+            </div>`);
+          if (collapsed) return;
+          departmentTasks.forEach((task) => {
+            const meeting = isMeetingTask(task);
+            const taskGeometry = geometry(taskTimelineStart(task), taskTimelineEnd(task));
+            const statusClass = task.status === 'completed' ? 'is-completed' : task.status === 'blocked' ? 'is-blocked' : '';
+            const meetingClass = meeting ? 'is-meeting' : '';
+            const timelineDetail = meeting
+              ? `Reunión · ${meetingStatusLabel(task.status)} · ${Number(task.metadata?.calendar_event?.duration_minutes || task.planned_effort_minutes || 60)} min`
+              : `${task.planned_effort_minutes ? `${Math.round(task.planned_effort_minutes / 60 * 10) / 10} h` : 'Sin horas'} · ${taskStatusLabel(task.status)}`;
+            rows.push(`
+              <div class="pm-timeline-row">
+                <div class="pm-timeline-label">
+                  <button class="pm-timeline-task-link" type="button" data-task-id="${escapeHTML(task.id)}">
+                    <strong>${escapeHTML(task.title)}</strong>
+                    <span>${escapeHTML(timelineDetail)}</span>
+                  </button>
+                </div>
+                <div class="pm-timeline-axis">${todayMarker}<button class="pm-task-bar ${statusClass} ${task.is_milestone ? 'is-milestone' : ''} ${meetingClass}" type="button" data-task-id="${escapeHTML(task.id)}" style="left:${taskGeometry.left}%;width:${taskGeometry.width}%;--department-color:${color}" aria-label="Abrir ${escapeHTML(task.title)}" title="${escapeHTML(task.title)}">${task.is_milestone ? '' : meeting ? '◆' : escapeHTML(`${task.progress || 0}%`)}</button></div>
+              </div>`);
+          });
+        });
+        panel.innerHTML = `
+          <div class="pm-timeline-toolbar"><strong>Plan por departamento</strong><span>Fechas previstas · ${escapeHTML(formatDate(bounds.start.toISOString().slice(0, 10)))} — ${escapeHTML(formatDate(bounds.end.toISOString().slice(0, 10)))}</span></div>
+          <div class="pm-timeline-scroll"><div class="pm-timeline">
+            <div class="pm-timeline-row pm-timeline-header"><div class="pm-timeline-label">Actividad / dedicación</div><div class="pm-timeline-axis">${todayMarker}<div class="pm-axis-labels">${axisLabels.map((label) => `<span>${escapeHTML(label)}</span>`).join('')}</div></div></div>
+            ${rows.join('')}
+          </div></div>`;
+        panel.querySelectorAll('[data-department-toggle]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const departmentId = button.dataset.departmentToggle;
+            if (state.collapsedDepartments.has(departmentId)) state.collapsedDepartments.delete(departmentId);
+            else state.collapsedDepartments.add(departmentId);
+            renderTimeline();
+          });
+        });
+        panel.querySelectorAll('[data-task-id]').forEach((button) => {
+          button.addEventListener('click', () => openTaskModal(button.dataset.taskId));
+        });
+      }
+
+      function renderTaskList() {
+        const panel = document.getElementById('task-list-panel');
+        const tasks = state.detail?.tasks || [];
+        if (!state.detail) {
+          panel.innerHTML = '<div class="pm-empty"><strong>Selecciona un proyecto</strong><p>La lista editable aparecerá agrupada por departamento.</p></div>';
+          return;
+        }
+        if (!tasks.length) {
+          panel.innerHTML = '<div class="pm-empty"><strong>Este proyecto aún no tiene tareas</strong><p>Cuando se instancie una plantilla, podrás editarlas desde aquí.</p></div>';
+          return;
+        }
+        const departments = state.bootstrap?.departments || [];
+        const departmentMap = new Map(departments.map((department) => [department.id, department]));
+        const departmentOrder = new Map(departments.map((department, index) => [department.id, Number(department.sort_order ?? index)]));
+        const direction = state.listDirection === 'desc' ? -1 : 1;
+        const compareText = (left, right) => String(left || '').localeCompare(String(right || ''), 'es', { sensitivity: 'base' }) * direction;
+        const compareTasks = (left, right) => {
+          if (state.listSort === 'start') return compareText(taskTimelineStart(left), taskTimelineStart(right)) || compareText(left.title, right.title);
+          if (state.listSort === 'end') return compareText(taskTimelineEnd(left), taskTimelineEnd(right)) || compareText(left.title, right.title);
+          if (state.listSort === 'status') return compareText(taskStatusLabel(left.status), taskStatusLabel(right.status)) || compareText(left.title, right.title);
+          if (state.listSort === 'title') return compareText(left.title, right.title);
+          if (state.listSort === 'effort') return ((Number(left.planned_effort_minutes || 0) - Number(right.planned_effort_minutes || 0)) * direction) || compareText(left.title, right.title);
+          return ((Number(left.sort_order || 0) - Number(right.sort_order || 0)) * direction) || compareText(left.title, right.title);
+        };
+        const grouped = new Map();
+        tasks.forEach((task) => {
+          const departmentId = task.department_id || 'unassigned';
+          if (!grouped.has(departmentId)) grouped.set(departmentId, []);
+          grouped.get(departmentId).push(task);
+        });
+        const groups = [...grouped.entries()].sort(([departmentA], [departmentB]) => (
+          ((departmentOrder.get(departmentA) ?? 9999) - (departmentOrder.get(departmentB) ?? 9999)) * (state.listSort === 'department' ? direction : 1)
+        ));
+        const rows = groups.flatMap(([departmentId, departmentTasks]) => {
+          const department = departmentMap.get(departmentId) || { name: 'Sin departamento', color: '#8f999f' };
+          const color = safeDepartmentColor(department.color);
+          const taskRows = [...departmentTasks].sort(compareTasks).map((task) => {
+            const meeting = isMeetingTask(task);
+            const progress = Math.max(0, Math.min(100, Number(task.progress || 0)));
+            const linkedDocuments = Array.isArray(task.metadata?.linked_document_ids) ? task.metadata.linked_document_ids.length : 0;
+            const minuteDocument = meeting ? (state.detail?.documents || []).find((document) => document.document_type === 'meeting_transcript' && String(document.metadata?.meeting_task_id || document.metadata?.task_id || '') === task.id) : null;
+            const typeLabel = meeting ? 'Reunión' : task.is_milestone ? 'Hito' : 'Tarea';
+            return `<tr>
+              <td><button class="pm-task-open" type="button" data-task-id="${escapeHTML(task.id)}">${escapeHTML(task.title)}</button><span class="pm-task-subline">${escapeHTML(typeLabel)}${task.task_key ? ` · ${escapeHTML(task.task_key)}` : ''}</span></td>
+              <td>${escapeHTML(formatDate(taskTimelineStart(task)))}</td>
+              <td>${escapeHTML(formatDate(taskTimelineEnd(task)))}</td>
+              <td><span class="pm-status-pill">${escapeHTML(meeting ? meetingStatusLabel(task.status) : taskStatusLabel(task.status))}</span></td>
+              <td>${meeting ? '—' : `<div style="display:flex;align-items:center;gap:7px"><div class="pm-progress-track" style="--department-color:${color}"><span style="width:${progress}%"></span></div><span>${progress}%</span></div>`}</td>
+              <td>${meeting ? `${Number(task.metadata?.calendar_event?.duration_minutes || task.planned_effort_minutes || 60)} min evento` : `${task.planned_effort_minutes ? `${Math.round(Number(task.planned_effort_minutes) / 6) / 10} h plan` : '—'}${task.actual_effort_minutes ? `<span class="pm-task-subline">${Math.round(Number(task.actual_effort_minutes) / 6) / 10} h real</span>` : ''}`}</td>
+              <td>${meeting ? (minuteDocument ? 'Minuta vinculada' : 'Minuta pendiente') : (linkedDocuments ? `${linkedDocuments} vinculado${linkedDocuments === 1 ? '' : 's'}` : '—')}</td>
+              <td><button class="pm-button pm-button-quiet pm-input-compact" type="button" data-task-id="${escapeHTML(task.id)}">Editar</button></td>
+            </tr>`;
+          });
+          return [
+            `<tr class="pm-task-group-row"><td colspan="8"><div class="pm-task-group-heading"><span class="pm-department-dot" style="background:${color}"></span><strong>${escapeHTML(department.name)}</strong><span>${departmentTasks.length} actividades</span></div></td></tr>`,
+            ...taskRows,
+          ];
+        });
+        panel.innerHTML = `
+          <div class="pm-list-toolbar">
+            <div class="pm-list-toolbar-copy"><strong>Lista editable por departamento</strong><span>Las tareas gestionan trabajo; las reuniones gestionan evento, personas, compromisos y minuta.</span></div>
+            <div class="pm-list-controls">
+              <div class="pm-list-control"><label for="task-list-sort">Ordenar por</label><select id="task-list-sort" class="pm-input pm-input-compact">
+                <option value="department" ${state.listSort === 'department' ? 'selected' : ''}>Departamento</option>
+                <option value="start" ${state.listSort === 'start' ? 'selected' : ''}>Fecha de inicio</option>
+                <option value="end" ${state.listSort === 'end' ? 'selected' : ''}>Fecha de término</option>
+                <option value="status" ${state.listSort === 'status' ? 'selected' : ''}>Estado</option>
+                <option value="title" ${state.listSort === 'title' ? 'selected' : ''}>Nombre</option>
+                <option value="effort" ${state.listSort === 'effort' ? 'selected' : ''}>Esfuerzo</option>
+              </select></div>
+              <button id="task-list-direction" class="pm-button pm-button-quiet pm-input-compact" type="button" aria-label="Cambiar dirección">${state.listDirection === 'asc' ? '↑ Asc.' : '↓ Desc.'}</button>
+            </div>
+          </div>
+          <div class="pm-table-wrap"><table class="pm-table"><thead><tr><th>Actividad</th><th>Inicio previsto</th><th>Fin previsto</th><th>Estado</th><th>Avance</th><th>Dedicación</th><th>Documentos</th><th></th></tr></thead><tbody>${rows.join('')}</tbody></table></div>`;
+        document.getElementById('task-list-sort').addEventListener('change', (event) => {
+          state.listSort = event.target.value;
+          renderTaskList();
+        });
+        enhanceSelect(document.getElementById('task-list-sort'));
+        document.getElementById('task-list-direction').addEventListener('click', () => {
+          state.listDirection = state.listDirection === 'asc' ? 'desc' : 'asc';
+          renderTaskList();
+        });
+        panel.querySelectorAll('[data-task-id]').forEach((button) => {
+          button.addEventListener('click', () => openTaskModal(button.dataset.taskId));
+        });
+      }
+
+      function renderServices() {
+        const panel = document.getElementById('services-panel');
+        const services = state.detail?.services || [];
+        if (!services.length) {
+          panel.innerHTML = '<div class="pm-empty"><strong>Sin servicios vinculados</strong><p>Todo proyecto debe contener al menos un servicio canónico.</p></div>';
+          return;
+        }
+        panel.innerHTML = `<div class="pm-table-wrap"><table class="pm-table"><thead><tr><th>Servicio</th><th>Plantilla</th><th>Estimación</th><th>Real</th><th>Eficiencia</th></tr></thead><tbody>${services.map((item) => {
+          const service = item.service || {};
+          const estimated = Number(item.estimated_effort_minutes || 0);
+          const actual = Number(item.actual_effort_minutes || 0);
+          const efficiency = estimated && actual ? `${Math.round(estimated / actual * 100)}%` : 'Pendiente';
+          return `<tr><td><strong>${escapeHTML(service.service_name || item.service_snapshot?.service_name || 'Servicio')}</strong><br><span style="color:var(--pm-muted)">${escapeHTML(service.category || '')}</span></td><td>${item.baseline_blueprint_id ? 'Activa' : 'Por calibrar'}</td><td>${escapeHTML(item.estimated_working_days ?? '—')} días · ${estimated ? Math.round(estimated / 60 * 10) / 10 : '—'} h</td><td>${escapeHTML(item.actual_working_days ?? '—')} días · ${actual ? Math.round(actual / 60 * 10) / 10 : '—'} h</td><td>${escapeHTML(efficiency)}</td></tr>`;
+        }).join('')}</tbody></table></div>`;
+      }
+
+      function isDriveFolder(item) {
+        return item?.mime_type === 'application/vnd.google-apps.folder' || item?.metadata?.item_type === 'folder';
+      }
+
+      function driveItemFullPath(item) {
+        const parentPath = String(item?.metadata?.folder_path || '').replace(/^\/+|\/+$/g, '');
+        return [parentPath, String(item?.name || '')].filter(Boolean).join('/');
+      }
+
+      function driveItemTypeLabel(item) {
+        if (isDriveFolder(item)) return 'Carpeta';
+        const labels = { quote:'Cotización', contract:'Contrato', meeting_transcript:'Minuta', brief:'Brief', input:'Insumo', deliverable:'Entregable', supporting:'Soporte' };
+        return labels[item?.document_type] || item?.document_type || 'Documento';
+      }
+
+      async function synchronizeDrive(button, messageId) {
+        const message = document.getElementById(messageId);
+        button.disabled = true;
+        button.textContent = 'Sincronizando…';
+        if (message) message.textContent = '';
+        try {
+          const result = await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({ action:'sync_drive', project_id:state.selectedProjectId }),
+          });
+          await selectProject(state.selectedProjectId);
+          setSyncStatus(`Drive: ${result.files} archivos · actualizado`, true);
+          const refreshedMessage = document.getElementById(messageId);
+          if (refreshedMessage) refreshedMessage.textContent = `${result.files} archivos visibles en ${result.folders} carpetas · ${result.missing || 0} referencias antiguas ocultadas · ${result.meeting_notes} minutas asociadas.`;
+        } catch (error) {
+          if (message) message.textContent = error.message;
+          button.disabled = false;
+          button.textContent = 'Sincronizar Drive';
+        }
+      }
+
+      function bindDriveSyncButton(buttonId, messageId) {
+        document.getElementById(buttonId)?.addEventListener('click', (event) => synchronizeDrive(event.currentTarget, messageId));
+      }
+
+      function renderDocuments() {
+        const panel = document.getElementById('documents-panel');
+        const items = state.detail?.documents || [];
+        const project = state.detail?.project || {};
+        if (!items.length) {
+          const canSync = project.drive_root_id && !String(project.drive_root_id).startsWith('pending-drive:');
+          panel.innerHTML = `<div class="pm-empty"><strong>${canSync ? 'La carpeta está conectada, pero aún no se ha inspeccionado' : 'Drive aún no está conectado'}</strong><p>La estructura distingue carpetas, cotizaciones, contratos, transcripciones, insumos y entregables. Las ediciones del agente se guardarán como propuestas; no existe ninguna acción de eliminación.</p>${canSync ? '<button id="sync-documents-drive" class="pm-button pm-button-primary" type="button">Sincronizar Drive</button><p id="documents-sync-message" class="pm-drive-sync-message"></p>' : ''}</div>`;
+          if (canSync) bindDriveSyncButton('sync-documents-drive', 'documents-sync-message');
+          return;
+        }
+        const rootId = String(project.drive_root_id || '');
+        const rootUrl = rootId && !rootId.startsWith('pending-drive:') ? `https://drive.google.com/drive/folders/${encodeURIComponent(rootId)}` : '';
+        const childrenByParent = new Map();
+        items.forEach((item) => {
+          const parentId = String(item.external_parent_id || rootId);
+          if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+          childrenByParent.get(parentId).push(item);
+        });
+        const sortItems = (values = []) => [...values].sort((left, right) => {
+          const folderDifference = Number(isDriveFolder(right)) - Number(isDriveFolder(left));
+          return folderDifference || String(left.name || '').localeCompare(String(right.name || ''), 'es');
+        });
+        const rendered = new Set();
+        const itemExternalIds = new Set(items.map((item) => String(item.external_file_id || item.id || '')).filter(Boolean));
+        const renderNode = (item, depth, branch = new Set()) => {
+          const externalId = String(item.external_file_id || item.id || '');
+          if (!externalId || rendered.has(externalId) || branch.has(externalId)) return '';
+          rendered.add(externalId);
+          const folder = isDriveFolder(item);
+          const collapsed = folder && state.collapsedDriveFolders.has(externalId);
+          const url = driveDocumentUrl(item);
+          const modified = item.metadata?.modified_time || item.updated_at;
+          const nextBranch = new Set(branch);
+          nextBranch.add(externalId);
+          const children = folder && !collapsed
+            ? sortItems(childrenByParent.get(externalId) || []).map((child) => renderNode(child, depth + 1, nextBranch)).join('')
+            : '';
+          return `<div class="pm-drive-tree-row ${folder ? 'is-folder' : ''}" style="--drive-depth:${Math.min(depth, 12)}"><div class="pm-drive-tree-name">${folder ? `<button class="pm-drive-tree-toggle" type="button" data-drive-folder-toggle="${escapeHTML(externalId)}" aria-expanded="${collapsed ? 'false' : 'true'}" aria-label="${collapsed ? 'Expandir' : 'Contraer'} ${escapeHTML(item.name)}">${collapsed ? '▶' : '▼'}</button>` : '<span class="pm-drive-tree-spacer"></span>'}<span class="pm-drive-tree-icon">${folder ? '◆' : '▤'}</span><div class="pm-drive-tree-copy">${url ? `<a href="${escapeHTML(url)}" target="_blank" rel="noopener"><strong>${escapeHTML(item.name)}</strong></a>` : `<strong>${escapeHTML(item.name)}</strong>`}<span>${escapeHTML(item.metadata?.folder_path || 'Raíz del proyecto')}</span></div></div><span class="pm-drive-tree-meta">${escapeHTML(driveItemTypeLabel(item))}</span><span class="pm-drive-tree-meta">${folder ? 'Navegable' : item.access_mode === 'suggest_only' ? 'Sugerencias + HIL' : 'Solo lectura'}${!folder && item.indexed_at ? ' · Indexado' : ''}</span>${url ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(url)}" target="_blank" rel="noopener">Abrir</a>` : `<span class="pm-drive-tree-meta">${escapeHTML(formatTimestamp(modified))}</span>`}</div>${children}`;
+        };
+        let treeMarkup = sortItems(childrenByParent.get(rootId) || []).map((item) => renderNode(item, 0)).join('');
+        const orphans = sortItems(items.filter((item) => {
+          const externalId = String(item.external_file_id || item.id || '');
+          const parentId = String(item.external_parent_id || '');
+          return !rendered.has(externalId) && parentId !== rootId && !itemExternalIds.has(parentId);
+        }));
+        if (orphans.length) treeMarkup += orphans.map((item) => renderNode(item, 0)).join('');
+        const folderCount = items.filter(isDriveFolder).length + (rootId ? 1 : 0);
+        const fileCount = items.length - items.filter(isDriveFolder).length;
+        panel.innerHTML = `<div class="pm-drive-browser"><div class="pm-drive-browser-head"><div><strong>${escapeHTML(project.project_code || 'Proyecto')} · Archivos del proyecto</strong><span>${folderCount} carpetas · ${fileCount} archivos · Unidad compartida de Rasika</span></div><div class="pm-drive-browser-actions"><button id="sync-documents-drive" class="pm-button pm-button-primary" type="button">Sincronizar Drive</button>${rootUrl ? `<a class="pm-button pm-button-quiet pm-link-button" href="${escapeHTML(rootUrl)}" target="_blank" rel="noopener">Abrir raíz</a>` : ''}</div></div>${treeMarkup || '<div class="pm-placeholder-note">La carpeta del proyecto está vacía.</div>'}</div><p id="documents-sync-message" class="pm-drive-sync-message"></p>`;
+        panel.querySelectorAll('[data-drive-folder-toggle]').forEach((button) => button.addEventListener('click', () => {
+          const folderId = button.dataset.driveFolderToggle;
+          if (state.collapsedDriveFolders.has(folderId)) state.collapsedDriveFolders.delete(folderId);
+          else state.collapsedDriveFolders.add(folderId);
+          renderDocuments();
+        }));
+        bindDriveSyncButton('sync-documents-drive', 'documents-sync-message');
+      }
+
+      function renderMinutes() {
+        const panel = document.getElementById('minutes-panel');
+        if (!state.detail) {
+          panel.innerHTML = '<div class="pm-empty"><strong>Selecciona un proyecto</strong><p>Las minutas se organizan dentro de cada proyecto.</p></div>';
+          return;
+        }
+        const project = state.detail.project || {};
+        const tasks = state.detail.tasks || [];
+        const documents = state.detail.documents || [];
+        const departments = state.bootstrap?.departments || [];
+        const departmentMap = new Map(departments.map((department) => [department.id, department]));
+        const meetingTasks = tasks.filter(isMeetingTask).sort((left, right) => String(left.planned_start || '').localeCompare(String(right.planned_start || '')));
+        const minuteDocuments = documents.filter((document) => document.document_type === 'meeting_transcript');
+        const notesByTask = new Map();
+        minuteDocuments.forEach((document) => {
+          const meetingTaskId = document.metadata?.meeting_task_id || document.metadata?.task_id;
+          if (meetingTaskId) notesByTask.set(String(meetingTaskId), document);
+        });
+        const matchedDocumentIds = new Set([...notesByTask.values()].map((document) => document.id));
+        const unassignedMinutes = minuteDocuments.filter((document) => !matchedDocumentIds.has(document.id));
+        const indexedCount = minuteDocuments.filter((document) => document.indexed_at).length;
+        const folderId = String(project.drive_root_id || '');
+        const folderUrl = folderId && !folderId.startsWith('pending-drive:') ? `https://drive.google.com/drive/folders/${encodeURIComponent(folderId)}` : '';
+        const dateTile = (value) => {
+          if (!value) return '<div class="pm-minute-date"><strong>—</strong><span>Sin fecha</span></div>';
+          const date = new Date(`${value}T12:00:00`);
+          return `<div class="pm-minute-date"><strong>${escapeHTML(new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short' }).format(date))}</strong><span>${escapeHTML(new Intl.DateTimeFormat('es-CL', { weekday: 'short' }).format(date))}</span></div>`;
+        };
+        const renderMeeting = (task) => {
+          const note = notesByTask.get(task.id);
+          const meetingDetails = task.metadata?.meeting_details || {};
+          const attendeeCount = Array.isArray(meetingDetails.attendees) ? meetingDetails.attendees.length : 0;
+          const responsibleCount = Array.isArray(meetingDetails.responsible_people) ? meetingDetails.responsible_people.length : 0;
+          const pendingCommitments = Array.isArray(meetingDetails.commitments) ? meetingDetails.commitments.filter((item) => item.status !== 'completed').length : 0;
+          const department = departmentMap.get(task.department_id) || { name: 'Sin departamento', color: '#8f999f' };
+          const color = safeDepartmentColor(department.color);
+          const noteUrl = note ? driveDocumentUrl(note) : '';
+          const agentReady = Boolean(note?.indexed_at);
+          return `<article class="pm-minute-card">
+            ${dateTile(task.planned_start)}
+            <div class="pm-minute-copy">
+              <h4><span class="pm-department-dot" style="background:${color}"></span>${escapeHTML(task.title)}</h4>
+              <p>${note ? escapeHTML(note.name) : 'Notes by Gemini se asociará automáticamente desde el evento y la carpeta Minutas.'}</p>
+              <div class="pm-minute-meta"><span>${escapeHTML(department.name)}</span><span>${attendeeCount} asistentes</span><span>${responsibleCount} responsables</span><span>${pendingCommitments} compromisos pendientes</span><span>${note ? escapeHTML(formatTimestamp(note.metadata?.modified_time || note.updated_at)) : 'Minuta pendiente'}</span><span>${note ? 'Fuente en modo solo lectura' : 'Visible solo internamente'}</span></div>
+            </div>
+            <div class="pm-minute-card-actions">
+              <span class="pm-status-pill ${agentReady ? 'pm-agent-ready' : 'pm-agent-pending'}">${agentReady ? 'Disponible al agente' : note ? 'Pendiente de indexar' : 'Pendiente'}</span>
+              ${noteUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(noteUrl)}" target="_blank" rel="noopener">Abrir minuta</a>` : ''}
+            </div>
+          </article>`;
+        };
+        const renderUnassignedMinute = (note) => {
+          const date = note.metadata?.meeting_date || '';
+          const noteUrl = driveDocumentUrl(note);
+          return `<article class="pm-minute-card">
+            ${dateTile(date)}
+            <div class="pm-minute-copy"><h4><span class="pm-department-dot" style="background:var(--pm-accent)"></span>${escapeHTML(note.name)}</h4><p>Minuta importada; falta asociarla a una reunión del cronograma.</p><div class="pm-minute-meta"><span>${escapeHTML(formatTimestamp(note.metadata?.modified_time || note.updated_at))}</span><span>Solo lectura</span></div></div>
+            <div class="pm-minute-card-actions"><span class="pm-status-pill ${note.indexed_at ? 'pm-agent-ready' : 'pm-agent-pending'}">${note.indexed_at ? 'Disponible al agente' : 'Pendiente de indexar'}</span>${noteUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(noteUrl)}" target="_blank" rel="noopener">Abrir minuta</a>` : ''}</div>
+          </article>`;
+        };
+        panel.innerHTML = `<div class="pm-minutes">
+          <section class="pm-minutes-hero">
+            <div><span class="pm-eyebrow">Memoria del proyecto</span><h3>Minutas y Notes by Gemini</h3><p>Las notas de cada reunión se conservarán como documentos de solo lectura. Después de indexarlas, el agente podrá consultar acuerdos, responsables, fechas, bloqueos y prioridades para responder preguntas o proponer cambios en el plan.</p></div>
+            <div class="pm-minutes-actions"><button id="sync-minutes-drive" class="pm-button pm-button-primary" type="button">Sincronizar Drive</button>${folderUrl ? `<a class="pm-button pm-button-quiet pm-link-button" href="${escapeHTML(folderUrl)}" target="_blank" rel="noopener">Abrir carpeta</a>` : '<span class="pm-status-pill pm-agent-pending">Drive pendiente</span>'}</div>
+          </section>
+          <div class="pm-minutes-stats"><article class="pm-minute-stat"><span>Reuniones del plan</span><strong>${meetingTasks.length}</strong></article><article class="pm-minute-stat"><span>Minutas disponibles</span><strong>${minuteDocuments.length}</strong></article><article class="pm-minute-stat"><span>Listas para el agente</span><strong>${indexedCount}</strong></article></div>
+          <section class="pm-minute-knowledge"><span class="pm-minute-knowledge-icon">✦</span><div><strong>Contexto autorizado para el futuro agente</strong><p>El agente podrá leer la versión indexada y citar su minuta de origen. Reprogramar tareas, cambiar responsables o priorizar eventos seguirá requiriendo una propuesta explícita y aprobación humana antes de ejecutarse.</p></div></section>
+          <p id="minutes-sync-message" class="pm-minutes-message"></p>
+          <div class="pm-minute-list">${meetingTasks.map(renderMeeting).join('')}${unassignedMinutes.map(renderUnassignedMinute).join('') || (!meetingTasks.length ? '<div class="pm-empty"><strong>No hay reuniones planificadas</strong><p>Las reuniones del cronograma aparecerán aquí para recibir su minuta.</p></div>' : '')}</div>
+        </div>`;
+        bindDriveSyncButton('sync-minutes-drive', 'minutes-sync-message');
+      }
+
+      function renderActivity() {
+        const activity = state.detail?.activity || [];
+        document.getElementById('activity-panel').innerHTML = activity.length
+          ? `<div class="pm-table-wrap"><table class="pm-table"><thead><tr><th>Fecha</th><th>Actor</th><th>Evento</th><th>Detalle</th></tr></thead><tbody>${activity.map((item) => `<tr><td>${escapeHTML(new Date(item.occurred_at).toLocaleString('es-CL'))}</td><td>${escapeHTML(item.actor_type)}</td><td>${escapeHTML(item.event_type)}</td><td>${escapeHTML(item.summary)}</td></tr>`).join('')}</tbody></table></div>`
+          : '<div class="pm-empty"><strong>Sin actividad registrada</strong><p>Las acciones humanas, del agente y de integraciones aparecerán en este registro inmutable.</p></div>';
+      }
+
+      function safeExternalUrl(value) {
+        try {
+          const url = new URL(String(value || ''));
+          return url.protocol === 'https:' ? url.toString() : '';
+        } catch {
+          return '';
+        }
+      }
+
+      function driveDocumentUrl(document) {
+        const metadataUrl = safeExternalUrl(document?.metadata?.web_view_link || document?.metadata?.webViewLink || document?.metadata?.url);
+        if (metadataUrl) return metadataUrl;
+        const fileId = String(document?.external_file_id || '');
+        if (!fileId || fileId.startsWith('pending-drive:')) return '';
+        if (isDriveFolder(document)) return `https://drive.google.com/drive/folders/${encodeURIComponent(fileId)}`;
+        return `https://drive.google.com/open?id=${encodeURIComponent(fileId)}`;
+      }
+
+      function normalizeDriveLabel(value) {
+        return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      }
+
+      function renderRequiredInputs(items = []) {
+        const container = document.getElementById('task-required-inputs');
+        const normalized = items.map((item) => {
+          if (typeof item === 'string') return { id: crypto.randomUUID(), label: item, completed: false };
+          return { id: item?.id || crypto.randomUUID(), label: item?.label || item?.name || item?.type || '', completed: item?.completed === true };
+        }).filter((item) => item.label);
+        container.innerHTML = normalized.length ? normalized.map((item) => `
+          <div class="pm-check-row ${item.completed ? 'is-complete' : ''}" data-required-input-id="${escapeHTML(item.id)}">
+            <input type="checkbox" data-required-input-check ${item.completed ? 'checked' : ''} aria-label="Completar insumo" />
+            <input type="text" data-required-input-label value="${escapeHTML(item.label)}" maxlength="300" aria-label="Insumo requerido" />
+            <button class="pm-icon-button" type="button" data-remove-required-input aria-label="Eliminar insumo">×</button>
+          </div>`).join('') : '<div class="pm-placeholder-note">No hay insumos registrados. Agrégalos como ítems verificables.</div>';
+        container.querySelectorAll('[data-required-input-check]').forEach((checkbox) => {
+          checkbox.addEventListener('change', () => checkbox.closest('.pm-check-row').classList.toggle('is-complete', checkbox.checked));
+        });
+        container.querySelectorAll('[data-remove-required-input]').forEach((button) => {
+          button.addEventListener('click', () => {
+            button.closest('.pm-check-row').remove();
+            if (!container.querySelector('.pm-check-row')) container.innerHTML = '<div class="pm-placeholder-note">No hay insumos registrados. Agrégalos como ítems verificables.</div>';
+          });
+        });
+      }
+
+      function addRequiredInput() {
+        const existing = [...document.querySelectorAll('#task-required-inputs [data-required-input-id]')].map((row) => ({
+          id: row.dataset.requiredInputId,
+          label: row.querySelector('[data-required-input-label]').value,
+          completed: row.querySelector('[data-required-input-check]').checked,
+        }));
+        existing.push({ id: crypto.randomUUID(), label: 'Nuevo insumo', completed: false });
+        renderRequiredInputs(existing);
+        document.querySelector('#task-required-inputs [data-required-input-id]:last-child [data-required-input-label]')?.select();
+      }
+
+      function renderRequiredTasks(task) {
+        const dependencies = (state.detail?.dependencies || []).filter((item) => item.successor_task_id === task.id);
+        const tasksById = new Map((state.detail?.tasks || []).map((item) => [item.id, item]));
+        const required = dependencies.map((item) => tasksById.get(item.predecessor_task_id)).filter(Boolean);
+        const container = document.getElementById('task-required-tasks');
+        container.innerHTML = required.length ? required.map((item) => {
+          const complete = item.status === 'completed' || Number(item.progress || 0) >= 100;
+          return `<div class="pm-check-row ${complete ? 'is-complete' : ''}"><input type="checkbox" ${complete ? 'checked' : ''} disabled aria-label="${complete ? 'Completada' : 'Pendiente'}" /><button class="pm-task-open pm-check-label" type="button" data-required-task-id="${escapeHTML(item.id)}">${escapeHTML(item.title)}</button><span class="pm-status-pill">${escapeHTML(taskStatusLabel(item.status))}</span></div>`;
+        }).join('') : '<div class="pm-placeholder-note">Esta tarea no depende de otras tareas.</div>';
+        container.querySelectorAll('[data-required-task-id]').forEach((button) => button.addEventListener('click', () => openTaskModal(button.dataset.requiredTaskId)));
+      }
+
+      function renderTaskDrive(task) {
+        const project = state.detail?.project || {};
+        const allItems = state.detail?.documents || [];
+        const folders = allItems.filter(isDriveFolder);
+        const files = allItems.filter((item) => !isDriveFolder(item));
+        const department = (state.bootstrap?.departments || []).find((item) => item.id === task.department_id);
+        const explicitFolderId = String(task.metadata?.drive_folder_id || '');
+        const departmentLabel = normalizeDriveLabel(department?.name);
+        const matchedFolder = folders.find((item) => String(item.external_file_id) === explicitFolderId)
+          || folders.find((item) => departmentLabel && normalizeDriveLabel(item.name).includes(departmentLabel));
+        const folderId = String(matchedFolder?.external_file_id || explicitFolderId || project.drive_root_id || '');
+        const pendingFolder = !folderId || folderId.startsWith('pending-drive:');
+        const folderUrl = driveDocumentUrl(matchedFolder) || safeExternalUrl(task.metadata?.drive_folder_url) || (folderId && !folderId.startsWith('pending-drive:') ? `https://drive.google.com/drive/folders/${encodeURIComponent(folderId)}` : '');
+        const linkedIds = new Set(Array.isArray(task.metadata?.linked_document_ids) ? task.metadata.linked_document_ids : []);
+        const linkedDocuments = files.filter((document) => linkedIds.has(document.id));
+        const folderPath = matchedFolder ? driveItemFullPath(matchedFolder) : '';
+        const scopedFiles = folderPath ? files.filter((item) => {
+          const itemPath = String(item.metadata?.folder_path || '');
+          return itemPath === folderPath || itemPath.startsWith(`${folderPath}/`);
+        }) : files;
+        const recentCandidates = [...scopedFiles];
+        linkedDocuments.forEach((document) => {
+          if (!recentCandidates.some((candidate) => candidate.id === document.id)) recentCandidates.push(document);
+        });
+        const documents = recentCandidates
+          .sort((left, right) => String(right.metadata?.modified_time || right.updated_at || '').localeCompare(String(left.metadata?.modified_time || left.updated_at || '')))
+          .slice(0, 3);
+        const childFolders = folderId ? folders.filter((item) => String(item.external_parent_id || '') === folderId).slice(0, 5) : [];
+        const foldersMarkup = childFolders.map((folder) => {
+          const url = driveDocumentUrl(folder);
+          return `<div class="pm-file-row"><span class="pm-file-icon">◆</span><span class="pm-file-copy"><strong>${escapeHTML(folder.name)}</strong><span>Subcarpeta de Drive</span></span>${url ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</div>`;
+        }).join('');
+        const filesMarkup = documents.length ? documents.map((document) => {
+          const url = driveDocumentUrl(document);
+          const modified = document.metadata?.modified_time || document.updated_at;
+          return `<div class="pm-file-row"><span class="pm-file-icon">▤</span><span class="pm-file-copy"><strong>${escapeHTML(document.name)}</strong><span>${escapeHTML(formatTimestamp(modified))}</span></span>${url ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(url)}" target="_blank" rel="noopener">Abrir</a>` : '<span class="pm-status-pill">Pendiente</span>'}</div>`;
+        }).join('') : '<div class="pm-placeholder-note">No hay archivos sincronizados dentro de esta carpeta todavía.</div>';
+        const folderName = matchedFolder?.name || (pendingFolder ? 'Carpeta pendiente de conexión' : 'Carpeta raíz del proyecto');
+        document.getElementById('task-drive-card').innerHTML = `<div class="pm-integration-head"><div><strong>${escapeHTML(folderName)}</strong><span>${pendingFolder ? 'Usará la conexión de servicio al Shared Drive de Rasika' : department ? `Drive · ${escapeHTML(department.name)} · subcarpetas y archivos recientes` : 'Drive · carpeta y subcarpetas'}</span></div>${folderUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(folderUrl)}" target="_blank" rel="noopener">Abrir carpeta</a>` : '<button class="pm-button pm-button-quiet pm-input-compact" type="button" data-provision-project-drive>Crear prueba en Drive</button>'}</div>${foldersMarkup}${filesMarkup}`;
+        document.querySelector('[data-provision-project-drive]')?.addEventListener('click', async (event) => {
+          const button = event.currentTarget;
+          const message = document.getElementById('task-form-message');
+          button.disabled = true;
+          button.textContent = 'Creando…';
+          message.textContent = '';
+          try {
+            const result = await projectRequest('', {
+              method: 'POST',
+              body: JSON.stringify({ action: 'provision_drive_test', project_id: state.selectedProjectId }),
+            });
+            await selectProject(state.selectedProjectId);
+            const refreshedTask = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId) || task;
+            renderTaskDrive(refreshedTask);
+            message.textContent = `${result.test_folder?.name || 'Carpeta de prueba'} y ${result.test_file?.name || 'archivo de prueba'} disponibles en Drive.`;
+            setSyncStatus('Drive conectado', true);
+          } catch (error) {
+            message.textContent = error.message;
+            button.disabled = false;
+            button.textContent = 'Crear prueba en Drive';
+          }
+        });
+      }
+
+      function closeCalendarPicker() {
+        state.calendarLinkContext = null;
+        document.getElementById('calendar-existing-picker').classList.add('pm-hidden');
+        document.getElementById('calendar-event-results').innerHTML = '<div class="pm-placeholder-note">Busca eventos de los calendarios autorizados para vincularlos sin duplicarlos.</div>';
+      }
+
+      function renderCalendarEventResults(events = []) {
+        const container = document.getElementById('calendar-event-results');
+        container.innerHTML = events.length ? events.map((event) => `
+          <div class="pm-calendar-event-option" data-existing-calendar-event>
+            <div><strong>${escapeHTML(event.summary || 'Evento sin título')}</strong><span>${escapeHTML(formatCalendarDateTime(event.startsAt))} · ${escapeHTML(event.calendarLabel || 'Google Calendar')}${event.location ? ` · ${escapeHTML(event.location)}` : ''}</span></div>
+            <button class="pm-button pm-button-quiet pm-input-compact" type="button" data-link-existing-calendar-event data-calendar-id="${escapeHTML(event.calendarId)}" data-event-id="${escapeHTML(event.id)}">Vincular</button>
+          </div>`).join('') : '<div class="pm-placeholder-note">No se encontraron eventos en el período autorizado.</div>';
+        container.querySelectorAll('[data-link-existing-calendar-event]').forEach((button) => button.addEventListener('click', async () => {
+          const context = state.calendarLinkContext;
+          const message = document.getElementById('task-form-message');
+          if (!context?.taskId) return;
+          button.disabled = true;
+          button.textContent = 'Vinculando…';
+          message.textContent = '';
+          try {
+            const result = await projectRequest('', {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'link_calendar_event',
+                project_id: state.selectedProjectId,
+                task_id: context.taskId,
+                block_id: context.blockId || null,
+                calendar_id: button.dataset.calendarId,
+                event_id: button.dataset.eventId,
+                ...(context.meeting ? { meeting_details: {
+                  attendees: collectMeetingPeople('meeting-attendees'),
+                  responsible_people: collectMeetingPeople('meeting-responsibles'),
+                  commitments: collectMeetingCommitments(),
+                } } : {}),
+              }),
+            });
+            replaceTaskState(result.task);
+            if (context.meeting) {
+              renderMeetingEditor(result.task);
+            } else {
+              state.editingCalendarBlocks = (result.task.metadata?.calendar_blocks || []).map((block) => ({ ...block }));
+              renderCalendarBlocks();
+            }
+            closeCalendarPicker();
+            message.textContent = 'Evento existente vinculado sin crear un duplicado.';
+            setSyncStatus('Calendar conectado', true);
+          } catch (error) {
+            message.textContent = error.message;
+            button.disabled = false;
+            button.textContent = 'Vincular';
+          }
+        }));
+      }
+
+      async function loadExistingCalendarEvents() {
+        const button = document.getElementById('search-calendar-events');
+        const container = document.getElementById('calendar-event-results');
+        button.disabled = true;
+        button.textContent = 'Buscando…';
+        container.innerHTML = '<div class="pm-placeholder-note">Consultando Google Calendar…</div>';
+        try {
+          const result = await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'list_calendar_events', project_id: state.selectedProjectId, query: document.getElementById('calendar-event-query').value.trim() }),
+          });
+          renderCalendarEventResults(result.events || []);
+          setSyncStatus('Calendar conectado', true);
+        } catch (error) {
+          container.innerHTML = `<div class="pm-placeholder-note" style="color:var(--pm-danger)">${escapeHTML(error.message)}</div>`;
+        } finally {
+          button.disabled = false;
+          button.textContent = 'Buscar';
+        }
+      }
+
+      function openCalendarPicker({ taskId, blockId = null, meeting = false }) {
+        state.calendarLinkContext = { taskId, blockId, meeting };
+        const picker = document.getElementById('calendar-existing-picker');
+        const anchor = meeting
+          ? document.getElementById('meeting-calendar-event').closest('[data-meeting-only]')
+          : document.getElementById('task-calendar-blocks').closest('[data-task-only]');
+        anchor?.insertAdjacentElement('afterend', picker);
+        picker.classList.remove('pm-hidden');
+        const query = document.getElementById('calendar-event-query');
+        query.value = '';
+        loadExistingCalendarEvents();
+        requestAnimationFrame(() => {
+          picker.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          query.focus({ preventScroll: true });
+        });
+      }
+
+      function renderCalendarBlocks() {
+        const container = document.getElementById('task-calendar-blocks');
+        container.innerHTML = state.editingCalendarBlocks.length ? state.editingCalendarBlocks.map((block) => {
+          const eventUrl = safeExternalUrl(block.event_url);
+          return `<div class="pm-calendar-row" data-calendar-block-id="${escapeHTML(block.id)}"><span class="pm-hours-badge">${escapeHTML(block.duration_hours)} h</span><span class="pm-calendar-copy"><strong>${escapeHTML(block.title || `Bloque de trabajo · ${block.duration_hours} h`)}</strong><span>${block.event_id ? 'Evento vinculado · un bloque, un evento' : 'Elige fecha y hora antes de crear o vincula uno existente'}</span></span><span class="pm-calendar-schedule"><input class="pm-input pm-input-compact" type="datetime-local" data-calendar-start value="${escapeHTML(block.starts_at || '')}" ${block.event_id ? 'disabled' : ''} aria-label="Inicio del bloque"><select class="pm-input pm-input-compact" data-calendar-status><option value="not_started" ${block.status === 'not_started' ? 'selected' : ''}>No iniciado</option><option value="in_progress" ${block.status === 'in_progress' ? 'selected' : ''}>En curso</option><option value="completed" ${block.status === 'completed' ? 'selected' : ''}>Completo</option></select></span><span class="pm-calendar-actions"><span class="pm-calendar-actions-stack">${eventUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(eventUrl)}" target="_blank" rel="noopener">Abrir evento</a>` : '<button class="pm-button pm-button-quiet pm-input-compact" type="button" data-create-calendar-event>Crear en Calendar</button><button class="pm-button pm-button-quiet pm-input-compact" type="button" data-link-calendar-block-event>Vincular existente</button>'}</span><button class="pm-icon-button" type="button" data-remove-calendar-block aria-label="Eliminar bloque">×</button></span></div>`;
+        }).join('') : '<div class="pm-placeholder-note">Agrega bloques de 2 o 4 horas. La creación en Google Calendar se activará al conectar OAuth.</div>';
+        container.querySelectorAll('select[data-calendar-status]').forEach(enhanceSelect);
+        container.querySelectorAll('[data-calendar-status]').forEach((select) => select.addEventListener('change', () => {
+          const block = state.editingCalendarBlocks.find((item) => item.id === select.closest('[data-calendar-block-id]').dataset.calendarBlockId);
+          if (block) block.status = select.value;
+        }));
+        container.querySelectorAll('[data-calendar-start]').forEach((input) => input.addEventListener('change', () => {
+          const block = state.editingCalendarBlocks.find((item) => item.id === input.closest('[data-calendar-block-id]').dataset.calendarBlockId);
+          if (block) block.starts_at = input.value;
+        }));
+        container.querySelectorAll('[data-remove-calendar-block]').forEach((button) => button.addEventListener('click', () => {
+          const id = button.closest('[data-calendar-block-id]').dataset.calendarBlockId;
+          state.editingCalendarBlocks = state.editingCalendarBlocks.filter((item) => item.id !== id);
+          renderCalendarBlocks();
+        }));
+        container.querySelectorAll('[data-link-calendar-block-event]').forEach((button) => button.addEventListener('click', () => {
+          openCalendarPicker({ taskId: state.editingTaskId, blockId: button.closest('[data-calendar-block-id]').dataset.calendarBlockId, meeting: false });
+        }));
+        container.querySelectorAll('[data-create-calendar-event]').forEach((button) => button.addEventListener('click', async () => {
+          const row = button.closest('[data-calendar-block-id]');
+          const blockId = row.dataset.calendarBlockId;
+          const localStart = row.querySelector('[data-calendar-start]').value;
+          const message = document.getElementById('task-form-message');
+          if (!localStart) { message.textContent = 'Selecciona la fecha y hora del bloque.'; return; }
+          button.disabled = true;
+          button.textContent = 'Creando…';
+          message.textContent = '';
+          try {
+            const currentTask = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId);
+            const localBlock = state.editingCalendarBlocks.find((item) => item.id === blockId);
+            if (!currentTask || !localBlock) throw new Error('No se encontró el bloque en edición.');
+            localBlock.starts_at = localStart;
+            const saved = await projectRequest('', {
+              method: 'POST',
+              body: JSON.stringify({ action: 'update_task', project_id: state.selectedProjectId, task_id: currentTask.id, version: currentTask.version, task: { calendar_blocks: state.editingCalendarBlocks } }),
+            });
+            replaceTaskState(saved.task);
+            state.editingCalendarBlocks = (saved.task.metadata?.calendar_blocks || []).map((block) => ({ ...block }));
+            const result = await projectRequest('', {
+              method:'POST',
+              body:JSON.stringify({ action:'create_calendar_event', project_id:state.selectedProjectId, task_id:state.editingTaskId, block_id:blockId, local_start:localStart }),
+            });
+            replaceTaskState(result.task);
+            state.editingCalendarBlocks = (result.task.metadata?.calendar_blocks || []).map((block) => ({ ...block }));
+            renderCalendarBlocks();
+            message.textContent = 'Bloque creado y vinculado a Google Calendar.';
+            setSyncStatus('Calendar actualizado', true);
+          } catch (error) {
+            message.textContent = error.message;
+            button.disabled = false;
+            button.textContent = 'Crear en Calendar';
+          }
+        }));
+      }
+
+      function addCalendarBlock(durationHours) {
+        const task = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId);
+        state.editingCalendarBlocks.push({ id: crypto.randomUUID(), duration_hours: durationHours, status: 'not_started', title: `Bloque de trabajo · ${durationHours} h`, event_id: null, event_url: null, starts_at:task?.planned_start ? `${task.planned_start}T09:00` : '' });
+        renderCalendarBlocks();
+      }
+
+      function setTaskModalMode(meeting) {
+        document.querySelectorAll('[data-task-only]').forEach((element) => element.classList.toggle('pm-hidden', meeting));
+        document.querySelectorAll('[data-meeting-only]').forEach((element) => element.classList.toggle('pm-hidden', !meeting));
+        document.getElementById('task-modal-title').textContent = meeting ? 'Detalle de reunión' : 'Detalle de tarea';
+        document.getElementById('task-modal-context').textContent = meeting
+          ? 'Gestiona un único evento, sus asistentes, responsables, compromisos y Notes by Gemini.'
+          : 'Edita planificación, estado, insumos y documentos desde Lista o Cronograma.';
+        document.getElementById('task-title-label').textContent = meeting ? 'Reunión' : 'Tarea';
+        document.getElementById('task-start-label').textContent = meeting ? 'Fecha de reunión' : 'Inicio planificado';
+        document.getElementById('task-description-label').textContent = meeting ? 'Agenda / propósito' : 'Descripción / notas';
+        const statusSelect = document.getElementById('task-status');
+        statusSelect.innerHTML = meeting
+          ? '<option value="not_started">Programada</option><option value="in_progress">En curso</option><option value="completed">Realizada</option><option value="cancelled">Cancelada</option>'
+          : '<option value="not_started">No iniciada</option><option value="ready">Lista</option><option value="in_progress">En curso</option><option value="blocked">Bloqueada</option><option value="in_review">En revisión</option><option value="completed">Completada</option><option value="cancelled">Cancelada</option>';
+        refreshCustomSelect(statusSelect);
+      }
+
+      function defaultMeetingPeople() {
+        const primaryContact = state.detail?.project?.primary_contact || {};
+        const attendees = [{ id: crypto.randomUUID(), name: 'José Contreras', email: 'jose.contreras@rasika.cl', role: 'Rasika' }];
+        if (primaryContact.full_name || primaryContact.email) attendees.push({ id: crypto.randomUUID(), name: primaryContact.full_name || '', email: primaryContact.email || '', role: 'Cliente' });
+        return { attendees, responsibles: [attendees[0]] };
+      }
+
+      function normalizeMeetingPeople(items = []) {
+        if (!Array.isArray(items)) return [];
+        return items.map((item) => ({ id: item?.id || crypto.randomUUID(), name: item?.name || '', email: item?.email || '', role: item?.role || '' })).filter((item) => item.name || item.email);
+      }
+
+      function renderMeetingPeople(stateKey, containerId, emptyCopy) {
+        const container = document.getElementById(containerId);
+        const people = state[stateKey] || [];
+        container.innerHTML = people.length ? people.map((person) => `<div class="pm-person-row" data-meeting-person-id="${escapeHTML(person.id)}"><input class="pm-input pm-input-compact" data-meeting-person-name value="${escapeHTML(person.name)}" maxlength="200" placeholder="Nombre" aria-label="Nombre"><input class="pm-input pm-input-compact" type="email" data-meeting-person-email value="${escapeHTML(person.email)}" maxlength="320" placeholder="correo@empresa.cl" aria-label="Correo"><input class="pm-input pm-input-compact" data-meeting-person-role value="${escapeHTML(person.role)}" maxlength="160" placeholder="Rol" aria-label="Rol"><button class="pm-icon-button" type="button" data-remove-meeting-person aria-label="Eliminar">×</button></div>`).join('') : `<div class="pm-placeholder-note">${escapeHTML(emptyCopy)}</div>`;
+        container.querySelectorAll('[data-remove-meeting-person]').forEach((button) => button.addEventListener('click', () => {
+          const id = button.closest('[data-meeting-person-id]').dataset.meetingPersonId;
+          state[stateKey] = (state[stateKey] || []).filter((person) => person.id !== id);
+          renderMeetingPeople(stateKey, containerId, emptyCopy);
+        }));
+      }
+
+      function collectMeetingPeople(containerId) {
+        return [...document.querySelectorAll(`#${containerId} [data-meeting-person-id]`)].map((row) => ({
+          id: row.dataset.meetingPersonId,
+          name: row.querySelector('[data-meeting-person-name]').value.trim(),
+          email: row.querySelector('[data-meeting-person-email]').value.trim(),
+          role: row.querySelector('[data-meeting-person-role]').value.trim(),
+        })).filter((person) => person.name || person.email);
+      }
+
+      function addMeetingPerson(stateKey, containerId, role, emptyCopy) {
+        state[stateKey].push({ id: crypto.randomUUID(), name: '', email: '', role });
+        renderMeetingPeople(stateKey, containerId, emptyCopy);
+        document.querySelector(`#${containerId} [data-meeting-person-id]:last-child [data-meeting-person-name]`)?.focus();
+      }
+
+      function renderMeetingCommitments() {
+        const container = document.getElementById('meeting-commitments');
+        container.innerHTML = state.editingMeetingCommitments.length ? state.editingMeetingCommitments.map((commitment) => `<div class="pm-commitment-row ${commitment.status === 'completed' ? 'is-complete' : ''}" data-meeting-commitment-id="${escapeHTML(commitment.id)}"><input type="checkbox" data-meeting-commitment-check ${commitment.status === 'completed' ? 'checked' : ''} aria-label="Compromiso completado"><input class="pm-input pm-input-compact" data-meeting-commitment-title value="${escapeHTML(commitment.title)}" maxlength="500" placeholder="Acuerdo o acción comprometida" aria-label="Compromiso"><input class="pm-input pm-input-compact" data-meeting-commitment-owner value="${escapeHTML(commitment.owner)}" maxlength="240" placeholder="Responsable" aria-label="Responsable"><input class="pm-input pm-input-compact" type="date" data-meeting-commitment-date value="${escapeHTML(commitment.due_date || '')}" aria-label="Fecha compromiso"><button class="pm-icon-button" type="button" data-remove-meeting-commitment aria-label="Eliminar compromiso">×</button></div>`).join('') : '<div class="pm-placeholder-note">Registra aquí acuerdos accionables, responsables y fechas comprometidas.</div>';
+        container.querySelectorAll('[data-meeting-commitment-check]').forEach((checkbox) => checkbox.addEventListener('change', () => checkbox.closest('[data-meeting-commitment-id]').classList.toggle('is-complete', checkbox.checked)));
+        container.querySelectorAll('[data-remove-meeting-commitment]').forEach((button) => button.addEventListener('click', () => {
+          const id = button.closest('[data-meeting-commitment-id]').dataset.meetingCommitmentId;
+          state.editingMeetingCommitments = state.editingMeetingCommitments.filter((commitment) => commitment.id !== id);
+          renderMeetingCommitments();
+        }));
+      }
+
+      function collectMeetingCommitments() {
+        return [...document.querySelectorAll('#meeting-commitments [data-meeting-commitment-id]')].map((row) => ({
+          id: row.dataset.meetingCommitmentId,
+          title: row.querySelector('[data-meeting-commitment-title]').value.trim(),
+          owner: row.querySelector('[data-meeting-commitment-owner]').value.trim(),
+          due_date: row.querySelector('[data-meeting-commitment-date]').value || null,
+          status: row.querySelector('[data-meeting-commitment-check]').checked ? 'completed' : 'pending',
+        })).filter((commitment) => commitment.title);
+      }
+
+      function renderMeetingCalendarEvent(task) {
+        const event = state.editingMeetingEvent;
+        const eventUrl = safeExternalUrl(event?.event_url);
+        document.getElementById('meeting-calendar-event').innerHTML = `<div class="pm-calendar-row"><span class="pm-hours-badge">1×</span><span class="pm-calendar-copy"><strong>${escapeHTML(task.title)}</strong><span>${event?.event_id ? 'Evento vinculado · una reunión, un evento' : 'Crea un Meet nuevo o vincula una reunión existente sin duplicarla'}</span></span><span class="pm-calendar-schedule"><input id="meeting-event-start" class="pm-input pm-input-compact" type="datetime-local" value="${escapeHTML(event?.starts_at || '')}" ${event?.event_id ? 'disabled' : ''} aria-label="Fecha y hora de reunión"><input id="meeting-duration" class="pm-input pm-input-compact" type="number" min="15" max="1440" step="15" value="${escapeHTML(event?.duration_minutes || 60)}" ${event?.event_id ? 'disabled' : ''} aria-label="Duración de reunión en minutos"></span><span class="pm-calendar-actions-stack">${eventUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(eventUrl)}" target="_blank" rel="noopener">Abrir evento</a>` : '<button id="create-meeting-event" class="pm-button pm-button-quiet pm-input-compact" type="button">Crear Meet e invitar</button><button id="link-existing-meeting-event" class="pm-button pm-button-quiet pm-input-compact" type="button">Vincular existente</button>'}</span></div>`;
+        document.getElementById('meeting-duration').addEventListener('input', (eventInput) => { state.editingMeetingEvent.duration_minutes = Number(eventInput.target.value || 60); });
+        document.getElementById('meeting-event-start').addEventListener('change', (eventInput) => { state.editingMeetingEvent.starts_at = eventInput.target.value; });
+        document.getElementById('link-existing-meeting-event')?.addEventListener('click', () => openCalendarPicker({ taskId: task.id, meeting: true }));
+        document.getElementById('create-meeting-event')?.addEventListener('click', async (clickEvent) => {
+          const button = clickEvent.currentTarget;
+          const message = document.getElementById('task-form-message');
+          const localStart = document.getElementById('meeting-event-start').value;
+          if (!localStart) { message.textContent = 'Selecciona la fecha y hora de la reunión.'; return; }
+          button.disabled = true;
+          button.textContent = 'Creando…';
+          message.textContent = '';
+          try {
+            const meetingDetails = {
+              attendees: collectMeetingPeople('meeting-attendees'),
+              responsible_people: collectMeetingPeople('meeting-responsibles'),
+              commitments: collectMeetingCommitments(),
+            };
+            const result = await projectRequest('', {
+              method:'POST',
+              body:JSON.stringify({ action:'create_calendar_event', project_id:state.selectedProjectId, task_id:task.id, local_start:localStart, duration_minutes:Number(state.editingMeetingEvent.duration_minutes || 60), meeting_details:meetingDetails }),
+            });
+            replaceTaskState(result.task);
+            state.editingMeetingEvent = { ...result.task.metadata.calendar_event };
+            renderMeetingCalendarEvent(result.task);
+            message.textContent = 'Meet creado, invitaciones enviadas y evento vinculado.';
+            setSyncStatus('Calendar actualizado', true);
+          } catch (error) {
+            message.textContent = error.message;
+            button.disabled = false;
+            button.textContent = 'Crear Meet e invitar';
+          }
+        });
+      }
+
+      function renderMeetingGeminiNotes(task) {
+        const note = (state.detail?.documents || []).find((document) => document.document_type === 'meeting_transcript' && String(document.metadata?.meeting_task_id || document.metadata?.task_id || '') === task.id);
+        const noteUrl = note ? driveDocumentUrl(note) : '';
+        const ready = Boolean(note?.indexed_at);
+        document.getElementById('meeting-gemini-notes').innerHTML = `<div class="pm-meeting-note"><span class="pm-meeting-note-icon">✦</span><div><strong>${note ? escapeHTML(note.name) : 'Notes by Gemini pendiente'}</strong><span>${note ? `${escapeHTML(formatTimestamp(note.metadata?.modified_time || note.updated_at))} · ${ready ? 'Disponible para el agente' : 'Pendiente de indexar'}` : 'Se asociará desde el evento de Calendar y la carpeta Minutas del Drive compartido.'}</span></div>${noteUrl ? `<a class="pm-button pm-button-quiet pm-input-compact pm-link-button" href="${escapeHTML(noteUrl)}" target="_blank" rel="noopener">Abrir minuta</a>` : '<span class="pm-status-pill pm-agent-pending">Drive pendiente</span>'}</div>`;
+      }
+
+      function renderMeetingEditor(task) {
+        const details = task.metadata?.meeting_details;
+        const defaults = defaultMeetingPeople();
+        state.editingMeetingEvent = task.metadata?.calendar_event ? { ...task.metadata.calendar_event } : { id: crypto.randomUUID(), duration_minutes: Number(task.planned_effort_minutes || 60), status: task.status || 'not_started', event_id: null, event_url: null, starts_at:task.planned_start ? `${task.planned_start}T10:00` : '' };
+        state.editingMeetingAttendees = details && Array.isArray(details.attendees) ? normalizeMeetingPeople(details.attendees) : defaults.attendees;
+        state.editingMeetingResponsibles = details && Array.isArray(details.responsible_people) ? normalizeMeetingPeople(details.responsible_people) : defaults.responsibles;
+        state.editingMeetingCommitments = details && Array.isArray(details.commitments) ? details.commitments.map((item) => ({ id: item?.id || crypto.randomUUID(), title: item?.title || item?.label || '', owner: item?.owner || '', due_date: item?.due_date || '', status: item?.status === 'completed' ? 'completed' : 'pending' })).filter((item) => item.title) : [];
+        renderMeetingCalendarEvent(task);
+        renderMeetingPeople('editingMeetingAttendees', 'meeting-attendees', 'Agrega a las personas invitadas al evento.');
+        renderMeetingPeople('editingMeetingResponsibles', 'meeting-responsibles', 'Agrega a quienes responderán por acuerdos o decisiones.');
+        renderMeetingCommitments();
+        renderMeetingGeminiNotes(task);
+      }
+
+      function openTaskModal(taskId) {
+        const task = (state.detail?.tasks || []).find((item) => item.id === taskId);
+        if (!task) return;
+        const meeting = isMeetingTask(task);
+        state.editingTaskId = task.id;
+        setTaskModalMode(meeting);
+        const departments = state.bootstrap?.departments || [];
+        document.getElementById('task-department').innerHTML = departments.map((department) => (
+          `<option value="${escapeHTML(department.id)}" ${department.id === task.department_id ? 'selected' : ''}>${escapeHTML(department.name)}</option>`
+        )).join('');
+        document.getElementById('task-title').value = task.title || '';
+        document.getElementById('task-status').value = task.status || 'not_started';
+        document.getElementById('task-start').value = task.planned_start || '';
+        document.getElementById('task-end').value = task.planned_end || '';
+        document.getElementById('task-forecast-start').value = task.forecast_start || '';
+        document.getElementById('task-forecast-end').value = task.forecast_end || '';
+        document.getElementById('task-progress').value = Number(task.progress || 0);
+        document.getElementById('task-effort').value = Math.round(Number(task.planned_effort_minutes || 0) / 6) / 10;
+        document.getElementById('task-actual-effort').value = Math.round(Number(task.actual_effort_minutes || 0) / 6) / 10;
+        document.getElementById('task-description').value = task.description || '';
+        if (meeting) {
+          state.editingCalendarBlocks = [];
+          renderMeetingEditor(task);
+        } else {
+          document.getElementById('task-tags').value = Array.isArray(task.metadata?.tags) ? task.metadata.tags.join(', ') : '';
+          renderRequiredInputs(Array.isArray(task.required_inputs) ? task.required_inputs : []);
+          renderRequiredTasks(task);
+          renderTaskDrive(task);
+          state.editingCalendarBlocks = Array.isArray(task.metadata?.calendar_blocks) && task.metadata.calendar_blocks.length
+            ? task.metadata.calendar_blocks.map((block, index) => ({ ...block, starts_at:block.starts_at || (task.planned_start ? `${task.planned_start}T${index % 2 === 0 ? '09:00' : '13:30'}` : '') }))
+            : [
+              { id: crypto.randomUUID(), duration_hours: 2, status: 'not_started', title: 'Bloque de trabajo · 2 h', event_id: null, event_url: null, starts_at:task.planned_start ? `${task.planned_start}T09:00` : '' },
+              { id: crypto.randomUUID(), duration_hours: 4, status: 'not_started', title: 'Bloque de trabajo · 4 h', event_id: null, event_url: null, starts_at:task.planned_start ? `${task.planned_start}T13:30` : '' },
+            ];
+          renderCalendarBlocks();
+          document.getElementById('task-client-visible').checked = task.client_visible !== false;
+          const linkedDocumentIds = new Set(Array.isArray(task.metadata?.linked_document_ids) ? task.metadata.linked_document_ids : []);
+          const documents = (state.detail?.documents || []).filter((document) => !isDriveFolder(document));
+          document.getElementById('task-document-options').innerHTML = documents.length
+            ? documents.map((document) => `<label class="pm-document-option"><input type="checkbox" name="task-document" value="${escapeHTML(document.id)}" ${linkedDocumentIds.has(document.id) ? 'checked' : ''}><span><strong>${escapeHTML(document.name)}</strong><span>${escapeHTML(document.metadata?.folder_path || 'Raíz')} · ${escapeHTML(driveItemTypeLabel(document))} · ${document.access_mode === 'suggest_only' ? 'Solo sugerencias + HIL' : 'Solo lectura'}</span></span></label>`).join('')
+            : '<div class="pm-empty" style="padding:18px"><p>No hay documentos de Drive todavía. El selector se activará cuando conectemos la carpeta del proyecto.</p></div>';
+        }
+        enhanceSelect(document.getElementById('task-department'));
+        enhanceSelect(document.getElementById('task-status'));
+        state.taskDeleteArmed = false;
+        const deleteButton = document.getElementById('delete-task');
+        deleteButton.disabled = false;
+        deleteButton.textContent = meeting ? 'Eliminar reunión' : 'Eliminar tarea';
+        document.getElementById('task-form-message').textContent = '';
+        document.getElementById('task-modal').classList.remove('pm-hidden');
+        document.getElementById('task-title').focus();
+      }
+
+      function closeTaskModal() {
+        state.taskDeleteArmed = false;
+        const deleteButton = document.getElementById('delete-task');
+        deleteButton.disabled = false;
+        deleteButton.textContent = 'Eliminar tarea';
+        state.editingTaskId = null;
+        state.editingCalendarBlocks = [];
+        state.editingMeetingEvent = null;
+        state.editingMeetingAttendees = [];
+        state.editingMeetingResponsibles = [];
+        state.editingMeetingCommitments = [];
+        closeCalendarPicker();
+        closeCustomSelects();
+        document.getElementById('task-modal').classList.add('pm-hidden');
+      }
+
+      async function deleteCurrentTask() {
+        const task = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId);
+        if (!task || !state.selectedProjectId) return;
+        const meeting = isMeetingTask(task);
+        const button = document.getElementById('delete-task');
+        const message = document.getElementById('task-form-message');
+        if (!state.taskDeleteArmed) {
+          state.taskDeleteArmed = true;
+          button.textContent = 'Confirmar eliminación';
+          message.textContent = `${meeting ? 'La reunión' : 'La tarea'} se quitará del plan y de la vista compartida. Su historial se conservará.`;
+          return;
+        }
+        button.disabled = true;
+        button.textContent = 'Eliminando…';
+        try {
+          await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'delete_task',
+              project_id: state.selectedProjectId,
+              task_id: task.id,
+              version: task.version,
+            }),
+          });
+          const projectId = state.selectedProjectId;
+          closeTaskModal();
+          await loadProjects(projectId);
+          setSyncStatus(`${meeting ? 'Reunión' : 'Tarea'} eliminada`, true);
+        } catch (error) {
+          state.taskDeleteArmed = false;
+          button.disabled = false;
+          button.textContent = meeting ? 'Eliminar reunión' : 'Eliminar tarea';
+          message.textContent = error.message;
+        }
+      }
+
+      function renderWorkspace() {
+        renderProjectHeading();
+        renderTimeline();
+        renderTaskList();
+        renderServices();
+        renderDocuments();
+        renderMinutes();
+        renderActivity();
+      }
+
+      async function selectProject(projectId) {
+        if (!projectId) return;
+        if (state.selectedProjectId && state.selectedProjectId !== projectId) state.collapsedDepartments.clear();
+        state.selectedProjectId = projectId;
+        renderProjectList();
+        document.querySelector('.pm-workspace').classList.add('pm-loading');
+        try {
+          state.detail = await projectRequest(`?resource=project&id=${encodeURIComponent(projectId)}`);
+          renderWorkspace();
+        } catch (error) {
+          document.getElementById('timeline-panel').innerHTML = `<div class="pm-empty"><strong>No pudimos abrir el proyecto</strong><p>${escapeHTML(error.message)}</p></div>`;
+        } finally {
+          document.querySelector('.pm-workspace').classList.remove('pm-loading');
+        }
+      }
+
+      async function loadProjects(preferredProjectId = null) {
+        setSyncStatus('Actualizando');
+        try {
+          state.bootstrap = await projectRequest('?resource=bootstrap');
+          document.getElementById('profile-name').textContent = state.bootstrap.profile?.full_name || state.bootstrap.profile?.email || 'Acceso privado';
+          renderMetrics();
+          const projects = state.bootstrap.projects || [];
+          const selectedId = preferredProjectId || state.selectedProjectId || projects[0]?.id || null;
+          state.selectedProjectId = selectedId;
+          renderProjectList();
+          populateCreateForm();
+          if (selectedId) await selectProject(selectedId);
+          else {
+            state.detail = null;
+            renderWorkspace();
+          }
+          setSyncStatus('Datos al día', true);
+        } catch (error) {
+          setSyncStatus('Sin conexión');
+          state.detail = null;
+          renderMetrics();
+          renderProjectList();
+          renderWorkspace();
+          document.getElementById('timeline-panel').innerHTML = `<div class="pm-empty"><strong>La base está preparada, pero aún no está desplegada</strong><p>${escapeHTML(error.message)}. Revisa el archivo de accesos pendientes antes de aplicar la migración y la función.</p></div>`;
+        }
+      }
+
+      async function refreshProjectsAndDrive() {
+        const selectedId = state.selectedProjectId;
+        setSyncStatus('Actualizando Drive y proyecto');
+        if (!selectedId) {
+          await loadProjects();
+          return;
+        }
+        try {
+          const driveResult = await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({ action:'sync_drive', project_id:selectedId }),
+          });
+          await loadProjects(selectedId);
+          setSyncStatus(`Drive: ${driveResult.files} archivos · proyecto al día`, true);
+        } catch (error) {
+          await loadProjects(selectedId);
+          setSyncStatus('Drive sin actualizar · proyecto recargado');
+        }
+      }
+
+      function populateContacts() {
+        const organizationId = document.getElementById('project-organization').value;
+        const contacts = (state.bootstrap?.clients?.contacts || []).filter((contact) => contact.organization_ids?.includes(organizationId));
+        document.getElementById('project-contact').innerHTML = `<option value="">Seleccionar contacto</option>${contacts.map((contact) => `<option value="${escapeHTML(contact.id)}">${escapeHTML(contact.full_name || contact.email)} · ${escapeHTML(contact.email)}</option>`).join('')}`;
+        refreshCustomSelect(document.getElementById('project-contact'));
+      }
+
+      function populateCreateForm() {
+        const organizations = state.bootstrap?.clients?.organizations || [];
+        document.getElementById('project-organization').innerHTML = `<option value="">Seleccionar cliente</option>${organizations.map((organization) => `<option value="${escapeHTML(organization.id)}">${escapeHTML(organization.display_name || organization.legal_name)}</option>`).join('')}`;
+        refreshCustomSelect(document.getElementById('project-organization'));
+        populateContacts();
+        const activeBlueprintServices = new Set((state.bootstrap?.blueprints || []).filter((blueprint) => blueprint.status === 'active').map((blueprint) => blueprint.service_id));
+        document.getElementById('project-service-options').innerHTML = (state.bootstrap?.services || []).map((service) => {
+          const hasTemplate = activeBlueprintServices.has(service.id);
+          return `<label class="pm-service-option"><input type="checkbox" name="project-service" value="${escapeHTML(service.id)}"><span><strong>${escapeHTML(service.service_name)}</strong><span>${escapeHTML(service.category || 'Servicio Rasika')}</span></span><span class="pm-template-badge ${hasTemplate ? '' : 'is-missing'}">${hasTemplate ? 'Plantilla activa' : 'Por calibrar'}</span></label>`;
+        }).join('') || '<div class="pm-empty" style="padding:20px"><p>No se encontró el catálogo.</p></div>';
+      }
+
+      function openCreateModal() {
+        state.createKey = crypto.randomUUID();
+        document.getElementById('new-project-form').reset();
+        populateCreateForm();
+        refreshCustomSelect(document.getElementById('project-priority'));
+        const today = new Date();
+        const end = new Date(today.getTime() + 30 * 86400000);
+        document.getElementById('project-start').value = today.toISOString().slice(0, 10);
+        document.getElementById('project-end').value = end.toISOString().slice(0, 10);
+        document.getElementById('project-form-message').textContent = '';
+        document.getElementById('project-modal').classList.remove('pm-hidden');
+        document.getElementById('project-name').focus();
+      }
+
+      function closeCreateModal() {
+        closeCustomSelects();
+        document.getElementById('project-modal').classList.add('pm-hidden');
+      }
+
+      function applySidebarState(collapsed) {
+        const app = document.getElementById('projects-app');
+        const button = document.getElementById('sidebar-toggle');
+        app.classList.toggle('sidebar-collapsed', collapsed);
+        button.setAttribute('aria-expanded', String(!collapsed));
+        button.setAttribute('aria-label', collapsed ? 'Expandir barra lateral' : 'Contraer barra lateral');
+        localStorage.setItem('rasikaProjectsSidebarCollapsed', collapsed ? 'true' : 'false');
+      }
+
+      function syncTaskCompletion(source) {
+        const status = document.getElementById('task-status');
+        const progress = document.getElementById('task-progress');
+        let progressValue = Math.max(0, Math.min(100, Number(progress.value || 0)));
+        if (source === 'status' && status.value === 'completed') progressValue = 100;
+        if (source === 'progress') {
+          if (progressValue >= 100 && status.value !== 'cancelled') status.value = 'completed';
+          else if (status.value === 'completed') status.value = progressValue > 0 ? 'in_progress' : 'not_started';
+          else if (progressValue > 0 && ['not_started', 'ready'].includes(status.value)) status.value = 'in_progress';
+        }
+        progress.value = Math.round(progressValue);
+        refreshCustomSelect(status);
+      }
+
+      document.getElementById('projects-login-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const errorElement = document.getElementById('projects-login-error');
+        errorElement.textContent = '';
+        try {
+          const response = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: SUPABASE_KEY },
+            body: JSON.stringify({
+              email: document.getElementById('projects-email').value,
+              password: document.getElementById('projects-password').value,
+            }),
+          });
+          const result = await response.json();
+          if (!response.ok || !result.access_token) throw new Error(result.error_description || result.msg || 'Credenciales incorrectas.');
+          sessionStorage.setItem('adminToken', result.access_token);
+          showProjectsApp();
+          await loadProjects();
+        } catch (error) {
+          errorElement.textContent = error.message;
+        }
+      });
+
+      document.getElementById('new-project-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const message = document.getElementById('project-form-message');
+        const submit = document.getElementById('submit-project');
+        const services = [...document.querySelectorAll('input[name="project-service"]:checked')].map((input) => ({ service_id: input.value, quantity: 1 }));
+        if (!services.length) {
+          message.textContent = 'Selecciona al menos un servicio.';
+          return;
+        }
+        message.textContent = '';
+        submit.disabled = true;
+        submit.textContent = 'Creando…';
+        try {
+          const result = await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'create_project',
+              idempotency_key: state.createKey,
+              project: {
+                name: document.getElementById('project-name').value,
+                organization_id: document.getElementById('project-organization').value,
+                primary_contact_id: document.getElementById('project-contact').value,
+                planned_start: document.getElementById('project-start').value,
+                committed_completion_date: document.getElementById('project-end').value,
+                estimated_working_days: document.getElementById('project-days').value || null,
+                priority: document.getElementById('project-priority').value,
+                status: 'planned',
+                services,
+              },
+            }),
+          });
+          const projectId = result.project?.id || result?.project?.project?.id;
+          closeCreateModal();
+          await loadProjects(projectId);
+        } catch (error) {
+          message.textContent = error.message;
+        } finally {
+          submit.disabled = false;
+          submit.textContent = 'Crear proyecto';
+        }
+      });
+
+      document.getElementById('task-edit-form').addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const task = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId);
+        if (!task || !state.selectedProjectId) return;
+        const meeting = isMeetingTask(task);
+        const message = document.getElementById('task-form-message');
+        const submit = document.getElementById('submit-task-edit');
+        const plannedStart = document.getElementById('task-start').value || null;
+        const plannedEnd = meeting ? plannedStart : (document.getElementById('task-end').value || null);
+        const forecastStart = meeting ? null : (document.getElementById('task-forecast-start').value || null);
+        const forecastEnd = meeting ? null : (document.getElementById('task-forecast-end').value || null);
+        if (!meeting && plannedStart && plannedEnd && plannedEnd < plannedStart) {
+          message.textContent = 'La fecha de término no puede ser anterior al inicio.';
+          return;
+        }
+        if (!meeting && forecastStart && forecastEnd && forecastEnd < forecastStart) {
+          message.textContent = 'El término previsto no puede ser anterior al inicio previsto.';
+          return;
+        }
+        message.textContent = '';
+        submit.disabled = true;
+        submit.textContent = 'Guardando…';
+        try {
+          const commonUpdate = {
+            title: document.getElementById('task-title').value,
+            department_id: document.getElementById('task-department').value,
+            status: document.getElementById('task-status').value,
+            planned_start: plannedStart,
+            planned_end: plannedEnd,
+            description: document.getElementById('task-description').value,
+          };
+          const taskUpdate = meeting ? {
+            ...commonUpdate,
+            calendar_event: {
+              ...state.editingMeetingEvent,
+              duration_minutes: Math.round(Number(state.editingMeetingEvent?.duration_minutes || 60)),
+              status: document.getElementById('task-status').value,
+            },
+            meeting_details: {
+              attendees: collectMeetingPeople('meeting-attendees'),
+              responsible_people: collectMeetingPeople('meeting-responsibles'),
+              commitments: collectMeetingCommitments(),
+            },
+          } : {
+            ...commonUpdate,
+            progress: document.getElementById('task-progress').value,
+            forecast_start: forecastStart,
+            forecast_end: forecastEnd,
+            planned_effort_minutes: Math.round(Number(document.getElementById('task-effort').value || 0) * 60),
+            actual_effort_minutes: Math.round(Number(document.getElementById('task-actual-effort').value || 0) * 60),
+            client_visible: document.getElementById('task-client-visible').checked,
+            required_inputs: [...document.querySelectorAll('#task-required-inputs [data-required-input-id]')].map((row) => ({
+              id: row.dataset.requiredInputId,
+              label: row.querySelector('[data-required-input-label]').value.trim(),
+              completed: row.querySelector('[data-required-input-check]').checked,
+            })).filter((item) => item.label),
+            tags: document.getElementById('task-tags').value.split(',').map((value) => value.trim()).filter(Boolean),
+            linked_document_ids: [...document.querySelectorAll('input[name="task-document"]:checked')].map((input) => input.value),
+            calendar_blocks: state.editingCalendarBlocks,
+          };
+          await projectRequest('', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'update_task',
+              project_id: state.selectedProjectId,
+              task_id: task.id,
+              version: task.version,
+              task: taskUpdate,
+            }),
+          });
+          closeTaskModal();
+          await selectProject(state.selectedProjectId);
+          setSyncStatus('Cambios guardados', true);
+        } catch (error) {
+          message.textContent = error.message;
+        } finally {
+          submit.disabled = false;
+          submit.textContent = 'Guardar cambios';
+        }
+      });
+
+      document.getElementById('project-organization').addEventListener('change', populateContacts);
+      document.getElementById('task-status').addEventListener('change', () => {
+        const task = (state.detail?.tasks || []).find((item) => item.id === state.editingTaskId);
+        if (isMeetingTask(task)) {
+          if (state.editingMeetingEvent) state.editingMeetingEvent.status = document.getElementById('task-status').value;
+        } else {
+          syncTaskCompletion('status');
+        }
+      });
+      document.getElementById('task-progress').addEventListener('input', () => syncTaskCompletion('progress'));
+      document.getElementById('add-required-input').addEventListener('click', addRequiredInput);
+      document.getElementById('add-meeting-attendee').addEventListener('click', () => addMeetingPerson('editingMeetingAttendees', 'meeting-attendees', 'Invitado', 'Agrega a las personas invitadas al evento.'));
+      document.getElementById('add-meeting-responsible').addEventListener('click', () => addMeetingPerson('editingMeetingResponsibles', 'meeting-responsibles', 'Responsable', 'Agrega a quienes responderán por acuerdos o decisiones.'));
+      document.getElementById('add-meeting-commitment').addEventListener('click', () => {
+        state.editingMeetingCommitments.push({ id: crypto.randomUUID(), title: '', owner: '', due_date: '', status: 'pending' });
+        renderMeetingCommitments();
+        document.querySelector('#meeting-commitments [data-meeting-commitment-id]:last-child [data-meeting-commitment-title]')?.focus();
+      });
+      document.querySelectorAll('[data-add-calendar-block]').forEach((button) => button.addEventListener('click', () => addCalendarBlock(Number(button.dataset.addCalendarBlock))));
+      document.getElementById('link-existing-task-event').addEventListener('click', () => openCalendarPicker({ taskId: state.editingTaskId, meeting: false }));
+      document.getElementById('search-calendar-events').addEventListener('click', loadExistingCalendarEvents);
+      document.getElementById('calendar-event-query').addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); loadExistingCalendarEvents(); } });
+      document.getElementById('close-calendar-picker').addEventListener('click', closeCalendarPicker);
+      document.getElementById('new-project-button').addEventListener('click', openCreateModal);
+      document.getElementById('close-project-modal').addEventListener('click', closeCreateModal);
+      document.getElementById('cancel-project').addEventListener('click', closeCreateModal);
+      document.getElementById('close-task-modal').addEventListener('click', closeTaskModal);
+      document.getElementById('cancel-task-edit').addEventListener('click', closeTaskModal);
+      document.getElementById('delete-task').addEventListener('click', deleteCurrentTask);
+      document.getElementById('close-project-share').addEventListener('click', closeProjectShareModal);
+      document.getElementById('done-project-share').addEventListener('click', closeProjectShareModal);
+      document.getElementById('copy-project-share').addEventListener('click', copyProjectShareLink);
+      document.getElementById('revoke-project-share').addEventListener('click', revokeProjectShareLink);
+      document.getElementById('manage-departments-button').addEventListener('click', openDepartmentsModal);
+      document.getElementById('close-departments-modal').addEventListener('click', closeDepartmentsModal);
+      document.getElementById('done-departments-modal').addEventListener('click', closeDepartmentsModal);
+      document.getElementById('create-department-form').addEventListener('submit', createDepartment);
+      document.getElementById('projects-logout').addEventListener('click', logoutProjects);
+      document.getElementById('refresh-projects').addEventListener('click', refreshProjectsAndDrive);
+      document.getElementById('sidebar-toggle').addEventListener('click', () => applySidebarState(!document.getElementById('projects-app').classList.contains('sidebar-collapsed')));
+      document.getElementById('mobile-menu').addEventListener('click', () => document.getElementById('projects-app').classList.toggle('sidebar-open'));
+      document.querySelectorAll('.pm-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.pm-tab').forEach((item) => item.classList.toggle('is-active', item === tab));
+          document.querySelectorAll('[data-panel]').forEach((panel) => panel.classList.toggle('pm-hidden', panel.dataset.panel !== tab.dataset.tab));
+        });
+      });
+      document.getElementById('project-modal').addEventListener('click', (event) => {
+        if (event.target.id === 'project-modal') closeCreateModal();
+      });
+      document.getElementById('task-modal').addEventListener('click', (event) => {
+        if (event.target.id === 'task-modal') closeTaskModal();
+      });
+      document.getElementById('project-share-modal').addEventListener('click', (event) => {
+        if (event.target.id === 'project-share-modal') closeProjectShareModal();
+      });
+      document.getElementById('departments-modal').addEventListener('click', (event) => {
+        if (event.target.id === 'departments-modal') closeDepartmentsModal();
+      });
+      document.addEventListener('click', (event) => {
+        if (!event.target.closest('.pm-select')) closeCustomSelects();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeCustomSelects();
+      });
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        document.querySelectorAll('select.pm-input').forEach(enhanceSelect);
+        applySidebarState(localStorage.getItem('rasikaProjectsSidebarCollapsed') === 'true');
+        renderMetrics();
+        renderProjectList();
+        renderWorkspace();
+        if (currentToken()) {
+          showProjectsApp();
+          await loadProjects();
+        } else {
+          showProjectsLogin();
+        }
+      });
+    </script>
+  </body>
+</html>
